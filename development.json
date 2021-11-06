@@ -1,0 +1,6 @@
+{
+  "uid": "app",
+  "append": true,
+  "watch": false,
+  "script": "./dist/server.js"
+}

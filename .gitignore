@@ -1,0 +1,10 @@
+node_modules
+.env
+.local.env
+dist
+./src/**/*.js
+bin/*.jpg
+functions/env.json
+functions/ui-debug.log
+firestore-debug.log
+firebase-debug.log
