@@ -13,6 +13,7 @@ interface StateResponseBody {
 }
 
 export const stateHandler = async (req: express.Request, res: express.Response) => {
+  console.log('ran');
   try {
     const numbers = await AccessQueues.getAccessQueues();
     const chainLoad = await getChainLoad() ?? 0;
