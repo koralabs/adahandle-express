@@ -48,8 +48,7 @@ export class AccessQueues {
     await Promise.all(pending.docs.map(async doc => {
       const entry = doc.data();
       await delay(Math.floor(Math.random() * 100));
-      // TODO: Add twilio verification
-      const data = { sid: 'test', status: 'pending' } //await createTwilioVerification(entry.phone).catch(e => console.log(e));
+      const data = await createTwilioVerification(entry.phone).catch(e => console.log(e));
       if (data) {
         await admin.firestore().runTransaction(async t => {
           console.log(`updated entry ${doc.id}`);
