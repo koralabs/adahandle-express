@@ -18,8 +18,8 @@ export class AccessQueue extends BaseModel {
         super();
         this.phone = phone;
         this.sid = sid;
-        this.status = status;
-        this.start = start;
-        this.dateAdded = Date.now();
+        this.status = status ?? 'queued'; //'pending';
+        this.start = start //new Date().setMinutes(new Date().getMinutes() - 11);
+        this.dateAdded = Date.now() // new Date().setMilliseconds(new Date().getMilliseconds() + Math.floor(Math.random() * 2000));
     }
 }
