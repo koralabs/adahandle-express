@@ -12,6 +12,11 @@ export class ActiveSessions {
     }));
   }
 
+  /**
+   *
+   * Should be good to go.
+   *
+   */
   public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
     return admin.firestore().runTransaction(async t => {
       const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).limit(1));
@@ -24,19 +29,19 @@ export class ActiveSessions {
     });
   }
 
-  public static async removeActiveSessions(oldSessions: ActiveSession[]): Promise<admin.firestore.WriteResult[]> {
-    const db = admin.firestore();
-    const batch = db.batch();
+  public static async removeActiveSessions(oldSessions: ActiveSession[]): Promise<void> {
+    const snapshot = await admin.firestore().collection(ActiveSessions.collectionName).get();
+    if (snapshot.empty) {
+      return;
+    }
 
-    // This can only handle 25 requests at a time. Do we need to chunk?
-    await Promise.all(
-      oldSessions.slice(0, 25).map(async session => {
-        const collectionQuery = db.collection(ActiveSessions.collectionName).where('wallet.address', '==', session.wallet.address).limit(1);
-        const collectionRef = await collectionQuery.get().then(res => res.docs[0].ref);
-        batch.delete(collectionRef);
+    Promise.all(
+      snapshot.docs.filter(doc => oldSessions.some(oldSession => oldSession.wallet.address === doc.data()?.wallet?.address)).map(async doc => {
+        return admin.firestore().runTransaction(async t => {
+          const snapshot = await t.get(doc.ref);
+          t.delete(snapshot.ref);
+        });
       })
     );
-
-    return await batch.commit();
   }
 }

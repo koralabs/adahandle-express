@@ -7,7 +7,6 @@ import { ActiveSession } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
-import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
 
 /**
@@ -95,20 +94,22 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     }
   );
 
-  // TODO: add all to a transaction
   const promises = [
     RefundableSessions.addRefundableSessions(refundableVal),
     PaidSessions.addPaidSessions(paidVal),
     ActiveSessions.removeActiveSessions(removableActiveVal)
-    // PendingSessions.removePendingSessions(expiredPending),
   ]
 
   try {
     // Update session states.
-    const updates = await Promise.all(promises);
+    await Promise.all(promises);
     return res.status(200).json({
       error: false,
-      jobs: updates
+      jobs: {
+        refund: refundableVal.length,
+        paid: paidVal.length,
+        removed: removableActiveVal.length
+      }
     })
   } catch (e) {
     return res.status(500).json({

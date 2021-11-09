@@ -26,13 +26,11 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       .phoneNumbers(req.headers[HEADER_PHONE] as string)
       .fetch();
 
-    const { updated, alreadyExists, position, chainLoad } = await appendAccessQueueData(phoneNumber);
+    const { updated, alreadyExists } = await appendAccessQueueData(phoneNumber);
     return res.status(200).json({
       error: false,
       updated,
       alreadyExists,
-      position,
-      chainLoad,
       message: alreadyExists
         ? `You already did that!`
         : null,

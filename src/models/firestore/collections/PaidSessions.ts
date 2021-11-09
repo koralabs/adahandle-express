@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { PaidSession } from "../../PaidSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
@@ -10,17 +11,16 @@ export class PaidSessions {
         return collection.docs.map(doc => doc.data() as PaidSession);
     }
 
+    // TODO: Add load test
     static async removePaidSessionByWalletAddress({ address }: { address: string }): Promise<void> {
         try {
             await admin.firestore().runTransaction(async t => {
-                const snapshot = await t.get(admin.firestore().collection(PaidSessions.collectionName));
+                const snapshot = await t.get(admin.firestore().collection(PaidSessions.collectionName).where('wallet.address', '==', address).limit(1));
+                if (snapshot.empty) {
+                    return;
+                }
 
-                snapshot.docs.forEach(doc => {
-                    const paidSession = doc.data() as PaidSession;
-                    if (paidSession.wallet.address === address) {
-                        t.delete(doc.ref);
-                    }
-                });
+                t.delete(snapshot.docs[0].ref);
             });
         } catch (error) {
             console.log(error);
@@ -28,28 +28,37 @@ export class PaidSessions {
         }
     }
 
-    static async addPaidSessions(paidSessions: PaidSession[]): Promise<FirebaseFirestore.WriteResult[]> {
+    // TODO: Add load test
+    static async addPaidSessions(paidSessions: PaidSession[]): Promise<void> {
         const db = admin.firestore();
-        const batch = db.batch();
 
-        // This can only handle 25 requests at a time. Do we need to chunk?
-        paidSessions.forEach(session => {
-            const collectionRef = db.collection(PaidSessions.collectionName).doc();
-            batch.create(collectionRef, session.toJSON());
+        const paidSessionChunks = chunk(paidSessions, 500);
+        await asyncForEach(paidSessionChunks, async (paidSessions, index) => {
+            const batch = db.batch();
+            paidSessions.forEach(session => {
+                const docRef = db.collection(PaidSessions.collectionName).doc();
+                batch.create(docRef, session.toJSON());
+            });
+
+            await batch.commit();
+            console.log(`Batch ${index} of ${paidSessionChunks.length} completed`);
+            await delay(1000);
         });
-
-        return await batch.commit();
     }
 
     static async removePaidSessions(paidSessions: PaidSession[]): Promise<void> {
-        await admin.firestore().runTransaction(async t => {
-            const snapshot = await t.get(admin.firestore().collection(PaidSessions.collectionName));
-            snapshot.docs.forEach(doc => {
-                const paidSession = doc.data() as PaidSession;
-                if (paidSessions.find(p => p.wallet.address === paidSession.wallet.address)) {
-                    t.delete(doc.ref);
-                }
-            });
-        });
+        const snapshot = await admin.firestore().collection(PaidSessions.collectionName).get();
+        if (snapshot.empty) {
+            return;
+        }
+
+        await Promise.all(
+            snapshot.docs.filter(doc => paidSessions.some(paidSession => paidSession.wallet.address === doc.data()?.wallet?.address)).map(async doc => {
+                await admin.firestore().runTransaction(async t => {
+                    const snapshot = await t.get(doc.ref);
+                    t.delete(snapshot.ref);
+                });
+            })
+        );
     }
 }

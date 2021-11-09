@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { RefundableSession } from "../../RefundableSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
@@ -10,34 +11,37 @@ export class RefundableSessions {
         return collection.docs.map(doc => doc.data() as RefundableSession);
     }
 
-    static async addRefundableSessions(refundableSessions: RefundableSession[]): Promise<FirebaseFirestore.WriteResult[]> {
+    static async addRefundableSessions(refundableSessions: RefundableSession[]): Promise<void> {
         const db = admin.firestore();
-        const batch = db.batch();
 
-        // This can only handle 25 requests at a time. Do we need to chunk?
-        refundableSessions.forEach(session => {
-            const collectionRef = db.collection(RefundableSessions.collectionName).doc();
-            batch.create(collectionRef, session.toJSON());
+        const refundableSessionChunks = chunk(refundableSessions, 500);
+        await asyncForEach(refundableSessionChunks, async (refundableSessionItems, index) => {
+            const batch = db.batch();
+            refundableSessionItems.forEach(session => {
+                const docRef = db.collection(RefundableSessions.collectionName).doc();
+                batch.create(docRef, session.toJSON());
+            });
+
+            await batch.commit();
+            console.log(`Batch ${index} of ${refundableSessionChunks.length} completed`);
+            await delay(1000);
         });
-
-        return await batch.commit();
     }
 
+    // TODO: Add load test
     static async removeSessionByWalletAddress(address: string): Promise<void> {
         try {
             await admin.firestore().runTransaction(async t => {
-                const snapshot = await t.get(admin.firestore().collection(RefundableSessions.collectionName));
+                const snapshot = await t.get(admin.firestore().collection(RefundableSessions.collectionName).where('wallet.address', '==', address).limit(1));
+                if (snapshot.empty) {
+                    return;
+                }
 
-                snapshot.docs.forEach(doc => {
-                    const paidSession = doc.data() as RefundableSession;
-                    if (paidSession.wallet.address === address) {
-                        t.delete(doc.ref);
-                    }
-                });
+                t.delete(snapshot.docs[0].ref);
             });
         } catch (error) {
             console.log(error);
-            throw new Error(`Unable to remove paid sessions for wallet address ${address}`);
+            throw new Error(`Unable to remove refundable sessions for wallet ${address}`);
         }
     }
 }

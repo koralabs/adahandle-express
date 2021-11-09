@@ -38,35 +38,16 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       .phoneNumbers(req.headers[HEADER_PHONE] as string)
       .fetch()
 
-    let status;
-    const testingWhiteList = [
-      '+12122131609',
-      '+12122131610',
-      '+12122131611',
-      '+12122131612',
-      '+12122131613',
-      '+12122131614',
-      '+12122131615',
-      '+12122131616',
-      '+12122131617',
-      '+12122131618',
-      '+12122131619',
-      '+12122131620'
-    ];
-    if (testingWhiteList.includes(phoneNumber)) {
-      status = 'approved';
-    } else {
-      status = await client
-        .verify
-        .services(service.sid)
-        .verificationChecks
-        .create({
-          to: phoneNumber,
-          code: req.headers[HEADER_PHONE_AUTH] as string
-        })
-        .then(res => res.status)
-        .catch(e => console.log(e));
-    }
+    const status = await client
+      .verify
+      .services(service.sid)
+      .verificationChecks
+      .create({
+        to: phoneNumber,
+        code: req.headers[HEADER_PHONE_AUTH] as string
+      })
+      .then(res => res.status)
+      .catch(e => console.log(e));
 
     if ('approved' !== status) {
       return res.status(403).json({

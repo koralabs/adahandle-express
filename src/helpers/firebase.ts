@@ -1,14 +1,6 @@
 import * as admin from "firebase-admin";
-import { ActiveSession } from "../models/ActiveSession";
 import { AccessQueues } from "../models/firestore/collections/AccessQueues";
-import { PaidSessions } from "../models/firestore/collections/PaidSessions";
-import { RefundableSessions } from "../models/firestore/collections/RefundableSessions";
-import { PaidSession } from "../models/PaidSession";
-import { RefundableSession } from "../models/RefundableSession";
 import { getS3 } from "./aws";
-import { getChainLoad } from "./cardano";
-import { lookupReturnAddresses } from "./graphql";
-import { NewAddress } from "./wallet/cardano";
 
 export interface AccessEntry {
   phone: string;
@@ -20,8 +12,6 @@ export interface AccessEntry {
 interface AppendAccessResponse {
   updated: boolean;
   alreadyExists: boolean;
-  position: number;
-  chainLoad: number | null;
 }
 export class Firebase {
   public static async init() {
@@ -79,15 +69,11 @@ export const removeAccessQueueData = async (phone: string): Promise<boolean> => 
 }
 
 export const appendAccessQueueData = async (phone: string): Promise<AppendAccessResponse> => {
-  const { updated, alreadyExists, position } = await AccessQueues.addToQueueAndGetPosition(phone);
-
-  const chainLoad = await getChainLoad();
+  const { updated, alreadyExists } = await AccessQueues.addToQueue(phone);
 
   const response = {
     updated,
-    alreadyExists,
-    position,
-    chainLoad
+    alreadyExists
   };
 
   return response;
