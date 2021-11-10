@@ -2,42 +2,63 @@ import * as express from "express";
 
 import { MAX_SESSION_LENGTH } from '../../../helpers/constants';
 import { checkPayments, WalletSimplifiedBalance } from '../../../helpers/graphql';
+import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
 import { ActiveSession } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
+import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
 import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
+
+const CRON_JOB_LOCK_NAME = CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK;
 
 /**
  * Filters out old sessions from the /activeSessions document.
  */
 export const updateSessionsHandler = async (req: express.Request, res: express.Response, checkPaymentsFunction: any = null) => {
   // if process is running, bail out of cron job
+  const stateData = await StateData.getStateData();
+  if (stateData[CRON_JOB_LOCK_NAME]) {
+    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
+    return res.status(200).json({
+      error: false,
+      message: 'Cron is locked. Try again later.'
+    });
+  };
+
+  await StateData.lockCron(CRON_JOB_LOCK_NAME);
 
   const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
-  // remove duplicates
+  const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
+    if (acc.has(session.wallet.address)) {
+      Logger.log({ message: `Duplicate session found for ${session.wallet.address}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
+      return acc;
+    }
 
-  if (!activeSessions) {
+    acc.set(session.wallet.address, session);
+    return acc;
+  }, new Map());
+
+  const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
+  if (dedupeActiveSessions.length == 0) {
     return res.status(200).json({
       error: false,
       message: 'No active sessions!'
     });
   }
 
-  // const expiredPending: PendingSession[] = [];
   const removableActiveVal: ActiveSession[] = [];
   const refundableVal: RefundableSession[] = [];
   const paidVal: ActiveSession[] = [];
-  const walletAddresses = activeSessions.map(s => s.wallet.address)
+  const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
 
   const startTime = Date.now();
   const sessionPaymentStatuses = checkPaymentsFunction ? checkPaymentsFunction(walletAddresses) : await checkPayments(walletAddresses);
-  const endTime = Date.now();
-  console.log(`Execution time: ${startTime - endTime} of checkPayments`);
+  Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', category: LogCategory.METRIC });
 
-  activeSessions.forEach(
+  dedupeActiveSessions.forEach(
     (entry, index) => {
       const sessionAge = Date.now() - entry?.start;
       const matchingPayment = sessionPaymentStatuses[index];
@@ -57,16 +78,17 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
       // Handle expired.
       if (sessionAge >= MAX_SESSION_LENGTH) {
-        ActiveSessions.removeActiveSession(entry, (t) => {
-          if (matchingPayment && matchingPayment.amount !== 0) {
-            // Refund if it has a balance.
-            RefundableSessions.addRefundableSession(new RefundableSession({
-              wallet: entry.wallet,
-              amount: matchingPayment.amount,
-              handle: entry.handle,
-            }), t);
-          }
-        });
+        if (matchingPayment && matchingPayment.amount !== 0) {
+          ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+            wallet: entry.wallet,
+            amount: matchingPayment.amount,
+            handle: entry.handle,
+          }));
+
+          return;
+        }
+
+        ActiveSessions.removeActiveSession(entry);
         return;
       }
 
@@ -75,13 +97,11 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         matchingPayment.amount !== 0 &&
         matchingPayment.amount !== toLovelace(entry.cost)
       ) {
-        ActiveSessions.removeActiveSession(entry, (t) => {
-          RefundableSessions.addRefundableSession(new RefundableSession({
-            wallet: entry.wallet,
-            amount: matchingPayment.amount,
-            handle: entry.handle
-          }), t);
-        });
+        ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+          wallet: entry.wallet,
+          amount: matchingPayment.amount,
+          handle: entry.handle
+        }));
         return;
       }
 
@@ -90,36 +110,36 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
         // If already has a handle, refund.
         if (paidVal.some(e => e.handle === entry.handle)) {
-          ActiveSessions.removeActiveSession(entry, (t) => {
-            RefundableSessions.addRefundableSession(new RefundableSession({
-              wallet: entry.wallet,
-              amount: matchingPayment.amount,
-              handle: entry.handle
-            }), t);
-          });
+          ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+            wallet: entry.wallet,
+            amount: matchingPayment.amount,
+            handle: entry.handle
+          }));
           return;
         }
 
         paidVal.push(entry);
-        ActiveSessions.removeActiveSession(entry, (t) => {
-          PaidSessions.addPaidSession(new PaidSession({
-            ...entry,
-          }), t);
-        });
+        ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
+          ...entry,
+        }));
       }
     }
   );
 
+  Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession.count', category: LogCategory.METRIC });
+
   try {
     // Update session states.
-    return res.status(200).json({
+    res.status(200).json({
       error: false,
       jobs: {
         refund: refundableVal.length,
         paid: paidVal.length,
         removed: removableActiveVal.length
       }
-    })
+    });
+
+    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
   } catch (e) {
     return res.status(500).json({
       error: true,

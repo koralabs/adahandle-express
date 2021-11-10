@@ -42,14 +42,17 @@ export class ActiveSessions {
     });
   }
 
-  public static async removeActiveSession(session: ActiveSession, otherOperation: (t: admin.firestore.Transaction) => unknown): Promise<void> {
+  public static async removeActiveSession<T>(session: ActiveSession, otherOperation?: (otherOperationArgs: T, t?: admin.firestore.Transaction) => Promise<void>, otherOperationArgs?: T): Promise<void> {
     return admin.firestore().runTransaction(async t => {
       const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('wallet.address', '==', session.wallet.address).limit(1));
       if (snapshot.empty) {
         return;
       }
 
-      otherOperation(t);
+      if (otherOperation && otherOperationArgs) {
+        otherOperation(otherOperationArgs, t);
+      }
+
       t.delete(snapshot.docs[0].ref);
     });
   }

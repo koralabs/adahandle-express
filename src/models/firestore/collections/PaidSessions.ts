@@ -29,7 +29,7 @@ export class PaidSessions {
     }
 
 
-    static async addPaidSession(paidSession: PaidSession, t: admin.firestore.Transaction) {
+    static async addPaidSession(paidSession: PaidSession, t?: admin.firestore.Transaction) {
         const docRef = admin.firestore().collection(PaidSessions.collectionName).doc();
         if (t) {
             t.create(docRef, paidSession.toJSON());
