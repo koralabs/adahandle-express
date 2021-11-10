@@ -11,7 +11,7 @@ import { sessionHandler } from "./handlers/session";
 import { handleExistsHandler } from "./handlers/exists";
 import { paymentConfirmedHandler } from "./handlers/payment";
 import { locationHandler } from './handlers/location';
-import { stateHandler } from './handlers/state';
+import { stateHandler } from './handlers/jobs/state';
 
 // Jobs
 import { sendAuthCodesHandler } from './handlers/jobs/auth';

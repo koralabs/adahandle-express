@@ -1,19 +1,24 @@
 import * as express from "express";
 
 import { MAX_SESSION_LENGTH } from '../../../helpers/constants';
-import { checkPayments } from '../../../helpers/graphql';
+import { checkPayments, WalletSimplifiedBalance } from '../../../helpers/graphql';
 import { toLovelace } from "../../../helpers/utils";
 import { ActiveSession } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
+import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
 
 /**
  * Filters out old sessions from the /activeSessions document.
  */
-export const updateSessionsHandler = async (req: express.Request, res: express.Response) => {
+export const updateSessionsHandler = async (req: express.Request, res: express.Response, checkPaymentsFunction: any = null) => {
+  // if process is running, bail out of cron job
+
   const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
+  // remove duplicates
+
   if (!activeSessions) {
     return res.status(200).json({
       error: false,
@@ -25,7 +30,12 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   const removableActiveVal: ActiveSession[] = [];
   const refundableVal: RefundableSession[] = [];
   const paidVal: ActiveSession[] = [];
-  const sessionPaymentStatuses = await checkPayments(activeSessions.map(s => s.wallet.address));
+  const walletAddresses = activeSessions.map(s => s.wallet.address)
+
+  const startTime = Date.now();
+  const sessionPaymentStatuses = checkPaymentsFunction ? checkPaymentsFunction(walletAddresses) : await checkPayments(walletAddresses);
+  const endTime = Date.now();
+  console.log(`Execution time: ${startTime - endTime} of checkPayments`);
 
   activeSessions.forEach(
     (entry, index) => {
@@ -47,16 +57,16 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
       // Handle expired.
       if (sessionAge >= MAX_SESSION_LENGTH) {
-        removableActiveVal.push(entry);
-
-        // Refund if it has a balance.
-        if (matchingPayment && matchingPayment.amount !== 0) {
-          refundableVal.push(new RefundableSession({
-            wallet: entry.wallet,
-            amount: matchingPayment.amount,
-            handle: entry.handle,
-          }));
-        }
+        ActiveSessions.removeActiveSession(entry, (t) => {
+          if (matchingPayment && matchingPayment.amount !== 0) {
+            // Refund if it has a balance.
+            RefundableSessions.addRefundableSession(new RefundableSession({
+              wallet: entry.wallet,
+              amount: matchingPayment.amount,
+              handle: entry.handle,
+            }), t);
+          }
+        });
         return;
       }
 
@@ -65,12 +75,13 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         matchingPayment.amount !== 0 &&
         matchingPayment.amount !== toLovelace(entry.cost)
       ) {
-        removableActiveVal.push(entry);
-        refundableVal.push(new RefundableSession({
-          wallet: entry.wallet,
-          amount: matchingPayment.amount,
-          handle: entry.handle
-        }));
+        ActiveSessions.removeActiveSession(entry, (t) => {
+          RefundableSessions.addRefundableSession(new RefundableSession({
+            wallet: entry.wallet,
+            amount: matchingPayment.amount,
+            handle: entry.handle
+          }), t);
+        });
         return;
       }
 
@@ -79,30 +90,28 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
         // If already has a handle, refund.
         if (paidVal.some(e => e.handle === entry.handle)) {
-          refundableVal.push(new RefundableSession({
-            wallet: entry.wallet,
-            amount: matchingPayment.amount,
-            handle: entry.handle
-          }));
-        } else {
-          paidVal.push(entry);
+          ActiveSessions.removeActiveSession(entry, (t) => {
+            RefundableSessions.addRefundableSession(new RefundableSession({
+              wallet: entry.wallet,
+              amount: matchingPayment.amount,
+              handle: entry.handle
+            }), t);
+          });
+          return;
         }
 
-        removableActiveVal.push(entry);
-        return;
+        paidVal.push(entry);
+        ActiveSessions.removeActiveSession(entry, (t) => {
+          PaidSessions.addPaidSession(new PaidSession({
+            ...entry,
+          }), t);
+        });
       }
     }
   );
 
-  const promises = [
-    RefundableSessions.addRefundableSessions(refundableVal),
-    PaidSessions.addPaidSessions(paidVal),
-    ActiveSessions.removeActiveSessions(removableActiveVal)
-  ]
-
   try {
     // Update session states.
-    await Promise.all(promises);
     return res.status(200).json({
       error: false,
       jobs: {
