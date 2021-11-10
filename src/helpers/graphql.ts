@@ -2,7 +2,7 @@ import { fetch } from 'cross-fetch';
 import { getGraphqlEndpoint } from "./constants";
 import { getFingerprint } from './utils';
 
-interface WalletSimplifiedBalance {
+export interface WalletSimplifiedBalance {
   address: string;
   amount: number;
 }

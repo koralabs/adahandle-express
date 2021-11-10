@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { ActiveSession, ActiveSessionInput } from "../../ActiveSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
@@ -12,11 +13,23 @@ export class ActiveSessions {
     }));
   }
 
-  /**
-   *
-   * Should be good to go.
-   *
-   */
+  public static async addActiveSessions(activeSessions: ActiveSession[]): Promise<void> {
+    const db = admin.firestore();
+
+    const activeSessionChunks = chunk(activeSessions, 500);
+    await asyncForEach(activeSessionChunks, async (paidSessions, index) => {
+      const batch = db.batch();
+      activeSessions.forEach(session => {
+        const docRef = db.collection(ActiveSessions.collectionName).doc();
+        batch.create(docRef, session.toJSON());
+      });
+
+      await batch.commit();
+      console.log(`Batch ${index} of ${activeSessionChunks.length} completed`);
+      await delay(1000);
+    });
+  }
+
   public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
     return admin.firestore().runTransaction(async t => {
       const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).limit(1));
@@ -26,6 +39,21 @@ export class ActiveSessions {
 
       t.create(admin.firestore().collection(ActiveSessions.collectionName).doc(), newSession.toJSON());
       return true;
+    });
+  }
+
+  public static async removeActiveSession<T>(session: ActiveSession, otherOperation?: (otherOperationArgs: T, t?: admin.firestore.Transaction) => Promise<void>, otherOperationArgs?: T): Promise<void> {
+    return admin.firestore().runTransaction(async t => {
+      const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('wallet.address', '==', session.wallet.address).limit(1));
+      if (snapshot.empty) {
+        return;
+      }
+
+      if (otherOperation && otherOperationArgs) {
+        otherOperation(otherOperationArgs, t);
+      }
+
+      t.delete(snapshot.docs[0].ref);
     });
   }
 

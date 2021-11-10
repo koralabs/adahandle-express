@@ -6,17 +6,12 @@ import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuff
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
 
-    // TODO: we dont need all these things to get an address. We simply need the next one
-    static getCurrentWalletsRef() {
-        return admin.firestore().collection(WalletAddresses.collectionName).orderBy('id');
-    }
-
     static async getFirstAvailableWalletAddress(): Promise<WalletAddress | null> {
         // Since we can't have more than one user at a time use an address
         // we need to get the first one then delete it
         try {
             return admin.firestore().runTransaction(async (t) => {
-                const snapshot = await t.get(WalletAddresses.getCurrentWalletsRef().limit(1));
+                const snapshot = await t.get(admin.firestore().collection(WalletAddresses.collectionName).orderBy('id').limit(1));
                 if (!snapshot.empty && snapshot.docs[0].exists) {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();

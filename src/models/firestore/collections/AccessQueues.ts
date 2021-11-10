@@ -4,6 +4,7 @@ import { createTwilioVerification } from "../../../helpers/twilo";
 import { delay } from "../../../helpers/utils";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
+import { StateData } from "./StateData";
 
 interface AccessQueuePosition { updated: boolean; alreadyExists: boolean; position: number; dateAdded?: number, documentId?: string }
 
@@ -39,10 +40,12 @@ export class AccessQueues {
   static async updateAccessQueue(): Promise<{ data: boolean }> {
     console.log('fetching access queue...');
 
+    const stateData = await StateData.getStateData();
+
     const pendingQuery = admin.firestore().collection(AccessQueues.collectionName);
     pendingQuery.where('status', '==', 'queued');
     pendingQuery.where('dateAdded', '>', new Date().getTime() - AUTH_CODE_EXPIRE);
-    const pending = await pendingQuery.orderBy('dateAdded').limit(20).get();
+    const pending = await pendingQuery.orderBy('dateAdded').limit(stateData.accessQueueLimit).get();
 
     console.log(`Pending: ${pending.docs.length}`);
     await Promise.all(pending.docs.map(async doc => {

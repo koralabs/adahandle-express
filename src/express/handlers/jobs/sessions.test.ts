@@ -9,6 +9,8 @@ import { ActiveSessions } from '../../../models/firestore/collections/ActiveSess
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
 import { updateSessionsHandler } from './sessions';
+import { StateData } from '../../../models/firestore/collections/StateData';
+import { State } from '../../../models/State';
 
 
 jest.mock('express');
@@ -16,11 +18,12 @@ jest.mock('../../../helpers/graphql');
 jest.mock('../../../models/firestore/collections/ActiveSession');
 jest.mock('../../../models/firestore/collections/PaidSessions');
 jest.mock('../../../models/firestore/collections/RefundableSessions');
+jest.mock('../../../models/firestore/collections/StateData');
 
 describe('Job Sessions Tets', () => {
-    const refundSpy = jest.spyOn(RefundableSessions, 'addRefundableSessions')
-    const paidSpy = jest.spyOn(PaidSessions, 'addPaidSessions')
-    const activeRemoveSpy = jest.spyOn(ActiveSessions, 'removeActiveSessions')
+    const refundSpy = jest.spyOn(RefundableSessions, 'addRefundableSession')
+    const paidSpy = jest.spyOn(PaidSessions, 'addPaidSession')
+    const activeRemoveSpy = jest.spyOn(ActiveSessions, 'removeActiveSession')
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
 
@@ -137,6 +140,23 @@ describe('Job Sessions Tets', () => {
         })
     ]
     describe('updateSessionsHandler tests', () => {
+        it('should return 200 if cron is locked', async () => {
+            jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture);
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessionsLock: true, totalHandles: 171 }));
+            await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(200);
+            expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Cron is locked. Try again later." });
+        });
+
+        it('should return no active sessions', async () => {
+            jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue([]);
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
+            await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(200);
+            expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "No active sessions!" });
+        });
 
         /**
          * Remove if expired and not paid
@@ -150,19 +170,26 @@ describe('Job Sessions Tets', () => {
         mocked(checkPayments).mockResolvedValue(CheckPaymentsFixture)
 
         it('should process paid, refunds, and expired sessions correctly', async () => {
-            jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture)
+            jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture);
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenCalledWith([
-                ...UnpaidSessionFixture,
-                ...PaidSessionFixture,
-                ...RefundableSessionsFixture
-            ]);
-            expect(refundSpy).toHaveBeenCalledWith(RefundableWalletsFixture);
-            expect(paidSpy).toHaveBeenCalledWith(PaidWalletsFixture);
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(1, UnpaidSessionFixture[0]);
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, PaidSessionFixture[0], PaidSessions.addPaidSession, PaidSessionFixture[0]);
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].wallet.address)?.amount, "handle": RefundableSessionsFixture[0].handle, "wallet": RefundableSessionsFixture[0].wallet });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].wallet.address)?.amount, "handle": RefundableSessionsFixture[1].handle, "wallet": RefundableSessionsFixture[1].wallet });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(5, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].wallet.address)?.amount, "handle": RefundableSessionsFixture[2].handle, "wallet": RefundableSessionsFixture[2].wallet });
             // If the above number of items were called correctly then 
             // then the last use case should be true which is
             // The zero payment session is left alone
+        });
+
+        it('should remove duplicate active sessions', async () => {
+            jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue([...ActiveSessionsFixture, ...ActiveSessionsFixture]);
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
+
+            await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
+            expect(activeRemoveSpy).toHaveBeenCalledTimes(5);
         });
 
         it('leave unexpired zero payment sessions alone', async () => {
@@ -176,11 +203,10 @@ describe('Job Sessions Tets', () => {
                     wallet: { address: 'addr_zero_payment' }
                 }
             )])
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenCalledWith([]);
-            expect(refundSpy).toHaveBeenCalledWith([]);
-            expect(paidSpy).toHaveBeenCalledWith([]);
+            expect(activeRemoveSpy).toHaveBeenCalledTimes(0);
         });
     });
 });

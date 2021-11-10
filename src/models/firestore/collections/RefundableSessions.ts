@@ -10,6 +10,17 @@ export class RefundableSessions {
         const collection = await admin.firestore().collection(RefundableSessions.collectionName).get();
         return collection.docs.map(doc => doc.data() as RefundableSession);
     }
+    static async addRefundableSession(refundableSession: RefundableSession, t?: admin.firestore.Transaction): Promise<void> {
+        const docRef = admin.firestore().collection(RefundableSessions.collectionName).doc();
+        if (t) {
+            t.create(docRef, refundableSession.toJSON());
+            return;
+        }
+
+        await admin.firestore().runTransaction(async t => {
+            t.create(docRef, refundableSession.toJSON());
+        });
+    }
 
     static async addRefundableSessions(refundableSessions: RefundableSession[]): Promise<void> {
         const db = admin.firestore();

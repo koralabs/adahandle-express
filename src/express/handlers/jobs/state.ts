@@ -1,8 +1,8 @@
 import * as express from "express";
-import { getChainLoad, getTotalHandles } from "../../helpers/cardano";
-import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
-import { StateData } from "../../models/firestore/collections/StateData";
-import { State } from "../../models/State";
+import { getChainLoad, getTotalHandles } from "../../../helpers/cardano";
+import { AccessQueues } from "../../../models/firestore/collections/AccessQueues";
+import { StateData } from "../../../models/firestore/collections/StateData";
+import { State } from "../../../models/State";
 
 interface StateResponseBody {
   error: boolean;

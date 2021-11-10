@@ -28,6 +28,19 @@ export class PaidSessions {
         }
     }
 
+
+    static async addPaidSession(paidSession: PaidSession, t?: admin.firestore.Transaction) {
+        const docRef = admin.firestore().collection(PaidSessions.collectionName).doc();
+        if (t) {
+            t.create(docRef, paidSession.toJSON());
+            return;
+        }
+
+        await admin.firestore().runTransaction(async t => {
+            t.create(docRef, paidSession.toJSON());
+        });
+    }
+
     // TODO: Add load test
     static async addPaidSessions(paidSessions: PaidSession[]): Promise<void> {
         const db = admin.firestore();
