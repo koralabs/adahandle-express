@@ -30,6 +30,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   await StateData.lockCron(CRON_JOB_LOCK_NAME);
 
+
   const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
   const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
     if (acc.has(session.wallet.address)) {
@@ -55,7 +56,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
 
   const startTime = Date.now();
-  const sessionPaymentStatuses = checkPaymentsFunction ? checkPaymentsFunction(walletAddresses) : await checkPayments(walletAddresses);
+  const sessionPaymentStatuses = checkPaymentsFunction ? await checkPaymentsFunction(walletAddresses) : await checkPayments(walletAddresses);
   Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', category: LogCategory.METRIC });
 
   dedupeActiveSessions.forEach(
@@ -129,7 +130,8 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession.count', category: LogCategory.METRIC });
 
   try {
-    // Update session states.
+    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+
     res.status(200).json({
       error: false,
       jobs: {
@@ -138,8 +140,6 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         removed: removableActiveVal.length
       }
     });
-
-    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
   } catch (e) {
     return res.status(500).json({
       error: true,

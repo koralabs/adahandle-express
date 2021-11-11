@@ -60,7 +60,7 @@ const createActiveSessions = async () => {
 
 export const updateSessionHandlerTest = async () => {
     let index = 0;
-    const getCheckPayments = (addresses: string[]): WalletSimplifiedBalance[] => {
+    const getCheckPayments = async (addresses: string[]): Promise<WalletSimplifiedBalance[]> => {
         const checkPayments = addresses.map(address => {
             // first returns 0, second returns 45, third returns 50
             let amount = 0;
@@ -80,14 +80,23 @@ export const updateSessionHandlerTest = async () => {
 
             return simplifiedBalance
         });
-
+        await delay(10000);
         return checkPayments;
     }
 
     try {
+        await createActiveSessions();
+
         // @ts-expect-error
         updateSessionsHandler({}, {}, getCheckPayments);
-        //await delay(1);
+        await delay(2000);
+        await createActiveSessions();
+        await delay(5000);
+
+        // @ts-expect-error
+        await updateSessionsHandler({}, {}, getCheckPayments);
+
+        await delay(10000);
         // @ts-expect-error
         await updateSessionsHandler({}, {}, getCheckPayments);
     } catch (error) {
@@ -97,7 +106,6 @@ export const updateSessionHandlerTest = async () => {
 
 const run = async () => {
     await Firebase.init();
-    await createActiveSessions();
     await updateSessionHandlerTest();
 }
 

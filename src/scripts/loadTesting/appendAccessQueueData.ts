@@ -1,8 +1,9 @@
 import { appendAccessQueueData, Firebase } from "../../helpers/firebase";
+import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 
 export const appendAccessQueueDataToFirestore = async () => {
     let index = 0;
-    const promises = Array.from({ length: 700 }, () => {
+    const promises = Array.from({ length: 10000 }, () => {
         const random = Math.random().toString().slice(2, 11);
         try {
             return appendAccessQueueData(random).then((data) => {
@@ -21,7 +22,12 @@ export const appendAccessQueueDataToFirestore = async () => {
 
 const run = async () => {
     await Firebase.init();
-    await appendAccessQueueDataToFirestore();
+    console.log(`starting`);
+    console.time("appendAccessQueueDataToFirestore");
+    const count = await AccessQueues.getAccessQueuesCount();
+    console.timeEnd("appendAccessQueueDataToFirestore");
+    console.log(`count: ${count}`);
+
 }
 
 run();

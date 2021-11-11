@@ -16,6 +16,11 @@ export class AccessQueues {
     return collection.docs.map(doc => doc.data() as AccessQueue);
   }
 
+  static async getAccessQueuesCount(): Promise<number> {
+    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).get();
+    return snapshot.size;
+  }
+
   // TODO: Add load test
   static async removeAccessQueueByPhone(phone: string): Promise<boolean> {
     try {
@@ -42,9 +47,8 @@ export class AccessQueues {
 
     const stateData = await StateData.getStateData();
 
-    const pendingQuery = admin.firestore().collection(AccessQueues.collectionName);
-    pendingQuery.where('status', '==', 'queued');
-    pendingQuery.where('dateAdded', '>', new Date().getTime() - AUTH_CODE_EXPIRE);
+    let pendingQuery = admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued');
+    pendingQuery = pendingQuery.where('dateAdded', '>', new Date().getTime() - AUTH_CODE_EXPIRE);
     const pending = await pendingQuery.orderBy('dateAdded').limit(stateData.accessQueueLimit).get();
 
     console.log(`Pending: ${pending.docs.length}`);
