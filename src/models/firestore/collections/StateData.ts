@@ -4,10 +4,10 @@ import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuff
 import { State } from "../../State";
 
 export enum CronJobLockName {
-    MINT_PAID_SESSIONS_LOCK = "mintPaidSessionsLock",
-    SAVE_STATE_LOCK = "saveStateLock",
-    SEND_AUTH_CODES_LOCK = "sendAuthCodesLock",
-    UPDATE_ACTIVE_SESSIONS_LOCK = "updateActiveSessionsLock",
+    MINT_PAID_SESSIONS_LOCK = "mintPaidSessions_lock",
+    SAVE_STATE_LOCK = "saveState_lock",
+    SEND_AUTH_CODES_LOCK = "sendAuthCodes_lock",
+    UPDATE_ACTIVE_SESSIONS_LOCK = "updateActiveSessions_lock",
 }
 
 export class StateData {
@@ -26,12 +26,18 @@ export class StateData {
     }
 
     public static async upsertStateData(state: State): Promise<void> {
-        await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).set(state.toJSON());
+        const stateObj = Object.keys(state).reduce((acc, key) => {
+            if (!acc[key].endsWith('_lock')) {
+                acc[key] = state[key];
+            }
+            return acc;
+        }, {});
+        await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).set(stateObj);
     }
 
     public static async lockCron(name: CronJobLockName) {
         await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).update({
-            [name]: false
+            [name]: true
         });
     }
 

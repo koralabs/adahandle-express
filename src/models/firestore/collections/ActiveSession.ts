@@ -25,7 +25,7 @@ export class ActiveSessions {
       });
 
       await batch.commit();
-      console.log(`Batch ${index} of ${activeSessionChunks.length} completed`);
+      console.log(`Batch ${index + 1} of ${activeSessionChunks.length} completed`);
       await delay(1000);
     });
   }

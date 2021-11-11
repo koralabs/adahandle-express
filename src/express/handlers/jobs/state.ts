@@ -14,9 +14,8 @@ interface StateResponseBody {
 
 export const stateHandler = async (req: express.Request, res: express.Response) => {
   try {
-    const numbers = await AccessQueues.getAccessQueues();
+    const position = await AccessQueues.getAccessQueuesCount();
     const chainLoad = await getChainLoad() ?? 0;
-    const position = numbers?.length || 0;
     const totalHandles = await getTotalHandles() || 0;
 
     const state = new State({ chainLoad, position, totalHandles });
