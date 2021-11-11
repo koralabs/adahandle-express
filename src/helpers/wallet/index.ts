@@ -164,7 +164,7 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
   });
 
   const info = await walletServer.getNetworkInformation();
-  const ttl = info.node_tip.absolute_slot_number * 12000;
+  const ttl = info.node_tip.absolute_slot_number + 12000;
 
   try {
     const txBody = wallet.Seed.buildTransactionWithToken(
@@ -180,7 +180,6 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
     );
 
     const tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
-    Logger.log({ message: ttl.toString(), event: 'mintHandleAndSend.wallet.Seed.sign' });
     const signed = Buffer.from(tx.to_bytes()).toString("hex");
     const txId = await walletServer.submitTx(signed);
     if (txId) {
