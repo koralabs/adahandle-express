@@ -164,7 +164,8 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
   });
 
   const info = await walletServer.getNetworkInformation();
-  const ttl = info.node_tip.absolute_slot_number + 12000;
+  // Test a GIANT NUMBER
+  const ttl = 10000000000000000000000000000000000000000000000000000000000000000000000000000000;
 
   try {
     const txBody = wallet.Seed.buildTransactionWithToken(
