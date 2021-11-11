@@ -15,6 +15,7 @@ import { getMintWalletServer, getWalletServer, NewAddress } from "./cardano";
 import { WalletAddresses } from "../../models/firestore/collections/WalletAddresses";
 import { ReservedHandles } from "../../models/firestore/collections/ReservedHandles";
 import { PaidSession } from "../../models/PaidSession";
+import { Logger } from "../Logger";
 
 export const getNewAddress = async (): Promise<NewAddress | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress();
@@ -179,6 +180,7 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
     );
 
     const tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
+    Logger.log({ message: JSON.stringify(tx), event: 'mintHandleAndSend.wallet.Seed.sign' });
     const signed = Buffer.from(tx.to_bytes()).toString("hex");
     const txId = await walletServer.submitTx(signed);
     if (txId) {
