@@ -27,7 +27,7 @@ export class StateData {
 
     public static async upsertStateData(state: State): Promise<void> {
         const stateObj = Object.keys(state).reduce((acc, key) => {
-            if (!acc[key].endsWith('_lock')) {
+            if (!key.endsWith('_lock')) {
                 acc[key] = state[key];
             }
             return acc;
