@@ -164,7 +164,7 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
   });
 
   const info = await walletServer.getNetworkInformation();
-  const ttl = 12000;
+  const ttl = 42251010;
 
   try {
     const txBody = wallet.Seed.buildTransactionWithToken(
