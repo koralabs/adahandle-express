@@ -1,4 +1,5 @@
 import * as wallet from "cardano-wallet-js";
+import fetch from 'cross-fetch';
 
 import {
   getPolicyPrivateKey,
