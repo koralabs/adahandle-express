@@ -292,7 +292,6 @@ export const lookupReturnAddresses = async (
     })
   }).then(res => res.json())
 
-  console.log('lookupReturnAddresses response:', res);
   if (!res?.data) {
     return null;
   }

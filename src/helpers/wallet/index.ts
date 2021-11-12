@@ -4,7 +4,8 @@ import {
   getPolicyPrivateKey,
   getMintingWalletSeedPhrase,
   getPolicyId,
-  getMintingWalletId
+  getMintingWalletId,
+  getGraphqlEndpoint
 } from "../constants";
 import {
   GraphqlCardanoPaymentAddress,
@@ -181,11 +182,28 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
 
     const tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
     const signed = Buffer.from(tx.to_bytes()).toString("hex");
-    Logger.log({ message: `Signed tx byte size: ${tx.to_bytes().byteLength}`, event: `mintHandleAndSend.signed` });
-    const txId = await walletServer.submitTx(signed);
-    if (txId) {
-      console.log(`Minted! Transaction ID: ${txId}`);
-      return txId;
+    const res = await fetch(
+      getGraphqlEndpoint(),
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          variables: {
+            encodedTx: signed
+          },
+          query: `
+            mutation($encodedTx:String!) {
+              submitTransaction(transaction:$encodedTx) {
+                hash
+              }
+            }
+          `
+        })
+      }
+    ).then(res => res.json()).catch(e => console.log(e));
+    // const txId = await walletServer.submitTx(signed);
+    if (res?.data?.hash) {
+      console.log(`Minted! Transaction ID: ${res?.data?.hash}`);
+      return res?.data?.hash;
     }
 
     return false;
