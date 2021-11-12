@@ -187,11 +187,11 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
     const res = await fetch(
       getGraphqlEndpoint(),
       {
+        headers: {
+          "Content-Type": "application/json",
+        },
         method: 'POST',
         body: JSON.stringify({
-          headers: {
-            "Content-Type": "application/json",
-          },
           variables: {
             encodedTx: signed
           },
