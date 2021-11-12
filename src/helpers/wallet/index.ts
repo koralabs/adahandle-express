@@ -189,6 +189,9 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
       {
         method: 'POST',
         body: JSON.stringify({
+          headers: {
+            "Content-Type": "application/json",
+          },
           variables: {
             encodedTx: signed
           },
