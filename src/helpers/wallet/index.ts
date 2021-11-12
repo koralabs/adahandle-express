@@ -204,8 +204,11 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
           `
         })
       }
-    ).then(res => res.json());
-    console.log(JSON.stringify(res));
+    ).then(async res => {
+      const data = await res.json()
+      console.log(JSON.stringify(data));
+      return data;
+    });
     // const txId = await walletServer.submitTx(signed);
     if (res?.data?.hash) {
       console.log(`Minted! Transaction ID: ${res?.data?.hash}`);
