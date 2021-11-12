@@ -181,6 +181,7 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
 
     const tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
     const signed = Buffer.from(tx.to_bytes()).toString("hex");
+    Logger.log({ message: `Signed tx byte size: ${tx.to_bytes().byteLength}`, event: `mintHandleAndSend.signed` });
     const txId = await walletServer.submitTx(signed);
     if (txId) {
       console.log(`Minted! Transaction ID: ${txId}`);
