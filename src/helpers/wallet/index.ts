@@ -183,6 +183,7 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
 
     const tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
     const signed = Buffer.from(tx.to_bytes()).toString("hex");
+    console.log(signed);
     const res = await fetch(
       getGraphqlEndpoint(),
       {
