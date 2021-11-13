@@ -35,6 +35,7 @@ export class StateData {
             if (!acc[key]) {
                 acc[key] = state[key];
             }
+
             return acc;
         }, {});
 

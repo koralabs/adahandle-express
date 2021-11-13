@@ -17,7 +17,7 @@ const CRON_JOB_LOCK_NAME = CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK;
 /**
  * Filters out old sessions from the /activeSessions document.
  */
-export const updateSessionsHandler = async (req: express.Request, res: express.Response, checkPaymentsFunction: any = null) => {
+export const updateSessionsHandler = async (req: express.Request, res: express.Response) => {
   // if process is running, bail out of cron job
   const stateData = await StateData.getStateData();
   if (stateData[CRON_JOB_LOCK_NAME]) {
@@ -56,7 +56,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
 
   const startTime = Date.now();
-  const sessionPaymentStatuses = checkPaymentsFunction ? await checkPaymentsFunction(walletAddresses) : await checkPayments(walletAddresses);
+  const sessionPaymentStatuses = await checkPayments(walletAddresses);
   Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', category: LogCategory.METRIC });
 
   dedupeActiveSessions.forEach(
