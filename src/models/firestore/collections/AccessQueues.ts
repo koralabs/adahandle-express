@@ -46,10 +46,10 @@ export class AccessQueues {
   static async updateAccessQueue(createVerificationFunction?: (phone: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
     const stateData = await StateData.getStateData();
 
-    let pending = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit).get();;
+    let queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit).get();;
 
-    Logger.log({ message: `Pending: ${pending.docs.length}`, event: 'updateAccessQueue.access_queues.pending.length', category: LogCategory.METRIC });
-    await Promise.all(pending.docs.map(async doc => {
+    Logger.log({ message: `Queued Snapshot: ${queuedSnapshot.docs.length}`, event: 'updateAccessQueue.queuedSnapshot.length', category: LogCategory.METRIC });
+    await Promise.all(queuedSnapshot.docs.map(async doc => {
       const entry = doc.data();
 
       const data = createVerificationFunction ? await createVerificationFunction(entry.phone) : await createTwilioVerification(entry.phone).catch(e => {
