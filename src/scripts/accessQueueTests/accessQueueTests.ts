@@ -1,5 +1,5 @@
-import { Firebase } from "../helpers/firebase";
-import { AccessQueues } from "../models/firestore/collections/AccessQueues";
+import { Firebase } from "../../helpers/firebase";
+import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 
 const checkQueues = async () => {
     const [position, position2, position3, position2Duplicate] = await Promise.all([

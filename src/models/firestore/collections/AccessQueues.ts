@@ -1,7 +1,8 @@
 import * as admin from "firebase-admin";
+import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
 import { AUTH_CODE_EXPIRE } from "../../../helpers/constants";
+import { LogCategory, Logger } from "../../../helpers/Logger";
 import { createTwilioVerification } from "../../../helpers/twilo";
-import { delay } from "../../../helpers/utils";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
@@ -37,28 +38,29 @@ export class AccessQueues {
         return true;
       });
     } catch (error) {
-      console.log(error);
+      Logger.log({ message: JSON.stringify(error), event: 'removeAccessQueueByPhone.error', category: LogCategory.ERROR });
       throw new Error(`Unable to remove queues for ${phone}`);
     }
   }
 
-  static async updateAccessQueue(): Promise<{ data: boolean }> {
-    console.log('fetching access queue...');
-
+  static async updateAccessQueue(createVerificationFunction?: (phone: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
     const stateData = await StateData.getStateData();
 
-    let pendingQuery = admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued');
-    pendingQuery = pendingQuery.where('dateAdded', '>', new Date().getTime() - AUTH_CODE_EXPIRE);
-    const pending = await pendingQuery.orderBy('dateAdded').limit(stateData.accessQueueLimit).get();
+    let pending = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit).get();;
 
-    console.log(`Pending: ${pending.docs.length}`);
+    Logger.log({ message: `Pending: ${pending.docs.length}`, event: 'updateAccessQueue.access_queues.pending.length', category: LogCategory.METRIC });
     await Promise.all(pending.docs.map(async doc => {
       const entry = doc.data();
-      await delay(Math.floor(Math.random() * 100));
-      const data = await createTwilioVerification(entry.phone).catch(e => console.log(e));
+
+      const data = createVerificationFunction ? await createVerificationFunction(entry.phone) : await createTwilioVerification(entry.phone).catch(e => {
+        // if Twilio throws an error, we should remove the entry from the queue?
+        Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
+      });
+
+      Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createTwilioVerification.data' });
       if (data) {
         await admin.firestore().runTransaction(async t => {
-          console.log(`updated entry ${doc.id}`);
+          Logger.log(`updated entry ${doc.id}`);
           const document = await t.get(doc.ref);
           t.update(document.ref, {
             phone: entry.phone,
@@ -70,15 +72,17 @@ export class AccessQueues {
       }
     }));
 
+    // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)
       .where('start', '<', Date.now() - AUTH_CODE_EXPIRE)
       .orderBy('start')
       .get();
 
-    console.log(`Expired: ${expired.docs.length}`);
+    Logger.log({ message: `Expired: ${expired.docs.length}`, event: 'updateAccessQueue.access_queues.expired.length', category: LogCategory.METRIC });
+
     await Promise.all(expired.docs.map(async doc => {
       await admin.firestore().runTransaction(async t => {
-        console.log(`deleting entry ${doc.id}`);
+        Logger.log(`deleting entry ${doc.id}`);
         const document = await t.get(doc.ref);
         t.delete(document.ref);
       });
@@ -105,7 +109,7 @@ export class AccessQueues {
         };
       });
     } catch (error) {
-      console.log(error);
+      Logger.log({ message: JSON.stringify(error), event: 'addToQueue.error', category: LogCategory.ERROR });
       throw new Error(`Unable to get details about queues for ${phone}`);
     }
   }
