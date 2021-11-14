@@ -1,7 +1,7 @@
 import * as express from "express";
 
 import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
-import { mintHandleAndSend } from "../../../helpers/wallet";
+import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
 import { getChainLoad } from '../../../helpers/cardano';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
@@ -30,62 +30,90 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     });
   }
 
-  // Ensure unique sessions!!!
-  const uniquePaidSessions = paidSessions.filter((v, i, a) => a.findIndex(t => (t.handle === v.handle)) === i);
-  const batch = uniquePaidSessions.slice(0, 10);
+  // Filter out any possibly duplicated sessions.
+  const duplicatePaidSessions: PaidSession[] = [];
+  const sanitizedSessions = paidSessions.reduce((sanitized: PaidSession[], curr: PaidSession) => {
+    if (sanitized.some(s => s.handle === curr.handle)) {
+      duplicatePaidSessions.push(curr);
+      return sanitized;
+    }
 
-  const jobs = await Promise.all(
-    batch.map(async session => {
+    sanitized.push(curr);
+    return sanitized;
+  }, []);
 
-      // Ensure no double mint.
-      const { exists } = await handleExists(session.handle);
-      const minted = await MintedHandles.getMintedHandles();
+  // @todo move duplicates to refunds.
+  if (duplicatePaidSessions.length > 0) {
+    await RefundableSessions.addRefundableSessions(
+      duplicatePaidSessions.map(s => new RefundableSession({
+        amount: toLovelace(s.cost),
+        handle: s.handle,
+        wallet: s.wallet
+      }))
+    );
+    await PaidSessions.removePaidSessions(duplicatePaidSessions);
+  }
 
-      if (exists || minted?.some(handle => handle.handleName === session.handle)) {
-        console.warn(`Handle (${session.handle} already minted!. Moving to refund queue.`);
-        try {
-          await RefundableSessions.addRefundableSessions([
-            new RefundableSession({
-              wallet: session.wallet,
-              amount: toLovelace(session.cost),
-              handle: session.handle,
-            })
-          ]);
-          await PaidSessions.removePaidSessions([session]);
-        } catch (e) {
-          console.log('Trying to record a refund from an attempted double mint, but failed.', session.wallet);
-        }
+  // Mint the handles!
+  let txResponse;
+  try {
+    const txId = await mintHandlesAndSend(sanitizedSessions);
+    txResponse = txId;
+  } catch (e) {
+    console.log('Failed to mint', e);
+    txResponse = false;
+  }
 
-        //await PendingSessions.removePendingSessions([new PendingSession(session.handle)]);
+  // const jobs = await Promise.all(
+  //   batch.map(async session => {
 
-        return false;
-      }
+  //     // Ensure no double mint.
+  //     const { exists } = await handleExists(session.handle);
+  //     const minted = await MintedHandles.getMintedHandles();
 
-      // Mint the handle!
-      try {
-        console.info('Attempting to mint the handle!');
-        const txId = await mintHandleAndSend(session);
-        if (txId) {
-          // Add minted handle to our internal database.
-          await MintedHandles.addMintedHandle(new MintedHandle(session.handle));
+  //     if (exists || minted?.some(handle => handle.handleName === session.handle)) {
+  //       console.warn(`Handle (${session.handle} already minted!. Moving to refund queue.`);
+  //       try {
+  //         await RefundableSessions.addRefundableSessions([
+  //           new RefundableSession({
+  //             wallet: session.wallet,
+  //             amount: toLovelace(session.cost),
+  //             handle: session.handle,
+  //           })
+  //         ]);
+  //         await PaidSessions.removePaidSessions([session]);
+  //       } catch (e) {
+  //         console.log('Trying to record a refund from an attempted double mint, but failed.', session.wallet);
+  //       }
 
-          // Remove from pending sessions.
-          // await PendingSessions.removePendingSessions([new PendingSession(session.handle)]);
+  //       return false;
+  //     }
 
-          // Delete session data (bye!).
-          await PaidSessions.removePaidSessionByWalletAddress({ address: session.wallet.address });
+  //     // Mint the handle!
+  //     try {
+  //       console.info('Attempting to mint the handle!');
+  //       const txId = await mintHandlesAndSend(session);
+  //       if (txId) {
+  //         // Add minted handle to our internal database.
+  //         await MintedHandles.addMintedHandle(new MintedHandle(session.handle));
 
-          return txId;
-        }
-      } catch (e) {
-        console.log('Failed to mint', e);
-        return false;
-      }
-    })
-  );
+  //         // Remove from pending sessions.
+  //         // await PendingSessions.removePendingSessions([new PendingSession(session.handle)]);
+
+  //         // Delete session data (bye!).
+  //         await PaidSessions.removePaidSessionByWalletAddress({ address: session.wallet.address });
+
+  //         return txId;
+  //       }
+  //     } catch (e) {
+  //       console.log('Failed to mint', e);
+  //       return false;
+  //     }
+  //   })
+  // );
 
   return res.status(200).json({
-    error: !!jobs.find(job => false === job)?.length,
-    jobs
+    error: txResponse === false,
+    message: txResponse
   });
 };

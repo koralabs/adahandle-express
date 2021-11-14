@@ -1,12 +1,9 @@
 import * as wallet from "cardano-wallet-js";
-import fetch from 'cross-fetch';
 
 import {
   getPolicyPrivateKey,
   getMintingWalletSeedPhrase,
-  getPolicyId,
-  getMintingWalletId,
-  getGraphqlEndpoint
+  getPolicyId
 } from "../constants";
 import {
   GraphqlCardanoPaymentAddress,
@@ -45,64 +42,80 @@ export const getAmountsFromPaymentAddresses = (
   return totalBalances;
 };
 
-export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
+export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<string | void> => {
   const walletServer = getWalletServer();
   const ourWallet = await getMintWalletServer();
+  const policyId = getPolicyId();
 
   const networkConfig =
     process.env.NODE_ENV === "development"
       ? wallet.Config.Testnet
       : wallet.Config.Mainnet;
 
-  const transactions = await lookupReturnAddresses([session.wallet.address]);
-  const buyerAddress =
-    transactions &&
-    transactions.map((tx) => new wallet.AddressWallet(tx.inputs[0].address))[0];
-
-  if (!buyerAddress) {
+  const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
+  if (!transactions) {
     throw new Error(
-      `No input address was found for ${session.wallet.address}.`
+      'Unable to find transactions.'
     );
   }
 
-  const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
-  const og = twitterHandles.includes(session.handle);
-  const ipfs = await getIPFSImage(
-    session.handle,
-    og,
-    twitterHandles.indexOf(session.handle),
-    twitterHandles.length
-  );
-
-  // File did not upload, try again.
-  if (!ipfs) {
-    return false;
+  const buyerAddresses = transactions.map((tx) => new wallet.AddressWallet(tx.inputs[0].address));
+  if (!buyerAddresses) {
+    throw new Error(
+      `No buyer addresses were found.`
+    );
   }
 
-  const policyId = getPolicyId();
+  // Pre-build Handle images.
+  const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
+  const handlesMetadata = Promise.allSettled(sessions.map(async (session) => {
+    const og = twitterHandles.includes(session.handle);
+    const ipfs = await getIPFSImage(
+      session.handle,
+      og,
+      twitterHandles.indexOf(session.handle),
+      twitterHandles.length
+    );
 
+    // File did not upload, try again.
+    if (!ipfs) {
+      return false;
+    }
+
+    const metadata = {
+      name: `$${session.handle}`,
+      description: "https://adahandle.com",
+      image: `ipfs://${ipfs.hash}`,
+      core: {
+        og: +og,
+        termsofuse: "https://adahandle.com/tou",
+        handleEncoding: "utf-8",
+        version: 0,
+      },
+      augmentations: [],
+    }
+
+    return metadata;
+  }));
+
+  // Setup our metadata JSON object.
   const data = {
     "721": {
       [policyId]: {
-        [session.handle]: {
-          name: `$${session.handle}`,
-          description: "https://adahandle.com",
-          image: `ipfs://${ipfs.hash}`,
-          core: {
-            og: +og,
-            termsofuse: "https://adahandle.com/tou",
-            handleEncoding: "utf-8",
-            version: 0,
-          },
-          augmentations: [],
-        },
-      },
+        ...sessions.reduce(async (collection, session, index) => {
+          const metadata = handlesMetadata[index];
+          return {
+            ...collection,
+            [session.handle]: {
+              ...metadata
+            }
+          }
+        }, {}),
+      }
     }
   };
 
-  const supply = 1;
-
-  // Get script signing keypair.
+  // Get our script signing keypair.
   const policyKey = getPolicyPrivateKey();
   const prvKey = wallet.Bip32PrivateKey.from_bech32(policyKey);
   const keyPair = {
@@ -111,23 +124,22 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
   };
   const keyHash = wallet.Seed.getKeyHash(keyPair.publicKey);
   const script = wallet.Seed.buildSingleIssuerScript(keyHash);
-  const scripts = [script];
 
-  // Asset.
-  const asset = new wallet.AssetWallet(policyId, session.handle, supply);
-  const tokens = [new wallet.TokenWallet(asset, script, [keyPair])];
-
-  // Get minimum ADA for address holding tokens.
-  const minAda = wallet.Seed.getMinUtxoValueWithAssets([asset], networkConfig);
-  const addresses = [buyerAddress];
-  const amounts = [minAda];
+  // Build the assets and assign to tokens.
+  const assets = sessions.map(session => new wallet.AssetWallet(policyId, session.handle, 1));
+  const tokens = assets.map(asset => new wallet.TokenWallet(asset, script, [keyPair]));
+  const amounts = assets.map((_asset, index) => wallet.Seed.getMinUtxoValueWithAssets([assets[index]], networkConfig));
 
   // Get coin selection structure (without the assets).
   const coinSelection = await ourWallet.getCoinSelection(
-    addresses,
+    buyerAddresses,
     amounts,
     data
-  );
+  ).catch(e => console.log(e));
+
+  if (!coinSelection) {
+    return;
+  }
 
   // Add signing keys.
   const recoveryPhrase = getMintingWalletSeedPhrase();
@@ -138,85 +150,101 @@ export const mintHandleAndSend = async (session: PaidSession): Promise<any> => {
 
   // Add policy signing keys.
   tokens
-    .filter((t) => t.scriptKeyPairs)
-    .forEach((t) =>
+    .filter((token) => token.scriptKeyPairs)
+    .forEach((token) =>
       signingKeys.push(
-        ...t.scriptKeyPairs!.map((k) => k.privateKey.to_raw_key())
+        ...token.scriptKeyPairs!.map((k) => k.privateKey.to_raw_key())
       )
     );
-
-  const metadata = wallet.Seed.buildTransactionMetadata(data);
 
   /**
    * The wallet API currently doesn't support including tokens
    * not previously minted, so we need to include it manually.
    */
-  coinSelection.outputs = coinSelection.outputs.map((output) => {
-    if (output.address === addresses[0].address) {
-      output.assets = tokens.map((t) => {
-        const asset = {
-          policy_id: t.asset.policy_id,
-          asset_name: Buffer.from(t.asset.asset_name).toString("hex"),
-          quantity: t.asset.quantity,
-        };
-        return asset;
-      });
+  coinSelection.outputs = coinSelection.outputs.map((output, index) => {
+    if (output.address === buyerAddresses[index].address) {
+      output.assets = [{
+        policy_id: assets[index].policy_id,
+        asset_name: Buffer.from(assets[index].asset_name).toString("hex"),
+        quantity: assets[index].quantity,
+      }]
     }
     return output;
   });
 
+  /**
+   * Consolidate the change output to a single utxo.
+   */
+  coinSelection.change = coinSelection.change.reduce(
+    (
+      newChange: wallet.ApiCoinSelectionChange[],
+      currChange: wallet.ApiCoinSelectionChange,
+      index
+    ) => {
+      if (index === 0) {
+        newChange.push(currChange);
+        return newChange;
+      } else {
+        newChange[0].amount.quantity += currChange.amount.quantity;
+      }
+
+      return newChange;
+    },
+    []
+  );
+
   const info = await walletServer.getNetworkInformation();
   const ttl = info.node_tip.absolute_slot_number + 12000;
 
+  let metadata = wallet.Seed.buildTransactionMetadata(data);
+
+  // create mint token data
+  const mint = wallet.Mint.new();
+  const mintAssets = wallet.MintAssets.new();
+  tokens.forEach(t => {
+    mintAssets.insert(wallet.AssetName.new(Buffer.from(t.asset.asset_name)), wallet.Int.new_i32(t.asset.quantity));
+  });
+
+  const scriptHash = wallet.Seed.getScriptHashFromPolicy(policyId);
+  mint.insert(scriptHash, mintAssets);
+
+  // get token's scripts
+  const scripts = tokens.map(t => t.script) as wallet.NativeScript[];
+
+  // set mint into tx
+  let txBody = wallet.Seed.buildTransaction(coinSelection, ttl, { metadata: metadata, config: networkConfig });
+  txBody.set_mint(mint);
+
+  // tx field fee
+  const fieldFee = parseInt(txBody.fee().to_str());
+
+  // sign to calculate the real tx fee;
+  let tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
+
+  // Ensure that the real tx fee is updated on change output.
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const txFee = parseInt(wallet.Seed.getTransactionFee(tx, networkConfig).to_str());
+  const marginFee = txFee - fieldFee;
+
+  // If < 0 the current fee is enough, so we won't burn the dust!
+  if (marginFee > 0) {
+    const quantity = coinSelection.change[0].amount.quantity;
+    coinSelection.change[0].amount.quantity = quantity - marginFee;
+  }
+
+  // after signing the metadata is cleaned so we need to create it again
+  metadata = wallet.Seed.buildTransactionMetadata(data);
+  txBody = wallet.Seed.buildTransaction(coinSelection, ttl, { metadata: metadata, config: networkConfig });
+  txBody.set_mint(mint);
+
+  tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
+  const signed = Buffer.from(tx.to_bytes()).toString("hex");
+
   try {
-    const txBody = wallet.Seed.buildTransactionWithToken(
-      coinSelection,
-      ttl,
-      tokens,
-      signingKeys,
-      {
-        data: data,
-        startSlot: info.network_tip?.slot_number || 0,
-        config: networkConfig,
-      }
-    );
-
-    const tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
-    const signed = Buffer.from(tx.to_bytes()).toString("hex");
-    console.log(signed);
-    const res = await fetch(
-      getGraphqlEndpoint(),
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: 'POST',
-        body: JSON.stringify({
-          variables: {
-            encodedTx: signed
-          },
-          query: `
-            mutation($encodedTx:String!) {
-              submitTransaction(transaction:$encodedTx) {
-                hash
-              }
-            }
-          `
-        })
-      }
-    ).then(async res => {
-      const data = await res.json()
-      console.log(JSON.stringify(data));
-      return data;
-    });
-    // const txId = await walletServer.submitTx(signed);
-    if (res?.data?.hash) {
-      console.log(`Minted! Transaction ID: ${res?.data?.hash}`);
-      return res?.data?.hash;
-    }
-
-    return false;
-  } catch (e) {
-    throw new Error(e as any);
+    const txId = await walletServer.submitTx(signed).catch(e => console.log(e));
+    return txId;
+  } catch(e) {
+    Logger.log({ message: JSON.stringify(e), event: 'mintHandleAndSend.submitTx' });
   }
 };
