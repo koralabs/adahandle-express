@@ -23,14 +23,12 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   }
 
   const paidSessions: PaidSession[] = await PaidSessions.getPaidSessions();
-  if (!paidSessions) {
+  if (paidSessions.length < 1) {
     return res.status(200).json({
       error: false,
       message: 'No paid sessions!'
     });
   }
-
-  console.log(JSON.stringify(paidSessions));
 
   // Filter out any possibly duplicated sessions.
   const duplicatePaidSessions: PaidSession[] = [];
