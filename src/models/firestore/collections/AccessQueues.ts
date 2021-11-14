@@ -46,7 +46,7 @@ export class AccessQueues {
   static async updateAccessQueue(createVerificationFunction?: (phone: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
     const stateData = await StateData.getStateData();
 
-    let queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit).get();;
+    let queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();;
 
     Logger.log({ message: `Queued Snapshot: ${queuedSnapshot.docs.length}`, event: 'updateAccessQueue.queuedSnapshot.length', category: LogCategory.METRIC });
     await Promise.all(queuedSnapshot.docs.map(async doc => {
@@ -54,6 +54,7 @@ export class AccessQueues {
 
       const data = createVerificationFunction ? await createVerificationFunction(entry.phone) : await createTwilioVerification(entry.phone).catch(e => {
         // if Twilio throws an error, we should remove the entry from the queue?
+        Logger.log({ message: `Error occurred verifying ${entry.phone}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
         Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
       });
 
