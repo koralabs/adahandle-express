@@ -131,6 +131,7 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
   const amounts = assets.map((_asset, index) => wallet.Seed.getMinUtxoValueWithAssets([assets[index]], networkConfig));
 
   // Get coin selection structure (without the assets).
+  Logger.log({ message: `Getting coinselection for: ${JSON.stringify(sessions)}. Corresponding params: ${JSON.stringify({ buyerAddresses, amounts, data })}`, event: 'mintHandlesAndSend.getCoinSelection' });
   const coinSelection = await ourWallet.getCoinSelection(
     buyerAddresses,
     amounts,

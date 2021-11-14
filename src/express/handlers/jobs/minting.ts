@@ -30,6 +30,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     });
   }
 
+  console.log(JSON.stringify(paidSessions));
+
   // Filter out any possibly duplicated sessions.
   const duplicatePaidSessions: PaidSession[] = [];
   const sanitizedSessions = paidSessions.reduce((sanitized: PaidSession[], curr: PaidSession) => {

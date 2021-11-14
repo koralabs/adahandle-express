@@ -9,6 +9,8 @@ export class PaidSessions {
     public static async getPaidSessions(): Promise<PaidSession[]> {
         const collection = await admin.firestore()
           .collection(PaidSessions.collectionName)
+          // @TODO: Might need this to just exclude confirmed so we can handle submitted txs.
+          .where('status', '==', 'pending')
           .limit(10)
           .get();
         return collection.docs.map(doc => doc.data() as PaidSession);
