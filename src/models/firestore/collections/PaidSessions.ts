@@ -9,7 +9,6 @@ export class PaidSessions {
     public static async getPaidSessions(): Promise<PaidSession[]> {
         const collection = await admin.firestore()
           .collection(PaidSessions.collectionName)
-          .where('status', '!=', 'confirmed')
           .limit(10)
           .get();
         return collection.docs.map(doc => doc.data() as PaidSession);
@@ -43,29 +42,6 @@ export class PaidSessions {
         await admin.firestore().runTransaction(async t => {
             t.create(docRef, paidSession.toJSON());
         });
-    }
-
-    static async updatePaidSessionsStatus(paidSessions: PaidSession[], status: 'confirmed' | 'pending' | 'submitted') {
-      try {
-        await admin.firestore().runTransaction(async t => {
-            const snapshot = await t.get(admin.firestore().collection(PaidSessions.collectionName)
-              .where('wallet.address', 'in', paidSessions.map(session => session.wallet.address))
-              .limit(paidSessions.length));
-
-            if (snapshot.empty) {
-                return;
-            }
-
-            snapshot.docs.forEach((doc) => {
-              t.update(doc.ref, {
-                status
-              });
-            })
-          });
-      } catch (error) {
-          console.log(error);
-          throw new Error(`Unable to update paid sessions for wallets ${JSON.stringify(paidSessions)}`);
-      }
     }
 
     // TODO: Add load test
