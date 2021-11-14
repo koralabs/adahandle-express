@@ -42,8 +42,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     return sanitized;
   }, []);
 
-  // @todo move duplicates to refunds.
   if (duplicatePaidSessions.length > 0) {
+    // Log in refunds.
     await RefundableSessions.addRefundableSessions(
       duplicatePaidSessions.map(s => new RefundableSession({
         amount: toLovelace(s.cost),
@@ -51,6 +51,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
         wallet: s.wallet
       }))
     );
+
+    // Remove from paid.
     await PaidSessions.removePaidSessions(duplicatePaidSessions);
   }
 
@@ -59,6 +61,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   try {
     const txId = await mintHandlesAndSend(sanitizedSessions);
     txResponse = txId;
+
+    // @TODO: We need a way to know that these sessions were submitted in a single transaction.
   } catch (e) {
     console.log('Failed to mint', e);
     txResponse = false;
