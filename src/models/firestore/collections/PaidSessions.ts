@@ -7,7 +7,8 @@ export class PaidSessions {
     public static readonly collectionName = buildCollectionNameWithSuffix('paidSessions');
 
     public static async getPaidSessions(): Promise<PaidSession[]> {
-        const collection = await admin.firestore().collection(PaidSessions.collectionName)
+        const collection = await admin.firestore()
+          .collection(PaidSessions.collectionName)
           .limit(10)
           .get();
         return collection.docs.map(doc => doc.data() as PaidSession);
