@@ -2,7 +2,7 @@ import * as express from "express";
 
 import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
 import { mintHandlesAndSend } from "../../../helpers/wallet";
-import { handleExists } from "../../../helpers/graphql";
+import { handleExists, handleExists } from "../../../helpers/graphql";
 import { getChainLoad } from '../../../helpers/cardano';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { MintedHandles } from '../../../models/firestore/collections/MintedHandles';
@@ -10,7 +10,7 @@ import { MintedHandle } from '../../../models/MintedHandle';
 import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
-import { toLovelace } from "../../../helpers/utils";
+import { asyncForEach, toLovelace } from "../../../helpers/utils";
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   const load = await getChainLoad();
@@ -31,33 +31,51 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   }
 
   // Filter out any possibly duplicated sessions.
-  const duplicatePaidSessions: PaidSession[] = [];
-  const sanitizedSessions = paidSessions.reduce((sanitized: PaidSession[], curr: PaidSession) => {
-    if (sanitized.some(s => s.handle === curr.handle)) {
-      duplicatePaidSessions.push(curr);
-      return sanitized;
+  const confirmedPaidSessions: PaidSession[] = [];
+  const refundablePaidSessions: PaidSession[] = [];
+  const pendingPaidSessions: PaidSession[] = [];
+
+  asyncForEach(paidSessions, async (session) => {
+
+    // Move duplicates or potential double mints.
+    const exists = await handleExists(session.handle);
+    if (
+      pendingPaidSessions.some(s => s.handle === session.handle) ||
+      (exists && session.status === 'pending')
+    ) {
+      refundablePaidSessions.push(session);
+      return;
     }
 
-    sanitized.push(curr);
-    return sanitized;
-  }, []);
+    // Update confirmed paid sessions.
+    if (exists && session.status === 'submitted') {
+      confirmedPaidSessions.push(session);
+      return;
+    }
 
-  // @todo move duplicates to refunds.
-  if (duplicatePaidSessions.length > 0) {
-    await RefundableSessions.addRefundableSessions(
-      duplicatePaidSessions.map(s => new RefundableSession({
-        amount: toLovelace(s.cost),
-        handle: s.handle,
-        wallet: s.wallet
-      }))
-    );
-    await PaidSessions.removePaidSessions(duplicatePaidSessions);
+    pendingPaidSessions.push(session);
+  });
+
+  // Move duplicates to refunds.
+  if (refundablePaidSessions.length > 0) {
+    await RefundableSessions.addRefundableSessions(refundablePaidSessions.map(session => new RefundableSession({
+      amount: toLovelace(session.cost),
+      handle: session.handle,
+      wallet: session.wallet
+    })));
+    await PaidSessions.removePaidSessions(refundablePaidSessions);
+  }
+
+  // Update confirmed paid sesions.
+  if (confirmedPaidSessions.length > 0) {
+    await PaidSessions.updatePaidSessionsStatus(confirmedPaidSessions, 'confirmed');
   }
 
   // Mint the handles!
   let txResponse;
   try {
-    const txId = await mintHandlesAndSend(sanitizedSessions);
+    const txId = await mintHandlesAndSend(pendingPaidSessions);
+    await PaidSessions.updatePaidSessionsStatus(pendingPaidSessions, 'submitted');
     txResponse = txId;
   } catch (e) {
     console.log('Failed to mint', e);
