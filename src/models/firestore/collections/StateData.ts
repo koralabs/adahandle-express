@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { State } from "../../State";
+import { LogCategory, Logger } from "../../../helpers/Logger";
 
 export enum CronJobLockName {
     MINT_PAID_SESSIONS_LOCK = "mintPaidSessions_lock",
@@ -27,12 +28,23 @@ export class StateData {
 
     public static async upsertStateData(state: State): Promise<void> {
         const stateObj = Object.keys(state).reduce((acc, key) => {
-            if (!key.endsWith('_lock')) {
+            if (key.endsWith('_lock') || key.endsWith('_limit')) {
+                return acc;
+            }
+
+            if (!acc[key]) {
                 acc[key] = state[key];
             }
+
             return acc;
         }, {});
-        await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).set(stateObj);
+
+        if (Object.keys(state).length == 0) {
+            Logger.log({ message: 'No state data to save', category: LogCategory.WARN, event: 'upsertStateData' });
+            return;
+        }
+
+        await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).update(stateObj);
     }
 
     public static async lockCron(name: CronJobLockName) {
