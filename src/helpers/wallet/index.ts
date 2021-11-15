@@ -55,14 +55,14 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
   console.log(JSON.stringify(transactions));
 
-  if (!transactions) {
+  if (!transactions || transactions.length < 1) {
     throw new Error(
       'Unable to find transactions.'
     );
   }
 
   const buyerAddresses = transactions.map((tx) => new wallet.AddressWallet(tx.inputs[0].address));
-  if (!buyerAddresses) {
+  if (!buyerAddresses.length) {
     throw new Error(
       `No buyer addresses were found.`
     );
@@ -70,7 +70,7 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
 
   // Pre-build Handle images.
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
-  const handlesMetadata = Promise.allSettled(sessions.map(async (session) => {
+  const handlesMetadata = await Promise.all(sessions.map(async (session) => {
     const og = twitterHandles.includes(session.handle);
     const ipfs = await getIPFSImage(
       session.handle,
@@ -104,14 +104,9 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
   const data = {
     "721": {
       [policyId]: {
-        ...sessions.reduce(async (collection, session, index) => {
-          const metadata = handlesMetadata[index];
-          return {
-            ...collection,
-            [session.handle]: {
-              ...metadata
-            }
-          }
+        ...sessions.reduce((groupData, session, index) => {
+          groupData[session.handle] = handlesMetadata[index];
+          return groupData;
         }, {}),
       }
     }
