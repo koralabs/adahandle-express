@@ -10,7 +10,7 @@ import { MintedHandle } from '../../../models/MintedHandle';
 import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
-import { toLovelace } from "../../../helpers/utils";
+import { asyncForEach, toLovelace } from "../../../helpers/utils";
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   const load = await getChainLoad();
@@ -31,19 +31,27 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   }
 
   // Filter out any possibly duplicated sessions.
+  const sanitizedSessions: PaidSession[] = [];
   const duplicatePaidSessions: PaidSession[] = [];
-  const sanitizedSessions = paidSessions.reduce((sanitized: PaidSession[], curr: PaidSession) => {
-    if (sanitized.some(s => s.handle === curr.handle)) {
-      duplicatePaidSessions.push(curr);
-      return sanitized;
+
+  asyncForEach(paidSessions, async (session: PaidSession) => {
+    // Make sure we don't have more than one session with the same handle.
+    if (sanitizedSessions.some(s => s.handle === session.handle)) {
+      duplicatePaidSessions.push(session);
     }
 
-    sanitized.push(curr);
-    return sanitized;
-  }, []);
+    // Make sure there isn't an existing handle on-chain.
+    const { exists } = await handleExists(session.handle);
+    if (exists) {
+      duplicatePaidSessions.push(session);
+    }
 
+    // The rest are good for processing.
+    sanitizedSessions.push(session);
+  });
+
+  // Move to refunds if necessary.
   if (duplicatePaidSessions.length > 0) {
-    // Log in refunds.
     await RefundableSessions.addRefundableSessions(
       duplicatePaidSessions.map(s => new RefundableSession({
         amount: toLovelace(s.cost),
@@ -61,6 +69,12 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   try {
     const txId = await mintHandlesAndSend(sanitizedSessions);
     txResponse = txId;
+
+    // Delete sessions data once submitted.
+    // @TODO Refactor this to keep the record but remove the phone number.
+    if (txId) {
+      await PaidSessions.removePaidSessions(sanitizedSessions);
+    }
 
     // @TODO: We need a way to know that these sessions were submitted in a single transaction.
   } catch (e) {
