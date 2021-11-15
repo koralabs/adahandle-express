@@ -53,6 +53,8 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
       : wallet.Config.Mainnet;
 
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
+  console.log(JSON.stringify(transactions));
+
   if (!transactions) {
     throw new Error(
       'Unable to find transactions.'
