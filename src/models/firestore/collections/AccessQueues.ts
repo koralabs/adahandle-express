@@ -46,7 +46,7 @@ export class AccessQueues {
   static async updateAccessQueue(createVerificationFunction?: (phone: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
     const stateData = await StateData.getStateData();
 
-    let queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();;
+    const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();
 
     Logger.log({ message: `Queued Snapshot: ${queuedSnapshot.docs.length}`, event: 'updateAccessQueue.queuedSnapshot.length', category: LogCategory.METRIC });
     await Promise.all(queuedSnapshot.docs.map(async doc => {
@@ -72,6 +72,18 @@ export class AccessQueues {
         });
       }
     }));
+
+    /**
+     * TODO: Send alert.
+     * 1. Only if access queue size is > 3 hours wait.
+     * 2. Send alert to the next 3 hours wait batch.
+     */
+    // const batchPhoneNumbers = getBatchPhoneNumbers();
+    // await client.messages.create({
+    //   messagingServiceSid: process.env.TWILIO_MESSAGING_SID as string,
+    //   to: batchPhoneNumbers,
+    //   body: 'Heads up! You\'re turn for ADA Handle access is coming up in the next few hours. We\'ll send you an access code when it\'s your turn. You will have 10 MINUTES to use it, so don\'t wait around!'
+    // });
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)

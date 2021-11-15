@@ -32,8 +32,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       await client.messages.create({
         messagingServiceSid: process.env.TWILIO_MESSAGING_SID as string,
         to: phoneNumber,
-        // @TODO Update verbage based on position.
-        body: 'Confirmed! Your spot has been saved. Your verification code is on its way. Please allow up to 5 minutes.'
+        body: 'Confirmed! Your spot has been saved at [position]. We will alert you before your auth code arrives.'
       });
     }
 
