@@ -26,7 +26,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       error: false,
       message: 'Cron is locked. Try again later.'
     });
-  };
+  }
 
   await StateData.lockCron(CRON_JOB_LOCK_NAME);
 
@@ -122,7 +122,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         paidVal.push(entry);
         ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
           ...entry,
-          status: 'pending'
+          status: 'pending',
         }));
       }
     }
