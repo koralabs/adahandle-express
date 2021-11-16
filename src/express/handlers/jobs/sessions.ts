@@ -129,10 +129,9 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   );
 
   Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession.count', category: LogCategory.METRIC });
+  await StateData.unlockCron(CRON_JOB_LOCK_NAME);
 
   try {
-    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
-
     res.status(200).json({
       error: false,
       jobs: {
