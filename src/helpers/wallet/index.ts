@@ -14,7 +14,7 @@ import { getMintWalletServer, getWalletServer, NewAddress } from "./cardano";
 import { WalletAddresses } from "../../models/firestore/collections/WalletAddresses";
 import { ReservedHandles } from "../../models/firestore/collections/ReservedHandles";
 import { PaidSession } from "../../models/PaidSession";
-import { Logger } from "../Logger";
+import { LogCategory, Logger } from "../Logger";
 
 export const getNewAddress = async (): Promise<NewAddress | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress();
@@ -52,10 +52,7 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
       ? wallet.Config.Testnet
       : wallet.Config.Mainnet;
 
-  Logger.log({ message: JSON.stringify(sessions), event: 'mintHandlesAndSend.sessions' })
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
-  Logger.log({ message: JSON.stringify(transactions), event: 'mintHandlesAndSend.transactions' })
-
   if (!transactions || transactions.length < 1) {
     throw new Error(
       'Unable to find transactions.'
@@ -71,6 +68,8 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
 
   // Pre-build Handle images.
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
+
+  Logger.log({ message: `Generating metadata for ${sessions.length} Handles.`, event: 'mintHandlesAndSend' });
   const handlesMetadata = await Promise.all(sessions.map(async (session) => {
     const og = twitterHandles.includes(session.handle);
     const ipfs = await getIPFSImage(
@@ -129,12 +128,11 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
   const amounts = assets.map((_asset, index) => wallet.Seed.getMinUtxoValueWithAssets([assets[index]], networkConfig));
 
   // Get coin selection structure (without the assets).
-  Logger.log({ message: `Getting coinselection for: ${JSON.stringify(sessions)}. Corresponding params: ${JSON.stringify({ buyerAddresses, amounts, data })}`, event: 'mintHandlesAndSend.getCoinSelection' });
   const coinSelection = await ourWallet.getCoinSelection(
     buyerAddresses,
     amounts,
     data
-  ).catch(e => console.log(e));
+  ).catch(e => Logger.log({ message: JSON.stringify(e), event: 'mintHandlesAndSend.getCoinSelection', category: LogCategory.ERROR }));
 
   if (!coinSelection) {
     return;

@@ -11,6 +11,7 @@ import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
 import { asyncForEach, toLovelace } from "../../../helpers/utils";
+import { Logger } from "../../../helpers/Logger";
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   const load = await getChainLoad();
@@ -71,6 +72,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   try {
     const txId = await mintHandlesAndSend(sanitizedSessions);
     txResponse = txId;
+    Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
 
     // Delete sessions data once submitted.
     // @TODO Refactor this to keep the record but remove the phone number.
@@ -80,7 +82,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
 
     // @TODO: We need a way to know that these sessions were submitted in a single transaction.
   } catch (e) {
-    console.log('Failed to mint', e);
+    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     txResponse = false;
   }
 
