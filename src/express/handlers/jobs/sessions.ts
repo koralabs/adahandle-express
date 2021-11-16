@@ -30,7 +30,6 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   await StateData.lockCron(CRON_JOB_LOCK_NAME);
 
-
   const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
   const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
     if (acc.has(session.wallet.address)) {
@@ -44,6 +43,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
   if (dedupeActiveSessions.length == 0) {
+    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
     return res.status(200).json({
       error: false,
       message: 'No active sessions!'
