@@ -54,47 +54,41 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
       : wallet.Config.Mainnet;
 
   const transactions = await getTransactionsFromPaidSessions(sessions);
-  if (!transactions) {
-    throw new Error(
-      'Unable to find transactions.'
-    );
-  }
-
   const returnWallets = await getAddressWalletsFromTransactions(transactions);
-
-  // Pre-build Handle images.
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
 
   Logger.log({ message: `Generating metadata for ${sessions.length} Handles.`, event: 'mintHandlesAndSend' });
-  const handlesMetadata = await Promise.all(sessions.map(async (session) => {
-    const og = twitterHandles.includes(session.handle);
-    const ipfs = await getIPFSImage(
-      session.handle,
-      og,
-      twitterHandles.indexOf(session.handle),
-      twitterHandles.length
-    );
+  const handlesMetadata = await Promise.all(
+    sessions.map(async (session) => {
+      const og = twitterHandles.includes(session.handle);
+      const ipfs = await getIPFSImage(
+        session.handle,
+        og,
+        twitterHandles.indexOf(session.handle),
+        twitterHandles.length
+      );
 
-    // File did not upload, try again.
-    if (!ipfs) {
-      return false;
-    }
+      // File did not upload, try again.
+      if (!ipfs) {
+        return false;
+      }
 
-    const metadata = {
-      name: `$${session.handle}`,
-      description: "https://adahandle.com",
-      image: `ipfs://${ipfs.hash}`,
-      core: {
-        og: +og,
-        termsofuse: "https://adahandle.com/tou",
-        handleEncoding: "utf-8",
-        version: 0,
-      },
-      augmentations: [],
-    }
+      const metadata = {
+        name: `$${session.handle}`,
+        description: "https://adahandle.com",
+        image: `ipfs://${ipfs}`,
+        core: {
+          og: +og,
+          termsofuse: "https://adahandle.com/tou",
+          handleEncoding: "utf-8",
+          version: 0,
+        },
+        augmentations: [],
+      }
 
-    return metadata;
-  }));
+      return metadata;
+    })
+  );
 
   // Setup our metadata JSON object.
   const data = {
