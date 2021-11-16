@@ -34,7 +34,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   const sanitizedSessions: PaidSession[] = [];
   const duplicatePaidSessions: PaidSession[] = [];
 
-  asyncForEach(paidSessions, async (session: PaidSession) => {
+  await asyncForEach(paidSessions, async (session: PaidSession) => {
     // Make sure we don't have more than one session with the same handle.
     if (sanitizedSessions.some(s => s.handle === session.handle)) {
       duplicatePaidSessions.push(session);
