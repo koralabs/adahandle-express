@@ -9,7 +9,7 @@ import { StateData } from "./StateData";
 
 export class AccessQueues {
   public static readonly collectionName = buildCollectionNameWithSuffix('accessQueues');
-  public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('accessQueues_dlq');
+  public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('accessQueuesDLQ');
 
   static async getAccessQueues(): Promise<AccessQueue[]> {
     const collection = await admin.firestore().collection(AccessQueues.collectionName).get();
@@ -50,7 +50,10 @@ export class AccessQueues {
     await Promise.all(queuedSnapshot.docs.map(async doc => {
       const entry = doc.data();
 
-      const data = createVerificationFunction ? await createVerificationFunction(entry.phone) : await createTwilioVerification(entry.phone).catch(async e => {
+      let data: VerificationInstance | null = null;
+      try {
+        data = createVerificationFunction ? await createVerificationFunction(entry.phone) : await createTwilioVerification(entry.phone)
+      } catch (e) {
         Logger.log({ message: `Error occurred verifying ${entry.phone}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
         Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
 
@@ -60,28 +63,29 @@ export class AccessQueues {
           const document = await t.get(doc.ref);
           const failedAccessQueue = document.data() as AccessQueue;
 
-          // If there are more than 2 retries, we need to add to a DLQ and remove the entry from the current queue
-          if (failedAccessQueue.retries >= 2) {
-            Logger.log({ message: `Removing ${failedAccessQueue.phone} from queue and adding to DQL`, event: 'updateAccessQueue.removeFromQueue.error', category: LogCategory.METRIC });
+          // If there are more than 2 attempts, we need to add to a DLQ and remove the entry from the current queue
+          if (failedAccessQueue.attempts >= 3) {
+            Logger.log({ message: `Removing ${failedAccessQueue.phone} from queue and adding to DLQ`, event: 'updateAccessQueue.removeFromQueue.error' });
             t.create(admin.firestore().collection(AccessQueues.collectionNameDLQ).doc(), new AccessQueue({ ...failedAccessQueue }).toJSON());
             t.delete(document.ref);
             return;
           }
 
-          // otherwise increment the retires
-          t.update(document.ref, { retries: admin.firestore.FieldValue.increment(1) });
+          // otherwise increment the retries
+          t.update(document.ref, { attempts: admin.firestore.FieldValue.increment(1) });
         });
-      });
+
+        return;
+      }
 
       Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createTwilioVerification.data' });
       if (data) {
         await admin.firestore().runTransaction(async t => {
-          Logger.log(`updated entry ${doc.id}`);
           const document = await t.get(doc.ref);
           t.update(document.ref, {
             phone: entry.phone,
-            sid: data.sid,
-            status: data.status,
+            sid: data?.sid,
+            status: data?.status,
             start: Date.now(),
           });
         });
