@@ -8,5 +8,5 @@
 
 ### Run Scripts
 ```
-$ ts-node -r dotenv/config ./src/scripts/scriptName.ts
+$ NODE_ENV=test ts-node -r dotenv/config ./src/scripts/scriptName.ts
 ```
