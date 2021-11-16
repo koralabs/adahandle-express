@@ -1,18 +1,22 @@
 import * as admin from "firebase-admin";
 import { asyncForEach, chunk, delay } from "../../../helpers/utils";
-import { PaidSession } from "../../PaidSession";
+import { PaidSession, PaidSessionStatusType } from "../../PaidSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
 export class PaidSessions {
+    static getPaidSessionsByStatus(statusType: PaidSessionStatusType): Promise<PaidSession[]> {
+        throw new Error("Method not implemented.");
+    }
+
     public static readonly collectionName = buildCollectionNameWithSuffix('paidSessions');
 
     public static async getPaidSessions(): Promise<PaidSession[]> {
         const collection = await admin.firestore()
-          .collection(PaidSessions.collectionName)
-          // @TODO: Might need this to just exclude confirmed so we can handle submitted txs.
-          .where('status', '==', 'pending')
-          .limit(10)
-          .get();
+            .collection(PaidSessions.collectionName)
+            // @TODO: Might need this to just exclude confirmed so we can handle submitted txs.
+            .where('status', '==', 'pending')
+            .limit(10)
+            .get();
         return collection.docs.map(doc => doc.data() as PaidSession);
     }
 

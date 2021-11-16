@@ -21,7 +21,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     });
   }
 
-  const paidSessions: PaidSession[] = await PaidSessions.getPaidSessions();
+  // TODO: get pending sessions from firestore
+  const paidSessions: PaidSession[] = await PaidSessions.getPaidSessionsByStatus('pending');
   if (paidSessions.length < 1) {
     return res.status(200).json({
       error: false,
@@ -33,6 +34,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   const sanitizedSessions: PaidSession[] = [];
   const duplicatePaidSessions: PaidSession[] = [];
 
+  // check for duplicates
   await asyncForEach(paidSessions, async (session: PaidSession) => {
     // Make sure we don't have more than one session with the same handle.
     if (sanitizedSessions.some(s => s.handle === session.handle)) {
@@ -62,7 +64,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     );
 
     // Remove from paid.
-    await PaidSessions.removePaidSessions(duplicatePaidSessions);
+    await PaidSessions.sanitzeAndAddToDLQ(duplicatePaidSessions);
   }
 
   // Mint the handles!
@@ -73,12 +75,14 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
 
     // Delete sessions data once submitted.
-    // @TODO Refactor this to keep the record but remove the phone number.
     if (txId) {
-      await PaidSessions.removePaidSessions(sanitizedSessions);
+      await PaidSessions.sanitzeAndAddToDLQ(sanitizedSessions);
     }
 
     // @TODO: We need a way to know that these sessions were submitted in a single transaction.
+    // This is done by checking to see if the transaction is on chain.
+    // 
+
   } catch (e) {
     Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     txResponse = false;
