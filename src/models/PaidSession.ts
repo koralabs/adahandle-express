@@ -10,7 +10,7 @@ interface PaidSessionType {
   wallet: NewAddress;
   start: number;
   txId?: string;
-  status?: PaidSessionStatusType
+  status?: PaidSessionStatusType;
 }
 
 export class PaidSession extends BaseModel {

@@ -41,7 +41,7 @@ interface GraphqlCardanoPaymentAddressesResult {
   }
 }
 
-interface GraphqlCardanoSenderAddress {
+export interface GraphqlCardanoSenderAddress {
   inputs: {
     address: string;
   }[]

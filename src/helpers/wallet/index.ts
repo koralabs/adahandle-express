@@ -15,6 +15,7 @@ import { WalletAddresses } from "../../models/firestore/collections/WalletAddres
 import { ReservedHandles } from "../../models/firestore/collections/ReservedHandles";
 import { PaidSession } from "../../models/PaidSession";
 import { LogCategory, Logger } from "../Logger";
+import { getAddressWalletsFromTransactions, getTransactionsFromPaidSessions } from "./minting";
 
 export const getNewAddress = async (): Promise<NewAddress | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress();
@@ -52,19 +53,14 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
       ? wallet.Config.Testnet
       : wallet.Config.Mainnet;
 
-  const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
-  if (!transactions || transactions.length < 1) {
+  const transactions = await getTransactionsFromPaidSessions(sessions);
+  if (!transactions) {
     throw new Error(
       'Unable to find transactions.'
     );
   }
 
-  const buyerAddresses = transactions.map((tx) => new wallet.AddressWallet(tx.inputs[0].address));
-  if (!buyerAddresses.length) {
-    throw new Error(
-      `No buyer addresses were found.`
-    );
-  }
+  const returnWallets = await getAddressWalletsFromTransactions(transactions);
 
   // Pre-build Handle images.
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
@@ -129,7 +125,7 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
 
   // Get coin selection structure (without the assets).
   const coinSelection = await ourWallet.getCoinSelection(
-    buyerAddresses,
+    returnWallets,
     amounts,
     data
   ).catch(e => Logger.log({ message: JSON.stringify(e), event: 'mintHandlesAndSend.getCoinSelection', category: LogCategory.ERROR }));
@@ -159,7 +155,7 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
    * not previously minted, so we need to include it manually.
    */
   coinSelection.outputs = coinSelection.outputs.map((output, index) => {
-    if (output.address === buyerAddresses[index].address) {
+    if (output.address === returnWallets[index].address) {
       output.assets = [{
         policy_id: assets[index].policy_id,
         asset_name: Buffer.from(assets[index].asset_name).toString("hex"),
