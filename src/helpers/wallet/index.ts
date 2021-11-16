@@ -52,8 +52,9 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
       ? wallet.Config.Testnet
       : wallet.Config.Mainnet;
 
+  Logger.log({ message: JSON.stringify(sessions), event: 'mintHandlesAndSend.sessions' })
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
-  console.log(JSON.stringify(transactions));
+  Logger.log({ message: JSON.stringify(transactions), event: 'mintHandlesAndSend.transactions' })
 
   if (!transactions || transactions.length < 1) {
     throw new Error(

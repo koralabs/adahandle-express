@@ -38,12 +38,14 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     // Make sure we don't have more than one session with the same handle.
     if (sanitizedSessions.some(s => s.handle === session.handle)) {
       duplicatePaidSessions.push(session);
+      return;
     }
 
     // Make sure there isn't an existing handle on-chain.
     const { exists } = await handleExists(session.handle);
     if (exists) {
       duplicatePaidSessions.push(session);
+      return;
     }
 
     // The rest are good for processing.
