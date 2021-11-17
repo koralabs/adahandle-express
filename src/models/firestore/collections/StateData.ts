@@ -9,6 +9,7 @@ export enum CronJobLockName {
     SAVE_STATE_LOCK = "saveState_lock",
     SEND_AUTH_CODES_LOCK = "sendAuthCodes_lock",
     UPDATE_ACTIVE_SESSIONS_LOCK = "updateActiveSessions_lock",
+    MINT_CONFIRMED_LOCK = "mintConfirmed_lock"
 }
 
 export class StateData {

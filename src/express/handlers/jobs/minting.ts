@@ -9,9 +9,23 @@ import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
 import { asyncForEach, toLovelace } from "../../../helpers/utils";
-import { Logger } from "../../../helpers/Logger";
+import { LogCategory, Logger } from "../../../helpers/Logger";
+import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
+import { CollectionLimitName } from "../../../models/State";
+
+const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_PAID_SESSIONS_LOCK;
+const COLLECTION_LIMIT_NAME = CollectionLimitName.PAID_SESSIONS_LIMIT;
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
+  const stateData = await StateData.getStateData();
+  if (stateData[CRON_JOB_LOCK_NAME]) {
+    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintPaidSessionsHandler.locked', category: LogCategory.NOTIFY });
+    return res.status(200).json({
+      error: false,
+      message: 'Cron is locked. Try again later.'
+    });
+  }
+
   const load = await getChainLoad();
 
   if (!load || load > MAX_CHAIN_LOAD) {
@@ -21,8 +35,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     });
   }
 
-  // TODO: get pending sessions from firestore
-  const paidSessions: PaidSession[] = await PaidSessions.getPaidSessionsByStatus('pending');
+  const paidSessionsLimit = stateData[COLLECTION_LIMIT_NAME];
+  const paidSessions: PaidSession[] = await PaidSessions.getByStatus({ statusType: 'pending', limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
     return res.status(200).json({
       error: false,
@@ -64,7 +78,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     );
 
     // Remove from paid.
-    await PaidSessions.sanitzeAndAddToDLQ(duplicatePaidSessions);
+    await PaidSessions.removeAndAddToDLQ(duplicatePaidSessions);
   }
 
   // Mint the handles!
@@ -76,15 +90,13 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
 
     // Delete sessions data once submitted.
     if (txId) {
-      await PaidSessions.sanitzeAndAddToDLQ(sanitizedSessions);
+      await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
     }
-
-    // @TODO: We need a way to know that these sessions were submitted in a single transaction.
-    // This is done by checking to see if the transaction is on chain.
-    // 
-
   } catch (e) {
-    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
+    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}. locking cron`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.NOTIFY });
+
+    // if anything goes wrong, lock the cron job and troubleshoot.
+    await StateData.lockCron(CRON_JOB_LOCK_NAME);
     txResponse = false;
   }
 
