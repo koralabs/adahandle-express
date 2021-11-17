@@ -8,7 +8,9 @@
   "scripts": {
     "build": "tsc -p .",
     "lint": "eslint . --ext .ts",
-    "test": "jest --passWithNoTests",
+    "start:firestore:emulator": "firebase emulators:start --only firestore",
+    "test:models": "NODE_ENV=test node node_modules/.bin/jest --testPathPattern=.*models/ --testPathIgnorePatterns=/node_modules/ /.build/",
+    "test": "NODE_ENV=test node node_modules/.bin/jest --testPathIgnorePatterns=/node_modules/ /.build/ '.*models/.*'",
     "start:prod": "NODE_ENV=production forever start ./development.json",
     "start:dev": "NODE_ENV=development forever start ./development.json",
     "stop": "forever stopall",
