@@ -45,8 +45,7 @@ export class AccessQueues {
 
   static async updateAccessQueue(createVerificationFunction?: (phone: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
     const stateData = await StateData.getStateData();
-
-    let queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();;
+    const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();;
 
     Logger.log({ message: `Queued Snapshot: ${queuedSnapshot.docs.length}`, event: 'updateAccessQueue.queuedSnapshot.length', category: LogCategory.METRIC });
     await Promise.all(queuedSnapshot.docs.map(async doc => {

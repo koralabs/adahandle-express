@@ -6,6 +6,7 @@ const Pinata = require('@pinata/sdk');
 import { BlockFrostIPFS } from '@blockfrost/blockfrost-js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { LogCategory, Logger } from './Logger';
 import { getRaritySlug } from './nft';
 
 export const getIPFSImage = async (
@@ -13,11 +14,11 @@ export const getIPFSImage = async (
   og: boolean,
   ogNumber: number,
   ogTotal: number
-): Promise<{
-  hash: string;
-} | false> => {
+): Promise<string | false> => {
+  const logStart = Date.now();
+  Logger.log({ message: `Started generating Handle image for $${handle}...`, event: 'getIPFSImage' });
   const ipfs = new BlockFrostIPFS({
-    projectId: process.env.BLOCKFROST_API_KEY!
+    projectId: process.env.BLOCKFROST_API_KEY as string
   });
 
   const slug = getRaritySlug(handle);
@@ -57,14 +58,13 @@ export const getIPFSImage = async (
       return false;
     }
 
-    const pinataClient = Pinata(process.env.PINATA_API_KEY!, process.env.PINATA_API_SECRET!);
+    const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
     await pinataClient.pinByHash(res.ipfs_hash);
 
-    return {
-      hash: res.ipfs_hash
-    }
+    Logger.log({ message: `Finished generating Handle image for $${handle} in ${Date.now() - logStart}ms. `, event: 'getIPFSImage', category: LogCategory.METRIC });
+    return res.ipfs_hash;
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: `Failed to generate Handle image for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage', category: LogCategory.ERROR });
     return false;
   }
 }
