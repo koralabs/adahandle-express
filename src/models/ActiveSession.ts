@@ -2,11 +2,13 @@ import { NewAddress } from "../helpers/wallet/cardano";
 import { BaseModel } from "./BaseModel";
 
 export interface ActiveSessionInput {
+
     phoneNumber: string,
     cost: number,
     handle: string,
     wallet: NewAddress,
     start: number,
+    id?: string,
     txId?: string
 }
 
@@ -16,10 +18,12 @@ export class ActiveSession extends BaseModel {
     public handle: string;
     public wallet: NewAddress;
     public start: number;
+    public id?: string;
     public txId?: string;
 
-    constructor({ phoneNumber, cost, handle, wallet, start, txId }: ActiveSessionInput) {
+    constructor({ id, phoneNumber, cost, handle, wallet, start, txId }: ActiveSessionInput) {
         super();
+        this.id = id;
         this.phoneNumber = phoneNumber;
         this.cost = cost;
         this.handle = handle;

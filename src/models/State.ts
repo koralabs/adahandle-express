@@ -10,6 +10,7 @@ interface StateConstructor {
     position: number;
     totalHandles: number;
     updateActiveSessions_lock?: boolean;
+    mintPaidSessions_lock?: boolean;
     accessQueue_limit?: number;
     paidSessions_limit?: number;
 }
@@ -19,6 +20,7 @@ export class State extends BaseModel {
     public position: number;
     public totalHandles: number;
     public updateActiveSessions_lock: boolean;
+    public mintPaidSessions_lock: boolean;
     public accessQueue_limit: number;
     public paidSessions_limit: number;
 
@@ -27,6 +29,7 @@ export class State extends BaseModel {
         position,
         totalHandles,
         updateActiveSessions_lock,
+        mintPaidSessions_lock,
         accessQueue_limit = 20,
         paidSessions_limit = 10
     }: StateConstructor) {
@@ -34,6 +37,7 @@ export class State extends BaseModel {
         this.chainLoad = chainLoad ?? 0;
         this.position = position;
         this.totalHandles = totalHandles;
+        this.mintPaidSessions_lock = mintPaidSessions_lock ?? false;
         this.updateActiveSessions_lock = updateActiveSessions_lock ?? false;
         this.accessQueue_limit = accessQueue_limit;
         this.paidSessions_limit = paidSessions_limit;

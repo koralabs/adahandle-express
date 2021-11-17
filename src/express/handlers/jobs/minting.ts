@@ -16,18 +16,17 @@ import { CollectionLimitName } from "../../../models/State";
 const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_PAID_SESSIONS_LOCK;
 const COLLECTION_LIMIT_NAME = CollectionLimitName.PAID_SESSIONS_LIMIT;
 
-export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
+const mintPaidSessions = async (req: express.Request, res: express.Response) => {
   const stateData = await StateData.getStateData();
   if (stateData[CRON_JOB_LOCK_NAME]) {
     Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintPaidSessionsHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
-      message: 'Cron is locked. Try again later.'
+      message: 'Minting cron is locked. Try again later.'
     });
   }
 
   const load = await getChainLoad();
-
   if (!load || load > MAX_CHAIN_LOAD) {
     return res.status(200).json({
       error: false,
@@ -44,22 +43,27 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     });
   }
 
+  await PaidSessions.updateSessionStatuses('', paidSessions, 'processing');
+
   // Filter out any possibly duplicated sessions.
   const sanitizedSessions: PaidSession[] = [];
-  const duplicatePaidSessions: PaidSession[] = [];
+  const refundableSessions: PaidSession[] = [];
 
   // check for duplicates
   await asyncForEach(paidSessions, async (session: PaidSession) => {
     // Make sure we don't have more than one session with the same handle.
     if (sanitizedSessions.some(s => s.handle === session.handle)) {
-      duplicatePaidSessions.push(session);
+      Logger.log({ message: `Handle ${session.handle} already exists in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
+      refundableSessions.push(session);
       return;
     }
 
     // Make sure there isn't an existing handle on-chain.
-    const { exists } = await handleExists(session.handle);
-    if (exists) {
-      duplicatePaidSessions.push(session);
+    const { exists: existsOnChain } = await handleExists(session.handle);
+    const existingSessions = await PaidSessions.getByHandles(session.handle);
+    if (existsOnChain && existingSessions.length > 1) {
+      Logger.log({ message: `Handle ${session.handle} already exists on-chain and in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
+      refundableSessions.push(session);
       return;
     }
 
@@ -68,9 +72,9 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   });
 
   // Move to refunds if necessary.
-  if (duplicatePaidSessions.length > 0) {
+  if (refundableSessions.length > 0) {
     await RefundableSessions.addRefundableSessions(
-      duplicatePaidSessions.map(s => new RefundableSession({
+      refundableSessions.map(s => new RefundableSession({
         amount: toLovelace(s.cost),
         handle: s.handle,
         wallet: s.wallet
@@ -78,7 +82,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     );
 
     // Remove from paid.
-    await PaidSessions.removeAndAddToDLQ(duplicatePaidSessions);
+    await PaidSessions.removeAndAddToDLQ(refundableSessions);
   }
 
   // Mint the handles!
@@ -90,6 +94,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
 
     // Delete sessions data once submitted.
     if (txId) {
+      Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.submitted', category: LogCategory.METRIC });
       await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
     }
   } catch (e) {
@@ -104,4 +109,23 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     error: txResponse === false,
     message: txResponse
   });
+}
+
+export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `mintPaidSessionsHandler completed in ${Date.now() - startTime}ms`, event: 'mintPaidSessionsHandler.run', category: LogCategory.METRIC });
+
+  try {
+    const result = await mintPaidSessions(req, res);
+    Logger.log(getLogMessage(startTime));
+    return result;
+
+  } catch (error) {
+    Logger.log(getLogMessage(startTime));
+    return res.status(200).json({
+      error: true,
+      message: JSON.stringify(error)
+    });
+  }
+
 };

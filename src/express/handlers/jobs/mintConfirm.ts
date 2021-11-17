@@ -6,7 +6,7 @@ import { CronJobLockName, StateData } from "../../../models/firestore/collection
 import { getMintWalletServer } from "../../../helpers/wallet/cardano";
 import { PaidSession } from "../../../models/PaidSession";
 import { asyncForEach } from "../../../helpers/utils";
-import { ApiTransactionStatusEnum } from "cardano-wallet-js";
+import { ApiTransactionStatusEnum, TransactionWallet } from "cardano-wallet-js";
 
 const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_CONFIRMED_LOCK;
 
@@ -16,13 +16,12 @@ export const mintConfirmedHandler = async (req: express.Request, res: express.Re
     Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintConfirmedHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
-      message: 'Cron is locked. Try again later.'
+      message: 'Mint confirmed cron is locked. Try again later.'
     });
   }
 
   // get paid sessions with status 'submitted'
-  // TODO: determine how to handle limit... 
-  const paidSessions = await PaidSessions.getByStatus({ statusType: 'submitted', limit: 10000 });
+  const paidSessions = await PaidSessions.getByStatus({ statusType: 'submitted' });
   const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, PaidSession[]>>((acc, session) => {
     if (session.txId && !acc.has(session.txId)) {
       const sessions = acc.get(session.txId) ?? [];
@@ -34,21 +33,28 @@ export const mintConfirmedHandler = async (req: express.Request, res: express.Re
 
   const mintingWallet = await getMintWalletServer();
   await asyncForEach<string>([...groupedPaidSessionsByTxIdMap.keys()], async (txId) => {
-    const transaction = await mintingWallet.getTransaction(txId);
-    const status = transaction.status;
-    const depth = transaction.depth?.quantity;
+    let transaction: TransactionWallet | undefined;
 
+    try {
+      transaction = await mintingWallet.getTransaction(txId);
+    } catch (error) {
+      Logger.log({ message: JSON.stringify(error), event: 'mintConfirmedHandler.getTransaction', category: LogCategory.NOTIFY });
+      // TODO: do we need to check graphql or set to pending?
+      return;
+    }
+
+    const status = transaction?.status;
+    const depth = transaction?.depth?.quantity;
     // check the wallet for block depth (Assurance level) is >= 5 set to 'confirmed'
-    const sessions = groupedPaidSessionsByTxIdMap.get(txId) ?? [];
     if (status === ApiTransactionStatusEnum.InLedger && depth >= 5) {
-      await PaidSessions.updateSessionStatusesByTxId(txId, sessions, 'confirmed');
+      await PaidSessions.updateSessionStatusesByTxId(txId, 'confirmed');
       return;
     }
 
     // if transaction isn't found or is "expired", revert back to 'pending'
     if (status === ApiTransactionStatusEnum.Expired) {
       // if transaction attempts is > 3, move to DLQ and notify team
-      await PaidSessions.updateSessionStatusesByTxId(txId, sessions, 'pending');
+      await PaidSessions.updateSessionStatusesByTxId(txId, 'pending');
     }
   });
 

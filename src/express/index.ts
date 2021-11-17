@@ -17,6 +17,7 @@ import { stateHandler } from './handlers/jobs/state';
 import { sendAuthCodesHandler } from './handlers/jobs/auth';
 import { mintPaidSessionsHandler } from './handlers/jobs/minting';
 import { updateSessionsHandler } from './handlers/jobs/sessions';
+import { mintConfirmedHandler } from "./handlers/jobs/mintConfirm";
 
 export const startServer = async () => {
   const app = express();
@@ -51,6 +52,7 @@ export const startServer = async () => {
   app.post('/sendAuthCodes', sendAuthCodesHandler);
   app.post('/updateActiveSessions', updateSessionsHandler);
   app.post('/mintPaidSessions', mintPaidSessionsHandler);
+  app.post('/mintConfirmed', mintConfirmedHandler);
 
   app.listen(3000);
 }

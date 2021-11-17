@@ -1,8 +1,7 @@
-import { uuid } from "../helpers/utils";
 import { NewAddress } from "../helpers/wallet/cardano";
 import { BaseModel } from "./BaseModel";
 
-export type PaidSessionStatusType = "pending" | "submitted" | "confirmed";
+export type PaidSessionStatusType = "pending" | "processing" | "submitted" | "confirmed";
 
 interface PaidSessionType {
   phoneNumber: string;
@@ -14,6 +13,7 @@ interface PaidSessionType {
   txId?: string;
   status?: PaidSessionStatusType;
   attempts?: number;
+  dateAdded?: number;
 }
 
 export class PaidSession extends BaseModel {
@@ -26,6 +26,7 @@ export class PaidSession extends BaseModel {
   public id?: string;
   public txId?: string;
   public status?: PaidSessionStatusType;
+  public dateAdded?: number;
 
   constructor({
     id,
@@ -36,7 +37,8 @@ export class PaidSession extends BaseModel {
     start,
     txId,
     status = 'pending',
-    attempts = 0
+    attempts = 0,
+    dateAdded = Date.now()
   }: PaidSessionType) {
     super();
     this.id = id;
@@ -48,5 +50,6 @@ export class PaidSession extends BaseModel {
     this.txId = txId;
     this.status = status;
     this.attempts = attempts;
+    this.dateAdded = dateAdded;
   }
 }
