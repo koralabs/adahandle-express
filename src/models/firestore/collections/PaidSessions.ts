@@ -93,13 +93,15 @@ export class PaidSessions {
         }));
     }
 
-    static async updateSessionStatuses(txId: string, sanitizedSessions: PaidSession[], statusType: PaidSessionStatusType): Promise<void> {
-        await Promise.all(sanitizedSessions.map(async session => {
+    static async updateSessionStatuses(txId: string, sanitizedSessions: PaidSession[], statusType: PaidSessionStatusType): Promise<boolean[]> {
+        return Promise.all(sanitizedSessions.map(async session => {
             return admin.firestore().runTransaction(async t => {
                 const ref = admin.firestore().collection(PaidSessions.collectionName).doc(session.id as string);
                 t.update(ref, { status: statusType, txId });
+                return true;
             }).catch(error => {
                 Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'updateSessionStatuses.error', category: LogCategory.ERROR });
+                return false;
             });
         }));
     }

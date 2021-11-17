@@ -43,7 +43,14 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   }
 
-  await PaidSessions.updateSessionStatuses('', paidSessions, 'processing');
+  const results = await PaidSessions.updateSessionStatuses('', paidSessions, 'processing');
+  if (results.some(result => !result)) {
+    Logger.log({ message: 'Error setting "processing" status', event: 'mintPaidSessionsHandler.updateSessionStatuses.processing', category: LogCategory.NOTIFY });
+    return res.status(400).json({
+      error: true,
+      message: 'Error setting "processing" status'
+    });
+  }
 
   // Filter out any possibly duplicated sessions.
   const sanitizedSessions: PaidSession[] = [];
