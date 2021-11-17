@@ -8,15 +8,15 @@ import { PaidSession } from "../../../models/PaidSession";
 import { asyncForEach } from "../../../helpers/utils";
 import { ApiTransactionStatusEnum, TransactionWallet } from "cardano-wallet-js";
 
-const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_CONFIRMED_LOCK;
+const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_CONFIRM_LOCK;
 
-export const mintConfirmedHandler = async (req: express.Request, res: express.Response) => {
+export const mintConfirmHandler = async (req: express.Request, res: express.Response) => {
   const stateData = await StateData.getStateData();
   if (stateData[CRON_JOB_LOCK_NAME]) {
-    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintConfirmedHandler.locked', category: LogCategory.NOTIFY });
+    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintConfirmHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
-      message: 'Mint confirmed cron is locked. Try again later.'
+      message: 'Mint confirm cron is locked. Try again later.'
     });
   }
 
@@ -38,7 +38,7 @@ export const mintConfirmedHandler = async (req: express.Request, res: express.Re
     try {
       transaction = await mintingWallet.getTransaction(txId);
     } catch (error) {
-      Logger.log({ message: JSON.stringify(error), event: 'mintConfirmedHandler.getTransaction', category: LogCategory.NOTIFY });
+      Logger.log({ message: JSON.stringify(error), event: 'mintConfirmHandler.getTransaction', category: LogCategory.NOTIFY });
       // TODO: do we need to check graphql or set to pending?
       return;
     }
@@ -46,7 +46,7 @@ export const mintConfirmedHandler = async (req: express.Request, res: express.Re
     const status = transaction?.status;
     const depth = transaction?.depth?.quantity;
 
-    Logger.log({ message: `status: ${status} & depth: ${depth} for txId: ${txId}`, event: 'mintConfirmedHandler.getTransaction.details' });
+    Logger.log({ message: `status: ${status} & depth: ${depth} for txId: ${txId}`, event: 'mintConfirmHandler.getTransaction.details' });
     // check the wallet for block depth (Assurance level) is >= 5 set to 'confirmed'
     if (status === ApiTransactionStatusEnum.InLedger && depth >= 5) {
       await PaidSessions.updateSessionStatusesByTxId(txId, 'confirmed');

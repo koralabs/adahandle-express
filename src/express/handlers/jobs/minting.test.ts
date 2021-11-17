@@ -29,4 +29,13 @@ describe('mintPaidSessionsHandler Tests', () => {
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Minting cron is locked. Try again later." });
   });
+
+  it('should not proceed if chain load is too high', async () => {
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, mintPaidSessions_lock: false, totalHandles: 171 }));
+    // @ts-expect-error mocking response
+    await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(200);
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Minting cron is locked. Try again later." });
+  });
 });
