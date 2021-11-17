@@ -117,6 +117,7 @@ export class PaidSessions {
                     const session = doc.data() as PaidSession;
 
                     if (session?.attempts >= 2) {
+                        Logger.log({ message: `Removing paid session: ${doc.id} with ${txId} from queue and adding to DLQ`, event: 'updateSessionStatusesByTxId.pendingAttemptsLimitReached' });
                         t.delete(snapshot.docs[0].ref);
                         t.create(admin.firestore().collection(PaidSessions.collectionNameDLQ).doc(), new PaidSession({ ...session }).toJSON());
                         return;

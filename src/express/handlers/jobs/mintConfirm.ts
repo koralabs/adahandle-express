@@ -45,6 +45,8 @@ export const mintConfirmedHandler = async (req: express.Request, res: express.Re
 
     const status = transaction?.status;
     const depth = transaction?.depth?.quantity;
+
+    Logger.log({ message: `status: ${status} & depth: ${depth} for txId: ${txId}`, event: 'mintConfirmedHandler.getTransaction.details' });
     // check the wallet for block depth (Assurance level) is >= 5 set to 'confirmed'
     if (status === ApiTransactionStatusEnum.InLedger && depth >= 5) {
       await PaidSessions.updateSessionStatusesByTxId(txId, 'confirmed');
