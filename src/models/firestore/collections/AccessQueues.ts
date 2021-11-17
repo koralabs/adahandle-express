@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
 import { AUTH_CODE_EXPIRE, isTesting } from "../../../helpers/constants";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { createTwilioVerification } from "../../../helpers/twilo";
+import { createTwilioVerification, getTwilioClient } from "../../../helpers/twilo";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
@@ -58,7 +58,7 @@ export class AccessQueues {
         Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
 
         // If Twilio throws an error, we are going to retry 2 more times
-        // If we still fail, we will move the entry to the DLQ 
+        // If we still fail, we will move the entry to the DLQ
         await admin.firestore().runTransaction(async t => {
           const document = await t.get(doc.ref);
           const failedAccessQueue = document.data() as AccessQueue;
@@ -92,17 +92,8 @@ export class AccessQueues {
       }
     }));
 
-    /**
-     * TODO: Send alert.
-     * 1. Only if access queue size is > 3 hours wait.
-     * 2. Send alert to the next 3 hours wait batch.
-     */
-    // const batchPhoneNumbers = getBatchPhoneNumbers();
-    // await client.messages.create({
-    //   messagingServiceSid: process.env.TWILIO_MESSAGING_SID as string,
-    //   to: batchPhoneNumbers,
-    //   body: 'Heads up! You\'re turn for ADA Handle access is coming up in the next few hours. We\'ll send you an access code when it\'s your turn. You will have 10 MINUTES to use it, so don\'t wait around!'
-    // });
+    // Alert the upcoming batch.
+    await AccessQueues.alertBatchByEstimatedHours(3);
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)
@@ -121,6 +112,49 @@ export class AccessQueues {
     }));
 
     return { data: true };
+  }
+
+  static async alertBatchByEstimatedHours(hours: number): Promise<void> {
+    const { accessQueue_limit } = await StateData.getStateData();
+    // Estimate starting index in queue by amount of numbers let in every 5 minutes.
+    const batchesPerHour = 12;
+    const targetIndex = (accessQueue_limit * batchesPerHour) * hours;
+
+    const totalQueueCount = await AccessQueues.getAccessQueuesCount();
+    if (totalQueueCount < targetIndex) {
+      Logger.log({ message: `Less numbers than the target index. Skipping alert message.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
+      return;
+    }
+
+    const targetBatch = await admin.firestore().collection(AccessQueues.collectionName)
+      .where('status', '==', 'queued')
+      .orderBy('dateAdded')
+      .offset(targetIndex)
+      .limit(accessQueue_limit ?? 20)
+      .get();
+
+    const batchPhoneNumbers = targetBatch.docs.reduce((numbers: string[], doc) => {
+      const data = doc.data();
+      numbers.push(data.phone);
+      return numbers;
+    }, []);
+
+    try {
+      Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
+      const client = await getTwilioClient();
+      await Promise.all(
+        batchPhoneNumbers.map(async (number: string) => {
+          client.messages.create({
+            messagingServiceSid: process.env.TWILIO_MESSAGING_SID,
+            to: number,
+            body: `ADA Handle: Heads up! You are about ${hours} hours away from receiving your access code. You don't have to do anything now, but keep an eye out. As a reminder, your access code will be valid for ONLY 10 minutes!`
+          });
+        })
+      );
+      Logger.log({ message: `Done!`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
+    } catch (e) {
+      Logger.log({ message: `Something went wrong: ${JSON.stringify(e)}`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.ERROR });
+    }
   }
 
   static async addToQueue(phone: string): Promise<{ updated: boolean; alreadyExists: boolean }> {

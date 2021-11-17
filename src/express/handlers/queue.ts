@@ -32,7 +32,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       await client.messages.create({
         messagingServiceSid: process.env.TWILIO_MESSAGING_SID as string,
         to: phoneNumber,
-        body: 'Confirmed! Your spot has been saved at [position]. We will alert you before your auth code arrives.'
+        body: 'ADA Handle: Confirmed! Your spot has been saved at [position]. We will alert you before your auth code arrives.'
       });
     }
 
