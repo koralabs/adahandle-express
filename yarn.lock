@@ -374,6 +374,11 @@
   resolved "https://registry.yarnpkg.com/@emurgo/cardano-serialization-lib-nodejs/-/cardano-serialization-lib-nodejs-8.1.0.tgz#76b0bfbec1eda4fe185de621c7b948f018e07319"
   integrity sha512-BH8MhQQt+BDqWM4Yqa9Asn/vhJJLxi43pp7Crq6bdQuj2NOT2F6e3nhdLS2KJhvb47YGFdg0pnvGaH+TCmUoIA==
 
+"@emurgo/cardano-serialization-lib-nodejs@^9.1.2":
+  version "9.1.2"
+  resolved "https://registry.yarnpkg.com/@emurgo/cardano-serialization-lib-nodejs/-/cardano-serialization-lib-nodejs-9.1.2.tgz#805080727233b169092792d9da275ec86f14d49a"
+  integrity sha512-wX0z/P2xysCjSxClnJxdcEKk9+uttpLnHiCsHZj1x+FEUYZ0FCnfIsJT8nN7oRCGyM/Y9peppoZUbqR05d97nQ==
+
 "@emurgo/cip14-js@2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@emurgo/cip14-js/-/cip14-js-2.0.0.tgz#6ef78ddac8a35f2725e9ccebfd5ae114716c4b48"

@@ -1,16 +1,15 @@
 import * as express from "express";
 
 import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
-import { mintHandleAndSend } from "../../../helpers/wallet";
+import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
 import { getChainLoad } from '../../../helpers/cardano';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
-import { MintedHandles } from '../../../models/firestore/collections/MintedHandles';
-import { MintedHandle } from '../../../models/MintedHandle';
 import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
-import { toLovelace } from "../../../helpers/utils";
+import { asyncForEach, toLovelace } from "../../../helpers/utils";
+import { Logger } from "../../../helpers/Logger";
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   const load = await getChainLoad();
@@ -23,69 +22,70 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   }
 
   const paidSessions: PaidSession[] = await PaidSessions.getPaidSessions();
-  if (!paidSessions) {
+  if (paidSessions.length < 1) {
     return res.status(200).json({
       error: false,
       message: 'No paid sessions!'
     });
   }
 
-  // Ensure unique sessions!!!
-  const uniquePaidSessions = paidSessions.filter((v, i, a) => a.findIndex(t => (t.handle === v.handle)) === i);
-  const batch = uniquePaidSessions.slice(0, 10);
+  // Filter out any possibly duplicated sessions.
+  const sanitizedSessions: PaidSession[] = [];
+  const duplicatePaidSessions: PaidSession[] = [];
 
-  const jobs = await Promise.all(
-    batch.map(async session => {
+  await asyncForEach(paidSessions, async (session: PaidSession) => {
+    // Make sure we don't have more than one session with the same handle.
+    if (sanitizedSessions.some(s => s.handle === session.handle)) {
+      duplicatePaidSessions.push(session);
+      return;
+    }
 
-      // Ensure no double mint.
-      const { exists } = await handleExists(session.handle);
-      const minted = await MintedHandles.getMintedHandles();
+    // Make sure there isn't an existing handle on-chain.
+    const { exists } = await handleExists(session.handle);
+    if (exists) {
+      duplicatePaidSessions.push(session);
+      return;
+    }
 
-      if (exists || minted?.some(handle => handle.handleName === session.handle)) {
-        console.warn(`Handle (${session.handle} already minted!. Moving to refund queue.`);
-        try {
-          await RefundableSessions.addRefundableSessions([
-            new RefundableSession({
-              wallet: session.wallet,
-              amount: toLovelace(session.cost),
-              handle: session.handle,
-            })
-          ]);
-          await PaidSessions.removePaidSessions([session]);
-        } catch (e) {
-          console.log('Trying to record a refund from an attempted double mint, but failed.', session.wallet);
-        }
+    // The rest are good for processing.
+    sanitizedSessions.push(session);
+  });
 
-        //await PendingSessions.removePendingSessions([new PendingSession(session.handle)]);
+  // Move to refunds if necessary.
+  if (duplicatePaidSessions.length > 0) {
+    await RefundableSessions.addRefundableSessions(
+      duplicatePaidSessions.map(s => new RefundableSession({
+        amount: toLovelace(s.cost),
+        handle: s.handle,
+        wallet: s.wallet
+      }))
+    );
 
-        return false;
-      }
+    // Remove from paid.
+    await PaidSessions.removePaidSessions(duplicatePaidSessions);
+  }
 
-      // Mint the handle!
-      try {
-        console.info('Attempting to mint the handle!');
-        const txId = await mintHandleAndSend(session);
-        if (txId) {
-          // Add minted handle to our internal database.
-          await MintedHandles.addMintedHandle(new MintedHandle(session.handle));
+  // Mint the handles!
+  let txResponse;
+  try {
+    const txId = await mintHandlesAndSend(sanitizedSessions);
+    txResponse = txId;
+    Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
 
-          // Remove from pending sessions.
-          // await PendingSessions.removePendingSessions([new PendingSession(session.handle)]);
+    // Delete sessions data once submitted.
+    // @TODO Refactor this to keep the record but remove the phone number.
+    if (txId) {
+      await PaidSessions.removePaidSessions(sanitizedSessions);
+    }
 
-          // Delete session data (bye!).
-          await PaidSessions.removePaidSessionByWalletAddress({ address: session.wallet.address });
-
-          return txId;
-        }
-      } catch (e) {
-        console.log('Failed to mint', e);
-        return false;
-      }
-    })
-  );
+    // @TODO: We need a way to know that these sessions were submitted in a single transaction.
+  } catch (e) {
+    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
+    txResponse = false;
+  }
 
   return res.status(200).json({
-    error: !!jobs.find(job => false === job)?.length,
-    jobs
+    error: txResponse === false,
+    message: txResponse
   });
 };

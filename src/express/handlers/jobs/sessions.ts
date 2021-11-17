@@ -26,10 +26,9 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       error: false,
       message: 'Cron is locked. Try again later.'
     });
-  };
+  }
 
   await StateData.lockCron(CRON_JOB_LOCK_NAME);
-
 
   const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
   const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
@@ -44,6 +43,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
   if (dedupeActiveSessions.length == 0) {
+    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
     return res.status(200).json({
       error: false,
       message: 'No active sessions!'
@@ -122,16 +122,16 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         paidVal.push(entry);
         ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
           ...entry,
+          status: 'pending',
         }));
       }
     }
   );
 
   Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession.count', category: LogCategory.METRIC });
+  await StateData.unlockCron(CRON_JOB_LOCK_NAME);
 
   try {
-    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
-
     res.status(200).json({
       error: false,
       jobs: {

@@ -179,7 +179,7 @@ describe('Job Sessions Tets', () => {
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].wallet.address)?.amount, "handle": RefundableSessionsFixture[0].handle, "wallet": RefundableSessionsFixture[0].wallet });
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].wallet.address)?.amount, "handle": RefundableSessionsFixture[1].handle, "wallet": RefundableSessionsFixture[1].wallet });
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(5, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].wallet.address)?.amount, "handle": RefundableSessionsFixture[2].handle, "wallet": RefundableSessionsFixture[2].wallet });
-            // If the above number of items were called correctly then 
+            // If the above number of items were called correctly then
             // then the last use case should be true which is
             // The zero payment session is left alone
         });

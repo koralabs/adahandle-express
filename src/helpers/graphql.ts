@@ -41,7 +41,7 @@ interface GraphqlCardanoPaymentAddressesResult {
   }
 }
 
-interface GraphqlCardanoSenderAddress {
+export interface GraphqlCardanoSenderAddress {
   inputs: {
     address: string;
   }[]
@@ -292,7 +292,6 @@ export const lookupReturnAddresses = async (
     })
   }).then(res => res.json())
 
-  console.log('lookupReturnAddresses response:', res);
   if (!res?.data) {
     return null;
   }

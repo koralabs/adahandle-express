@@ -20,6 +20,7 @@
     "@appsignal/express": "^1.0.13",
     "@appsignal/nodejs": "^2.2.0",
     "@blockfrost/blockfrost-js": "^2.0.1",
+    "@emurgo/cardano-serialization-lib-nodejs": "^9.1.2",
     "@emurgo/cip14-js": "^3.0.1",
     "@pinata/sdk": "^1.1.23",
     "aws-sdk": "^2.998.0",
