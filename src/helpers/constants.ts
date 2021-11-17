@@ -83,3 +83,7 @@ export const isProduction = (): boolean => {
   // currently NODE_ENV is not set to 'master' in buddy
   return process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'master';
 }
+
+export const isTesting = (): boolean => {
+  return process.env.NODE_ENV === 'test';
+}
