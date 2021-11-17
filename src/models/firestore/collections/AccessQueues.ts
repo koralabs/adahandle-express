@@ -143,7 +143,6 @@ export class AccessQueues {
         };
       });
     } catch (error) {
-      console.log('EERROROR', error);
       Logger.log({ message: JSON.stringify(error), event: 'addToQueue.error', category: LogCategory.ERROR });
       throw new Error(`Unable to add ${phone} to queue`);
     }
