@@ -55,6 +55,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
 
     const responseStatus = transactionResponse.status;
     const transaction = await transactionResponse.json();
+    console.log(JSON.stringify(transaction));
     const status = transaction?.status;
     const depth = transaction?.depth?.quantity;
 
