@@ -271,7 +271,7 @@ export const lookupReturnAddresses = async (
         query ($addresses: [String!]!) {
           transactions(
             order_by: {
-              blockIndex:desc
+              blockIndex:asc
             }
             where:{
               outputs:{
