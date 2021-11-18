@@ -1,7 +1,7 @@
 import { NewAddress } from "../helpers/wallet/cardano";
 import { BaseModel } from "./BaseModel";
 
-export type PaidSessionStatusType = "pending" | "processing" | "submitted" | "confirmed";
+export type PaidSessionStatusType = "pending" | "processing" | "submitted" | "confirmed" | "expired";
 
 interface PaidSessionType {
   phoneNumber: string;
