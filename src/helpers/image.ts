@@ -53,11 +53,6 @@ export const getIPFSImage = async (
     });
 
     const res = await ipfs.add(outputSlug);
-
-    if (!res) {
-      return false;
-    }
-
     const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
     await pinataClient.pinByHash(res.ipfs_hash);
 
