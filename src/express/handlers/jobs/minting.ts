@@ -3,7 +3,6 @@ import * as express from "express";
 import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
 import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
-import { getChainLoad } from '../../../helpers/cardano';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
@@ -26,8 +25,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   }
 
-  const load = await getChainLoad();
-  if (!load || load > MAX_CHAIN_LOAD) {
+  if (stateData?.chainLoad > MAX_CHAIN_LOAD) {
     return res.status(200).json({
       error: false,
       message: 'Chain load is too high.'
@@ -101,7 +99,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 
     // Delete sessions data once submitted.
     if (txId) {
-      Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.submitted', category: LogCategory.METRIC });
+      Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions for minting`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.submitted', category: LogCategory.METRIC });
       await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
     }
   } catch (e) {

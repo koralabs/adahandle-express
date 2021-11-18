@@ -1,7 +1,6 @@
 import * as express from "express";
 
 import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
-import { getChainLoad } from "../../../helpers/cardano";
 import { AccessQueues } from '../../../models/firestore/collections/AccessQueues';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
@@ -22,11 +21,9 @@ export const sendAuthCodesHandler = async (req: express.Request, res: express.Re
     });
   }
 
-  const chainLoad = await getChainLoad();
-
   // Don't send auth codes if chain load is too high.
-  Logger.log({ message: `Current Chain Load: ${chainLoad}`, event: "sendAuthCodesHandler.getChainLoad" });
-  if (!chainLoad || chainLoad > MAX_CHAIN_LOAD) {
+  Logger.log({ message: `Current Chain Load: ${stateData?.chainLoad}`, event: "sendAuthCodesHandler.getChainLoad" });
+  if (stateData?.chainLoad > MAX_CHAIN_LOAD) {
     return res.status(200).json({
       error: false,
       message: 'Chain load is too high.'
