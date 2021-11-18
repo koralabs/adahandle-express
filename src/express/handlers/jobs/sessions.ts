@@ -122,7 +122,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         paidVal.push(entry);
         ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
           ...entry,
-          phoneNumber: '',
+          phoneNumber: '', // phone number intentionally scrubbed for privacy
           status: 'pending',
         }));
       }

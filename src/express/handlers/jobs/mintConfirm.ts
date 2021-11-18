@@ -53,7 +53,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
       return;
     }
 
-    // if transaction isn't found or is "expired", revert back to 'pending'
+    // if transaction is "expired", revert back to 'pending'
     if (status === ApiTransactionStatusEnum.Expired) {
       // if transaction attempts is > 3, move to DLQ and notify team
       await PaidSessions.updateSessionStatusesByTxId(txId, 'pending');
