@@ -1,4 +1,5 @@
 import * as wallet from 'cardano-wallet-js';
+import { AddressWallet } from 'cardano-wallet-js';
 import { ReservedHandles } from '../../models/firestore/collections/ReservedHandles';
 
 import { PaidSession } from "../../models/PaidSession";
@@ -8,7 +9,7 @@ import { getIPFSImage } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 
-export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<GraphqlCardanoSenderAddress[]> => {
+export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<string[]> => {
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
   if (!transactions || transactions.length < 1) {
     throw new Error(
@@ -122,8 +123,8 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
   const ourWallet = await getMintWalletServer();
 
   // Purchase data.
-  const transactions = await getTransactionsFromPaidSessions(sessions);
-  const returnWallets = await getAddressWalletsFromTransactions(transactions);
+  const returnAddresses = await getTransactionsFromPaidSessions(sessions);
+  const returnWallets = returnAddresses.map(addr => new AddressWallet(addr));
 
   // Policy data.
   const policyId = getPolicyId();

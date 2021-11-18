@@ -53,7 +53,6 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
       return;
     }
 
-    const responseStatus = transactionResponse.status;
     const transaction = await transactionResponse.json();
     const status = transaction?.status;
     const depth = transaction?.depth?.quantity;
@@ -66,9 +65,9 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     }
 
     // if transaction is "expired", revert back to 'pending'
-    if (404 === responseStatus || status === ApiTransactionStatusEnum.Expired) {
+    if (status === ApiTransactionStatusEnum.Expired) {
       // if transaction attempts is > 3, move to DLQ and notify team
-      await PaidSessions.updateSessionStatusesByTxId(txId, 'pending');
+      await PaidSessions.updateSessionStatusesByTxId(txId, 'expired');
     }
   });
 

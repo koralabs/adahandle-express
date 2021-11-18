@@ -44,6 +44,9 @@ interface GraphqlCardanoPaymentAddressesResult {
 export interface GraphqlCardanoSenderAddress {
   inputs: {
     address: string;
+  }[],
+  outputs: {
+    address: string;
   }[]
 }
 
@@ -256,7 +259,7 @@ export const handleExists = async (handle: string): Promise<GraphqlHandleExistsR
 
 export const lookupReturnAddresses = async (
   receiverAddresses: string[]
-): Promise<GraphqlCardanoSenderAddress[] | null> => {
+): Promise<string[] | null> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
     method: 'POST',
@@ -278,8 +281,17 @@ export const lookupReturnAddresses = async (
               }
             }
           ) {
+            outputs(
+              limit:1,
+              order_by:{
+                index:asc
+              }
+            ){
+              address
+            }
+
             inputs(
-              limit:1
+              limit:1,
             ) {
               address
             }
@@ -293,7 +305,10 @@ export const lookupReturnAddresses = async (
     return null;
   }
 
-  return res.data.transactions;
+  const map = new Map(res.data.transactions.map(tx => [tx.outputs[0].address, tx.inputs[0].address]));
+  const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as string[];
+
+  return orderedTransactions;
 }
 
 export const lookupLocation = async (
