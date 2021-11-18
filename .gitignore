@@ -8,3 +8,4 @@ functions/env.json
 functions/ui-debug.log
 firestore-debug.log
 firebase-debug.log
+coverage
