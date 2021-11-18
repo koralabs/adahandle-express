@@ -82,7 +82,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       }
 
       const metadata = {
-        name: `ADA Handle`,
+        name: `$${session.handle}`,
         description: "The Handle Standard",
         website: "https://adahandle.com",
         image: `ipfs://${ipfs}`,
