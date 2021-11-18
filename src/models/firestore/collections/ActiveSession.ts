@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { LogCategory, Logger } from "../../../helpers/Logger";
 import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { ActiveSession, ActiveSessionInput } from "../../ActiveSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
@@ -13,6 +14,20 @@ export class ActiveSessions {
     }));
   }
 
+  public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
+    return admin.firestore().runTransaction(async t => {
+      const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).limit(1));
+      if (!snapshot.empty) {
+        return false;
+      }
+
+      const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc();
+      const newDoc = { ...newSession.toJSON(), id: docRef.id };
+      t.create(docRef, newDoc);
+      return true;
+    });
+  }
+
   public static async addActiveSessions(activeSessions: ActiveSession[]): Promise<void> {
     const db = admin.firestore();
 
@@ -21,7 +36,8 @@ export class ActiveSessions {
       const batch = db.batch();
       activeSessions.forEach(session => {
         const docRef = db.collection(ActiveSessions.collectionName).doc();
-        batch.create(docRef, session.toJSON());
+        const newDoc = { ...session.toJSON(), id: docRef.id };
+        batch.create(docRef, newDoc);
       });
 
       await batch.commit();
@@ -30,46 +46,36 @@ export class ActiveSessions {
     });
   }
 
-  public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
-    return admin.firestore().runTransaction(async t => {
-      const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).limit(1));
-      if (!snapshot.empty) {
-        return false;
-      }
-
-      t.create(admin.firestore().collection(ActiveSessions.collectionName).doc(), newSession.toJSON());
-      return true;
-    });
-  }
-
   public static async removeActiveSession<T>(session: ActiveSession, otherOperation?: (otherOperationArgs: T, t?: admin.firestore.Transaction) => Promise<void>, otherOperationArgs?: T): Promise<void> {
+    if (!session.id) {
+      Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'removeActiveSession.noId', category: LogCategory.ERROR });
+      return;
+    }
+
     return admin.firestore().runTransaction(async t => {
-      const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('wallet.address', '==', session.wallet.address).limit(1));
-      if (snapshot.empty) {
-        return;
-      }
+      const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
 
       if (otherOperation && otherOperationArgs) {
         otherOperation(otherOperationArgs, t);
       }
 
-      t.delete(snapshot.docs[0].ref);
+      t.delete(docRef);
     });
   }
 
   public static async removeActiveSessions(oldSessions: ActiveSession[]): Promise<void> {
-    const snapshot = await admin.firestore().collection(ActiveSessions.collectionName).get();
-    if (snapshot.empty) {
-      return;
-    }
+    await Promise.all(oldSessions.map(async session => {
+      if (!session.id) {
+        Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'removeActiveSessions.noId', category: LogCategory.ERROR });
+        return;
+      }
 
-    Promise.all(
-      snapshot.docs.filter(doc => oldSessions.some(oldSession => oldSession.wallet.address === doc.data()?.wallet?.address)).map(async doc => {
-        return admin.firestore().runTransaction(async t => {
-          const snapshot = await t.get(doc.ref);
-          t.delete(snapshot.ref);
-        });
-      })
-    );
+      return admin.firestore().runTransaction(async t => {
+        const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
+        t.delete(docRef);
+      }).catch(error => {
+        Logger.log({ message: `error: ${JSON.stringify(error)} removing ${session.id}`, event: 'removeActiveSessions.error', category: LogCategory.ERROR });
+      });
+    }));
   }
 }

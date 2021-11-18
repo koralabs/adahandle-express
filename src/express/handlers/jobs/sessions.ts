@@ -1,7 +1,7 @@
 import * as express from "express";
 
 import { MAX_SESSION_LENGTH } from '../../../helpers/constants';
-import { checkPayments, WalletSimplifiedBalance } from '../../../helpers/graphql';
+import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
 import { ActiveSession } from '../../../models/ActiveSession';
@@ -24,7 +24,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
-      message: 'Cron is locked. Try again later.'
+      message: 'Update Sessions cron is locked. Try again later.'
     });
   }
 
@@ -122,6 +122,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         paidVal.push(entry);
         ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
           ...entry,
+          phoneNumber: '', // phone number intentionally scrubbed for privacy
           status: 'pending',
         }));
       }
