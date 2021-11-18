@@ -1,91 +1,136 @@
 import * as express from "express";
 
 import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
-import { mintHandleAndSend } from "../../../helpers/wallet";
+import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
-import { getChainLoad } from '../../../helpers/cardano';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
-import { MintedHandles } from '../../../models/firestore/collections/MintedHandles';
-import { MintedHandle } from '../../../models/MintedHandle';
 import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
-import { toLovelace } from "../../../helpers/utils";
+import { asyncForEach, toLovelace } from "../../../helpers/utils";
+import { LogCategory, Logger } from "../../../helpers/Logger";
+import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
+import { CollectionLimitName } from "../../../models/State";
 
-export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
-  const load = await getChainLoad();
+const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_PAID_SESSIONS_LOCK;
+const COLLECTION_LIMIT_NAME = CollectionLimitName.PAID_SESSIONS_LIMIT;
 
-  if (!load || load > MAX_CHAIN_LOAD) {
+const mintPaidSessions = async (req: express.Request, res: express.Response) => {
+  const stateData = await StateData.getStateData();
+  if (stateData[CRON_JOB_LOCK_NAME]) {
+    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintPaidSessionsHandler.locked', category: LogCategory.NOTIFY });
+    return res.status(200).json({
+      error: false,
+      message: 'Minting cron is locked. Try again later.'
+    });
+  }
+
+  if (stateData?.chainLoad > MAX_CHAIN_LOAD) {
     return res.status(200).json({
       error: false,
       message: 'Chain load is too high.'
     });
   }
 
-  const paidSessions: PaidSession[] = await PaidSessions.getPaidSessions();
-  if (!paidSessions) {
+  const paidSessionsLimit = stateData[COLLECTION_LIMIT_NAME];
+  const paidSessions: PaidSession[] = await PaidSessions.getByStatus({ statusType: 'pending', limit: paidSessionsLimit });
+  if (paidSessions.length < 1) {
     return res.status(200).json({
       error: false,
       message: 'No paid sessions!'
     });
   }
 
-  // Ensure unique sessions!!!
-  const uniquePaidSessions = paidSessions.filter((v, i, a) => a.findIndex(t => (t.handle === v.handle)) === i);
-  const batch = uniquePaidSessions.slice(0, 10);
+  const results = await PaidSessions.updateSessionStatuses('', paidSessions, 'processing');
+  if (results.some(result => !result)) {
+    Logger.log({ message: 'Error setting "processing" status', event: 'mintPaidSessionsHandler.updateSessionStatuses.processing', category: LogCategory.NOTIFY });
+    return res.status(400).json({
+      error: true,
+      message: 'Error setting "processing" status'
+    });
+  }
 
-  const jobs = await Promise.all(
-    batch.map(async session => {
+  // Filter out any possibly duplicated sessions.
+  const sanitizedSessions: PaidSession[] = [];
+  const refundableSessions: PaidSession[] = [];
 
-      // Ensure no double mint.
-      const { exists } = await handleExists(session.handle);
-      const minted = await MintedHandles.getMintedHandles();
+  // check for duplicates
+  await asyncForEach(paidSessions, async (session: PaidSession) => {
+    // Make sure we don't have more than one session with the same handle.
+    if (sanitizedSessions.some(s => s.handle === session.handle)) {
+      Logger.log({ message: `Handle ${session.handle} already exists in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
+      refundableSessions.push(session);
+      return;
+    }
 
-      if (exists || minted?.some(handle => handle.handleName === session.handle)) {
-        console.warn(`Handle (${session.handle} already minted!. Moving to refund queue.`);
-        try {
-          await RefundableSessions.addRefundableSessions([
-            new RefundableSession({
-              wallet: session.wallet,
-              amount: toLovelace(session.cost),
-              handle: session.handle,
-            })
-          ]);
-          await PaidSessions.removePaidSessions([session]);
-        } catch (e) {
-          console.log('Trying to record a refund from an attempted double mint, but failed.', session.wallet);
-        }
+    // Make sure there isn't an existing handle on-chain.
+    const { exists: existsOnChain } = await handleExists(session.handle);
+    const existingSessions = await PaidSessions.getByHandles(session.handle);
+    if (existsOnChain && existingSessions.length > 1) {
+      Logger.log({ message: `Handle ${session.handle} already exists on-chain and in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
+      refundableSessions.push(session);
+      return;
+    }
 
-        //await PendingSessions.removePendingSessions([new PendingSession(session.handle)]);
+    // The rest are good for processing.
+    sanitizedSessions.push(session);
+  });
 
-        return false;
-      }
+  // Move to refunds if necessary.
+  if (refundableSessions.length > 0) {
+    await RefundableSessions.addRefundableSessions(
+      refundableSessions.map(s => new RefundableSession({
+        amount: toLovelace(s.cost),
+        handle: s.handle,
+        wallet: s.wallet
+      }))
+    );
 
-      // Mint the handle!
-      try {
-        console.info('Attempting to mint the handle!');
-        const txId = await mintHandleAndSend(session);
-        if (txId) {
-          // Add minted handle to our internal database.
-          await MintedHandles.addMintedHandle(new MintedHandle(session.handle));
+    // Remove from paid.
+    await PaidSessions.removeAndAddToDLQ(refundableSessions);
+  }
 
-          // Remove from pending sessions.
-          // await PendingSessions.removePendingSessions([new PendingSession(session.handle)]);
+  // Mint the handles!
+  let txResponse;
+  try {
+    const txId = await mintHandlesAndSend(sanitizedSessions);
+    txResponse = txId;
+    Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
 
-          // Delete session data (bye!).
-          await PaidSessions.removePaidSessionByWalletAddress({ address: session.wallet.address });
+    // Delete sessions data once submitted.
+    if (txId) {
+      Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions for minting`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.submitted', category: LogCategory.METRIC });
+      await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
+    }
+  } catch (e) {
+    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}. locking cron`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.NOTIFY });
 
-          return txId;
-        }
-      } catch (e) {
-        console.log('Failed to mint', e);
-        return false;
-      }
-    })
-  );
+    // if anything goes wrong, lock the cron job and troubleshoot.
+    await StateData.lockCron(CRON_JOB_LOCK_NAME);
+    txResponse = false;
+  }
 
   return res.status(200).json({
-    error: !!jobs.find(job => false === job)?.length,
-    jobs
+    error: txResponse === false,
+    message: txResponse
   });
+}
+
+export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `mintPaidSessionsHandler completed in ${Date.now() - startTime}ms`, event: 'mintPaidSessionsHandler.run', category: LogCategory.METRIC });
+
+  try {
+    const result = await mintPaidSessions(req, res);
+    Logger.log(getLogMessage(startTime));
+    return result;
+
+  } catch (error) {
+    Logger.log(getLogMessage(startTime));
+    return res.status(200).json({
+      error: true,
+      message: JSON.stringify(error)
+    });
+  }
+
 };

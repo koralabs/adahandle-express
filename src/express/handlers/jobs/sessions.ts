@@ -1,7 +1,7 @@
 import * as express from "express";
 
 import { MAX_SESSION_LENGTH } from '../../../helpers/constants';
-import { checkPayments, WalletSimplifiedBalance } from '../../../helpers/graphql';
+import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
 import { ActiveSession } from '../../../models/ActiveSession';
@@ -17,19 +17,18 @@ const CRON_JOB_LOCK_NAME = CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK;
 /**
  * Filters out old sessions from the /activeSessions document.
  */
-export const updateSessionsHandler = async (req: express.Request, res: express.Response, checkPaymentsFunction: any = null) => {
+export const updateSessionsHandler = async (req: express.Request, res: express.Response) => {
   // if process is running, bail out of cron job
   const stateData = await StateData.getStateData();
   if (stateData[CRON_JOB_LOCK_NAME]) {
     Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
-      message: 'Cron is locked. Try again later.'
+      message: 'Update Sessions cron is locked. Try again later.'
     });
-  };
+  }
 
   await StateData.lockCron(CRON_JOB_LOCK_NAME);
-
 
   const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
   const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
@@ -44,6 +43,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
   if (dedupeActiveSessions.length == 0) {
+    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
     return res.status(200).json({
       error: false,
       message: 'No active sessions!'
@@ -56,7 +56,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
 
   const startTime = Date.now();
-  const sessionPaymentStatuses = checkPaymentsFunction ? await checkPaymentsFunction(walletAddresses) : await checkPayments(walletAddresses);
+  const sessionPaymentStatuses = await checkPayments(walletAddresses);
   Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', category: LogCategory.METRIC });
 
   dedupeActiveSessions.forEach(
@@ -122,16 +122,17 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         paidVal.push(entry);
         ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
           ...entry,
+          phoneNumber: '', // phone number intentionally scrubbed for privacy
+          status: 'pending',
         }));
       }
     }
   );
 
   Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession.count', category: LogCategory.METRIC });
+  await StateData.unlockCron(CRON_JOB_LOCK_NAME);
 
   try {
-    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
-
     res.status(200).json({
       error: false,
       jobs: {

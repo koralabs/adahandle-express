@@ -1,10 +1,15 @@
-import { isProduction } from "../../../../helpers/constants";
+import { isProduction, isTesting } from "../../../../helpers/constants";
 
 /**
- * @description adds '_dev' to the input string if not in production
+ * @description adds suffix '_dev' based on environment
+ *  - if in production, suffix is not added
+ *  - if in testing, suffix is '_test'
+ *  - default is '_dev'
  * 
  * @returns {string}
  */
 export const buildCollectionNameWithSuffix = (collectionName: string): string => {
-    return isProduction() ? collectionName : `${collectionName}_dev`;
+    if (isProduction()) return collectionName
+    else if (isTesting()) return `${collectionName}_test`;
+    return `${collectionName}_dev`;
 }

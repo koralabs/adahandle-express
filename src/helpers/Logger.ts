@@ -16,6 +16,6 @@ export class Logger {
         }
 
         const { message, category, event } = args;
-        console.log(category ?? LogCategory.INFO, message, event);
+        console.log(`{ "category": "${category ?? LogCategory.INFO}", "message": "${message}", "event: ${event}" }`);
     }
 }

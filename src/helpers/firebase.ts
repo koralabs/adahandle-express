@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { AccessQueues } from "../models/firestore/collections/AccessQueues";
 import { getS3 } from "./aws";
+import { isTesting } from "./constants";
 
 export interface AccessEntry {
   phone: string;
@@ -31,10 +32,20 @@ export class Firebase {
       throw new Error("Firebase did not successfully initialize.");
     }
 
-    return admin.initializeApp({
+    const app = admin.initializeApp({
       credential: admin.credential.cert(credentials),
       databaseURL: 'https://ada-handle-reserve-default-rtdb.firebaseio.com/'
     });
+
+    if (isTesting()) {
+      const db = admin.firestore();
+      db.settings({
+        host: "localhost:8080",
+        ssl: false
+      });
+    }
+
+    return app;
   }
 }
 

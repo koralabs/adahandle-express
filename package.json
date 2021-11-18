@@ -1,6 +1,6 @@
 {
   "name": "adahandle-nodejs",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "index.js",
   "repository": "git@github.com:adahandle/adahandle-nodejs.git",
   "author": "Calvin Koepke <hello@calvinkoepke.com>",
@@ -8,7 +8,9 @@
   "scripts": {
     "build": "tsc -p .",
     "lint": "eslint . --ext .ts",
-    "test": "jest --passWithNoTests",
+    "start:firestore:emulator": "firebase emulators:start --only firestore",
+    "test:models": "NODE_ENV=test node node_modules/.bin/jest --testPathPattern=.*models/ --testPathIgnorePatterns=/node_modules/ /.build/",
+    "test": "NODE_ENV=test node node_modules/.bin/jest --testPathIgnorePatterns=/node_modules/ /.build/ '.*models/.*'",
     "start:prod": "NODE_ENV=production forever start ./development.json",
     "start:dev": "NODE_ENV=development forever start ./development.json",
     "stop": "forever stopall",
@@ -20,6 +22,7 @@
     "@appsignal/express": "^1.0.13",
     "@appsignal/nodejs": "^2.2.0",
     "@blockfrost/blockfrost-js": "^2.0.1",
+    "@emurgo/cardano-serialization-lib-nodejs": "^9.1.2",
     "@emurgo/cip14-js": "^3.0.1",
     "@pinata/sdk": "^1.1.23",
     "aws-sdk": "^2.998.0",

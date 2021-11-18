@@ -9,3 +9,4 @@ functions/ui-debug.log
 firestore-debug.log
 firebase-debug.log
 coverage
+ui-debug.log
