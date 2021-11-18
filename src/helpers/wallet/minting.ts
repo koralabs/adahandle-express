@@ -184,6 +184,25 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
     return output;
   });
 
+  // Consolidate the output addresses for matching addresses.
+  coinSelection.outputs = coinSelection.outputs.reduce((outputs: wallet.WalletswalletIdpaymentfeesPayments[], output) => {
+    const existingOutputIndex = outputs.findIndex(out => out.address === output.address);
+    if (!existingOutputIndex) {
+      outputs.push(output);
+    } else {
+      // Add total.
+      outputs[existingOutputIndex].amount.quantity += output.amount.quantity;
+
+      // Merge assets.
+      outputs[existingOutputIndex].assets = [
+        ...(outputs[existingOutputIndex].assets || []),
+        ...(output.assets || [])
+      ];
+    }
+
+    return outputs;
+  }, []);
+
   // Consolidate the change output to a single utxo.
   coinSelection.change = coinSelection.change.reduce(
     (
