@@ -133,11 +133,10 @@ export class AccessQueues {
       .limit(accessQueue_limit ?? 20)
       .get();
 
-    const batchPhoneNumbers = targetBatch.docs.reduce((numbers: string[], doc) => {
+    const batchPhoneNumbers = targetBatch.docs.map((doc) => {
       const data = doc.data();
-      numbers.push(data.phone);
-      return numbers;
-    }, []);
+      return data.phone;
+    });
 
     try {
       Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
@@ -148,6 +147,8 @@ export class AccessQueues {
             messagingServiceSid: process.env.TWILIO_MESSAGING_SID,
             to: number,
             body: `ADA Handle: Heads up! You are about ${hours} hours away from receiving your access code. You don't have to do anything now, but keep an eye out. As a reminder, your access code will be valid for ONLY 10 minutes!`
+          }).catch(e => {
+            Logger.log({ message: `Failed to send a reminder text to ${number}: ${JSON.stringify(e)}.`, event: 'AccessQueues.alertBatchByEstimatedHours.create', category: LogCategory.ERROR });
           });
         })
       );
