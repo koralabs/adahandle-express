@@ -69,16 +69,17 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
   const handlesMetadata = await Promise.all(
     sessions.map(async (session) => {
       const og = twitterHandles.includes(session.handle);
-      const ipfs = await getIPFSImage(
-        session.handle,
-        og,
-        twitterHandles.indexOf(session.handle),
-        twitterHandles.length
-      );
-
-      // File did not upload, try again.
-      if (!ipfs) {
-        return false;
+      let ipfs: string;
+      try {
+        ipfs = await getIPFSImage(
+          session.handle,
+          og,
+          twitterHandles.indexOf(session.handle),
+          twitterHandles.length
+        );
+      } catch(e) {
+        Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
+        throw e;
       }
 
       const metadata = {
