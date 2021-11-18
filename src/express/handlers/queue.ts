@@ -3,6 +3,7 @@ import * as express from "express";
 import { HEADER_PHONE } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
 import { getTwilioClient } from "../../helpers/twilo";
+import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 
 interface QueueResponseBody {
   error: boolean;
@@ -29,10 +30,13 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     const { updated, alreadyExists } = await appendAccessQueueData(phoneNumber);
 
     if (updated) {
+      const total = await AccessQueues.getAccessQueuesCount();
+      const quickResponse = 'ADA Handle: Confirmed! Your spot has been saved. We will alert you as soon as it\'s your turn!';
+      const longResponse = 'ADA Handle: Confirmed! Your spot has been saved. We will alert within ~3 hours of sending your auth code.';
       await client.messages.create({
         messagingServiceSid: process.env.TWILIO_MESSAGING_SID as string,
         to: phoneNumber,
-        body: 'Confirmed! Your spot has been saved at [position]. We will alert you before your auth code arrives.'
+        body: total > 300 ? longResponse : quickResponse
       });
     }
 
