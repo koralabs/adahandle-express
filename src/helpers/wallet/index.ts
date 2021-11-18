@@ -45,9 +45,9 @@ export const getAmountsFromPaymentAddresses = (
 
 export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<string | void> => {
   const walletServer = getWalletServer();
-  const signedTransaction = await buildTransactionFromPaidSessions(sessions);
 
   try {
+    const signedTransaction = await buildTransactionFromPaidSessions(sessions);
     const txId = await walletServer.submitTx(signedTransaction).catch(e => console.log(e));
     return txId;
   } catch(e) {
