@@ -29,7 +29,7 @@ const run = async () => {
 
     await RefundableSessions.removeSessionByWalletAddress(paidSession.wallet.address);
 
-    const remainingSessions = await PaidSessions.getPaidSessions();
+    const remainingSessions = await PaidSessions.getPaidSessionsUnsafe();
     console.log('remainingSessions', remainingSessions);
 
     process.exit();
