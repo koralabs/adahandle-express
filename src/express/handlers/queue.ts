@@ -1,6 +1,7 @@
 import * as express from "express";
+import * as fs from 'fs';
 
-import { HEADER_PHONE } from "../../helpers/constants";
+import { HEADER_PHONE, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
 import { getTwilioClient } from "../../helpers/twilo";
 import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
@@ -13,12 +14,53 @@ interface QueueResponseBody {
   queue?: number;
 }
 
+export interface ClientAgentInfo {
+  userAgent?: string,
+  printScreen?: string,
+  colorDepth?: string,
+  currentResolution?: string,
+  availableResolution?: string,
+  dpiX?: string,
+  dpiY?: string,
+  pluginList?: string,
+  fontList?: string,
+  localStorage?: string,
+  sessionStorage?: string,
+  timeZone?: string,
+  language?: string,
+  systemLanguage?: string,
+  cookies?: string,
+  canvasPrint?: string
+}
+
 export const postToQueueHandler = async (req: express.Request, res: express.Response) => {
   if (!req.headers[HEADER_PHONE]) {
     return res.status(400).json({
       error: true,
       message: "Missing phone number."
     } as QueueResponseBody);
+  }
+
+
+  const forbiddenSuspiciousResponse = {
+    error: true,
+    message: "Forbidden: Suspicious Activity"
+  };
+
+  if (!req.body.clientAgent) {
+    return res.status(403).json(forbiddenSuspiciousResponse);
+  }
+
+
+  const fileName = `${process.cwd()}/dist/adahandle-client-agent-info/src/index.js`;
+  if (fs.existsSync(fileName)) {
+    const { verifyClientAgentInfo } = await import(fileName);
+    const verifiedInfo = verifyClientAgentInfo(req.body.clientAgent);
+    if (!verifiedInfo) {
+      return res.status(403).json(forbiddenSuspiciousResponse);
+    }
+  } else if (!isLocal() || !isTesting()) {
+    throw new Error('Missing adahandle-client-agent-info');
   }
 
   try {

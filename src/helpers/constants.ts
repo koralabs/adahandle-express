@@ -87,3 +87,7 @@ export const isProduction = (): boolean => {
 export const isTesting = (): boolean => {
   return process.env.NODE_ENV === 'test';
 }
+
+export const isLocal = (): boolean => {
+  return process.env.NODE_ENV === 'local';
+}
