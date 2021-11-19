@@ -6,7 +6,7 @@ import { ActiveSessions } from "../models/firestore/collections/ActiveSession";
 const run = async () => {
     await Firebase.init();
     const activeSession = {
-        phoneNumber: '+1',
+        emailAddress: '+1',
         cost: 0,
         handle: 'xxxxxx',
         wallet: {
@@ -17,8 +17,8 @@ const run = async () => {
 
     const addSessionResults = await Promise.all([
         ActiveSessions.addActiveSession(new ActiveSession({ ...activeSession })),
-        ActiveSessions.addActiveSession(new ActiveSession({ ...activeSession, phoneNumber: '+2' })),
-        ActiveSessions.addActiveSession(new ActiveSession({ ...activeSession, phoneNumber: '+3' })),
+        ActiveSessions.addActiveSession(new ActiveSession({ ...activeSession, emailAddress: '+2' })),
+        ActiveSessions.addActiveSession(new ActiveSession({ ...activeSession, emailAddress: '+3' })),
     ]);
 
     console.log('addSessionResults', addSessionResults);

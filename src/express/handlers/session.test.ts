@@ -186,13 +186,13 @@ describe('Session Tests', () => {
     mocked(getKey).mockResolvedValue('valid');
 
     // @ts-ignore
-    mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, phoneNumber: '+1234567890', cost: 10 });
+    mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
     mocked(getNewAddress).mockResolvedValue({ address: validAddress });
     const mockedAddActiveSession = mocked(ActiveSessions.addActiveSession).mockResolvedValue(true);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
-    expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "wallet": { "address": validAddress }, phoneNumber: '+1234567890', cost: 10, "start": expect.any(Number) });
+    expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "wallet": { "address": validAddress }, emailAddress: '+1234567890', cost: 10, "start": expect.any(Number) });
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
   });

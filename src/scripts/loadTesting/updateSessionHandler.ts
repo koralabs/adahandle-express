@@ -15,7 +15,7 @@ const createActiveSessions = async () => {
     const expiredSessions = Array.from({ length: 1 }, () => {
         const random = Math.random().toString().slice(2, 11);
         const activeSession = {
-            phoneNumber: random,
+            emailAddress: random,
             cost: 50,
             handle: `test-${random}`,
             wallet: {
@@ -29,7 +29,7 @@ const createActiveSessions = async () => {
     const refundableSessions = Array.from({ length: 1 }, () => {
         const random = Math.random().toString().slice(2, 11);
         const activeSession = {
-            phoneNumber: random,
+            emailAddress: random,
             cost: 50,
             handle: `test-${random}`,
             wallet: {
@@ -43,7 +43,7 @@ const createActiveSessions = async () => {
     const paidSessions = Array.from({ length: 1 }, () => {
         const random = Math.random().toString().slice(2, 11);
         const activeSession = {
-            phoneNumber: random,
+            emailAddress: random,
             cost: 50,
             handle: `test-${random}`,
             wallet: {

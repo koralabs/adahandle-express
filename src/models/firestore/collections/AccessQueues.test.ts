@@ -48,34 +48,34 @@ describe('AccessQueues Tests', () => {
   it('should remove queues', async () => {
     await createQueues();
 
-    await AccessQueues.removeAccessQueueByPhone('111-111-1111');
-    await AccessQueues.removeAccessQueueByPhone('222-222-2222');
-    await AccessQueues.removeAccessQueueByPhone('444-444-4444');
+    await AccessQueues.removeAccessQueueByEmail('111-111-1111');
+    await AccessQueues.removeAccessQueueByEmail('222-222-2222');
+    await AccessQueues.removeAccessQueueByEmail('444-444-4444');
 
     const accessQueues = await AccessQueues.getAccessQueues();
 
-    expect(accessQueues).toEqual([{ "dateAdded": 1637040806003, "phone": "333-333-3333", "retries": 0, "status": "queued" }]);
+    expect(accessQueues).toEqual([{ "dateAdded": 1637040806003, "email": "333-333-3333", "retries": 0, "status": "queued" }]);
   });
 
   describe('updateAccessQueue', () => {
-    const createVerificationFunction = async (phone: string): Promise<VerificationInstance> => {
-      if (phone === '333-333-3333') {
+    const createVerificationFunction = async (email: string): Promise<VerificationInstance> => {
+      if (email === '333-333-3333') {
         // @ts-expect-error
         return {
-          sid: `sid-${phone}`,
+          sid: `sid-${email}`,
           status: 'pending',
         }
       }
 
-      if (phone === '222-222-2222') {
+      if (email === '222-222-2222') {
         // @ts-expect-error
         return {
-          sid: `sid-${phone}`,
+          sid: `sid-${email}`,
           status: 'pending',
         }
       }
 
-      throw new Error('phone not found');
+      throw new Error('email not found');
     }
 
     it('should update the status of the queue', async () => {
@@ -91,14 +91,14 @@ describe('AccessQueues Tests', () => {
 
       const accessQueuesUpdated = await AccessQueues.getAccessQueues();
 
-      const queued = accessQueuesUpdated.find(q => q.phone === '111-111-1111');
-      expect(queued).toEqual({ "dateAdded": expect.any(Number), "phone": "111-111-1111", "attempts": 2, "status": "queued" });
+      const queued = accessQueuesUpdated.find(q => q.email === '111-111-1111');
+      expect(queued).toEqual({ "dateAdded": expect.any(Number), "email": "111-111-1111", "attempts": 2, "status": "queued" });
 
-      const pending222 = accessQueuesUpdated.find(q => q.phone === '222-222-2222');
-      expect(pending222).toEqual({ "dateAdded": expect.any(Number), "phone": "222-222-2222", "attempts": 0, "sid": "sid-222-222-2222", "start": expect.any(Number), "status": "pending" });
+      const pending222 = accessQueuesUpdated.find(q => q.email === '222-222-2222');
+      expect(pending222).toEqual({ "dateAdded": expect.any(Number), "email": "222-222-2222", "attempts": 0, "sid": "sid-222-222-2222", "start": expect.any(Number), "status": "pending" });
 
-      const pending333 = accessQueuesUpdated.find(q => q.phone === '333-333-3333');
-      expect(pending333).toEqual({ "dateAdded": expect.any(Number), "phone": "333-333-3333", "attempts": 0, "sid": "sid-333-333-3333", "start": expect.any(Number), "status": "pending" });
+      const pending333 = accessQueuesUpdated.find(q => q.email === '333-333-3333');
+      expect(pending333).toEqual({ "dateAdded": expect.any(Number), "email": "333-333-3333", "attempts": 0, "sid": "sid-333-333-3333", "start": expect.any(Number), "status": "pending" });
     }, 20000);
   });
 });

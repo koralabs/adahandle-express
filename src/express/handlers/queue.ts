@@ -1,9 +1,11 @@
 import * as express from "express";
+import * as sgMail from "@sendgrid/mail";
 
-import { HEADER_PHONE } from "../../helpers/constants";
+import { HEADER_EMAIL } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
 import { getTwilioClient } from "../../helpers/twilo";
 import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
+import { LogCategory, Logger } from "../../helpers/Logger";
 
 interface QueueResponseBody {
   error: boolean;
@@ -13,31 +15,49 @@ interface QueueResponseBody {
   queue?: number;
 }
 
+const validateEmail = (email: string): boolean => {
+  const res = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return res.test(String(email).toLowerCase());
+}
+
 export const postToQueueHandler = async (req: express.Request, res: express.Response) => {
-  if (!req.headers[HEADER_PHONE]) {
+  if (!req.headers[HEADER_EMAIL]) {
     return res.status(400).json({
       error: true,
-      message: "Missing phone number."
+      message: "Missing email address."
+    } as QueueResponseBody);
+  }
+
+  const email = req.headers[HEADER_EMAIL] as string;
+  const validEmail = validateEmail(email);
+  if (!validEmail) {
+    return res.status(400).json({
+      error: true,
+      message: "Invalid email."
     } as QueueResponseBody);
   }
 
   try {
-    const client = await getTwilioClient();
-    const { phoneNumber } = await client.lookups
-      .phoneNumbers(req.headers[HEADER_PHONE] as string)
-      .fetch();
-
-    const { updated, alreadyExists } = await appendAccessQueueData(phoneNumber);
+    const { updated, alreadyExists } = await appendAccessQueueData(email);
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
     if (updated) {
       const total = await AccessQueues.getAccessQueuesCount();
-      const quickResponse = 'ADA Handle: Confirmed! Your spot has been saved. We will alert you as soon as it\'s your turn!';
-      const longResponse = 'ADA Handle: Confirmed! Your spot has been saved. We will alert within ~3 hours of sending your auth code.';
-      await client.messages.create({
-        messagingServiceSid: process.env.TWILIO_MESSAGING_SID as string,
-        to: phoneNumber,
-        body: total > 300 ? longResponse : quickResponse
-      });
+      const quickResponse = 'We have saved your place in line! Authentication codes can take a bit of time to be received. Your auth code should arrive soon, but could take up to 3 hours.';
+      const longResponse = 'We have saved your place in line! Authentication codes can take a bit of time to be received. Your current wait is longer than 3 hours, so we\'ll email you a reminder before sending the actual auth code.';
+      await sgMail
+        .send({
+          to: email,
+          from: 'no-reply@adahandle.com',
+          templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
+          dynamicTemplateData: {
+            title: 'Confirmed!',
+            message: total > 300 ? longResponse : quickResponse
+          }
+        })
+        .catch((error) => {
+          Logger.log({ message: JSON.stringify(error), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
+        });
     }
 
     return res.status(200).json({
@@ -49,10 +69,10 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
         : null,
     } as QueueResponseBody);
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.appendAccessQueueData', category: LogCategory.INFO });
     return res.status(404).json({
       error: true,
-      message: "Invalid phone number.",
+      message: JSON.stringify(e),
     } as QueueResponseBody);
   }
 }

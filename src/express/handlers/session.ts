@@ -18,7 +18,7 @@ interface SessionResponseBody {
   address?: string;
 }
 interface SessionJWTPayload extends jwt.JwtPayload {
-  phoneNumber: string;
+  emailAddress: string;
 }
 
 export const sessionHandler = async (req: express.Request, res: express.Response) => {
@@ -82,9 +82,9 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   }
 
   // Save session.
-  const { phoneNumber, cost, iat = Date.now() } = sessionData;
+  const { emailAddress, cost, iat = Date.now() } = sessionData;
   const newSession = new ActiveSession({
-    phoneNumber,
+    emailAddress,
     handle,
     wallet: walletAddress,
     cost,

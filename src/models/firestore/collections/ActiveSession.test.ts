@@ -22,15 +22,15 @@ describe('ActiveSessions Tests', () => {
 
   it('should remove active sessions', async () => {
     const activeSessions = [
-      new ActiveSession({ phoneNumber: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now() }),
-      new ActiveSession({ phoneNumber: '222-222-2222', cost: 20, handle: 'tacos', wallet: { address: 'test_addr2' }, start: Date.now() }),
-      new ActiveSession({ phoneNumber: '333-333-3333', cost: 20, handle: 'tacos', wallet: { address: 'test_addr3' }, start: Date.now() })
+      new ActiveSession({ emailAddress: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now() }),
+      new ActiveSession({ emailAddress: '222-222-2222', cost: 20, handle: 'tacos', wallet: { address: 'test_addr2' }, start: Date.now() }),
+      new ActiveSession({ emailAddress: '333-333-3333', cost: 20, handle: 'tacos', wallet: { address: 'test_addr3' }, start: Date.now() })
     ];
 
     await ActiveSessions.addActiveSessions(activeSessions);
 
     const sessions = await ActiveSessions.getActiveSessions();
-    sessions.sort((a, b) => a.phoneNumber.localeCompare(b.phoneNumber));
+    sessions.sort((a, b) => a.emailAddress.localeCompare(b.emailAddress));
 
     await ActiveSessions.removeActiveSessions([sessions[0], sessions[1]]);
 

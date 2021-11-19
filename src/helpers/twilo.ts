@@ -1,13 +1,14 @@
 import * as Twilio from "twilio";
 import { ServiceInstance } from "twilio/lib/rest/verify/v2/service";
 import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
+import { isProduction } from "./constants";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const serviceSid = process.env.TWILIO_SERVICE_SID;
 
 let client: Twilio.Twilio;
-export const getTwilioClient = async (): Promise<Twilio.Twilio> => {
+export const getTwilioClient = (): Twilio.Twilio => {
   if (!client) {
     client = Twilio(accountSid, authToken);
   }
@@ -18,7 +19,7 @@ export const getTwilioClient = async (): Promise<Twilio.Twilio> => {
 let verify: ServiceInstance;
 export const getTwilioVerify = async (): Promise<ServiceInstance> => {
   if (!verify) {
-    const client = await getTwilioClient();
+    const client = getTwilioClient();
     verify = await client.verify.services(serviceSid as string).fetch();
   }
 
@@ -26,14 +27,23 @@ export const getTwilioVerify = async (): Promise<ServiceInstance> => {
 };
 
 export const createTwilioVerification = async (
-  phone: string
+  email: string
 ): Promise<VerificationInstance> => {
-  const twilioClient = await getTwilioClient();
-  const twilioVerify = await getTwilioVerify();
+  const twilioClient = getTwilioClient();
+  const twilioVerify = await twilioClient.verify.services(serviceSid as string).fetch();
   return twilioClient.verify
     .services(twilioVerify.sid)
     .verifications.create({
-      to: phone,
-      channel: "sms",
+      channelConfiguration: {
+        template_id: 'd-38b228c7f32945b89dfc17f3c9a37695',
+        from: 'no-reply@adahandle.com',
+        from_name: 'ADA Handle',
+        substitutions: {
+          domain: isProduction() ? 'adahandle.com' : 'testnet.adahandle.com',
+          email
+        }
+      },
+      to: email,
+      channel: 'email'
     });
 };
