@@ -205,7 +205,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
 
   // Time to live.
   const info = await walletServer.getNetworkInformation();
-  const ttl = info.node_tip.absolute_slot_number + 12000;
+  const ttl = info.node_tip.absolute_slot_number + 5;
 
   const mint = wallet.Mint.new();
   const mintAssets = wallet.MintAssets.new();
