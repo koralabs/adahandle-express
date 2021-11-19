@@ -41,10 +41,15 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       .verificationChecks
       .create({
         to: email,
-        code: req.headers[HEADER_EMAIL_AUTH] as string
+        code: req.headers[HEADER_EMAIL_AUTH] as string,
       })
       .then(res => res.status)
-      .catch(e => console.log(e));
+      .catch(e => console.log(JSON.stringify({
+        email,
+        auth: req.headers[HEADER_EMAIL_AUTH],
+        sid: service.sid,
+        e
+      })));
 
     if ('approved' !== status) {
       return res.status(403).json({
