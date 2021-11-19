@@ -1,3 +1,5 @@
+import * as fs from 'fs'
+
 export enum LogCategory {
     DEBUG = 'DEBUG',
     INFO = 'INFO',
@@ -9,13 +11,25 @@ export enum LogCategory {
 }
 
 export class Logger {
+    private static fileLogger = fs.createWriteStream('./logs/application.log', {
+      flags: 'w' // 'a' means appending (old data will be preserved)
+    })
+    
     public static log(args: { message: string, category?: LogCategory, event?: string } | string): void {
-        if (typeof args === 'string') {
-            console.log(LogCategory.INFO, args);
-            return;
-        }
+        let category: LogCategory | undefined
+        let message: string | undefined
+        let event: string | undefined
 
-        const { message, category, event } = args;
-        console.log(`{ "category": "${category ?? LogCategory.INFO}", "message": "${message}", "event: ${event}" }`);
+        if (typeof args === 'string') {
+            category = LogCategory.INFO
+            message = args;
+        }
+        else {
+            ({ message, category, event } = args);
+        }
+        const loggedLine = `{ "category": "${category ?? LogCategory.INFO}", "message": "${message}", "event: ${event}" }`
+
+        console.log(loggedLine);
+        Logger.fileLogger.write(loggedLine)
     }
 }
