@@ -47,8 +47,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       const longResponse = 'We have saved your place in line! Authentication codes can take a bit of time to be received. Your current wait is longer than 3 hours, so we\'ll email you a reminder before sending the actual auth code.';
       await sgMail
         .send({
-          to: 'hello@calvinkoepke.com',
-          from: 'hello@adahandle.com',
+          to: email,
+          from: 'no-reply@adahandle.com',
           templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
           dynamicTemplateData: {
             title: 'Confirmed!',
