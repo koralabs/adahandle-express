@@ -116,6 +116,44 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
   return data;
 }
 
+export const consolidateOutputs = (outputs: wallet.WalletswalletIdpaymentfeesPayments[]): wallet.WalletswalletIdpaymentfeesPayments[] => {
+  return outputs.reduce((
+    outputs: wallet.WalletswalletIdpaymentfeesPayments[],
+    output
+  ) => {
+    const existingOutputIndex = outputs.findIndex(out => out.address === output.address);
+    if (-1 === existingOutputIndex) {
+      outputs.push(output);
+    } else {
+      // Add total.
+      outputs[existingOutputIndex].amount.quantity += output.amount.quantity;
+
+      // Merge assets.
+      outputs[existingOutputIndex].assets = [
+        ...(outputs[existingOutputIndex].assets || []),
+        ...(output.assets || [])
+      ];
+    }
+
+    return outputs;
+  }, []);
+}
+
+export const consolidateChanges = (changes: wallet.ApiCoinSelectionChange[]): wallet.ApiCoinSelectionChange[] => {
+  const newChange = changes.reduce((newChange: wallet.ApiCoinSelectionChange[], currChange: wallet.ApiCoinSelectionChange, index) => {
+    if (index === 0) {
+      newChange.push(currChange);
+      return newChange;
+    } else {
+      newChange[0].amount.quantity += currChange.amount.quantity;
+    }
+
+    return newChange;
+  }, []);
+
+  return newChange;
+}
+
 export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) => {
   const networkConfig = getNetworkConfig();
 
@@ -184,24 +222,11 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
     return output;
   });
 
-  // Consolidate the change output to a single utxo.
-  coinSelection.change = coinSelection.change.reduce(
-    (
-      newChange: wallet.ApiCoinSelectionChange[],
-      currChange: wallet.ApiCoinSelectionChange,
-      index
-    ) => {
-      if (index === 0) {
-        newChange.push(currChange);
-        return newChange;
-      } else {
-        newChange[0].amount.quantity += currChange.amount.quantity;
-      }
+  // Consolidate the output addresses for matching addresses.
+  coinSelection.outputs = consolidateOutputs(coinSelection.outputs);
 
-      return newChange;
-    },
-    []
-  );
+  // Consolidate the change output to a single utxo.
+  coinSelection.change = consolidateChanges(coinSelection.change);
 
   // Time to live.
   const info = await walletServer.getNetworkInformation();
