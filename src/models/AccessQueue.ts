@@ -1,7 +1,7 @@
 import { BaseModel } from "./BaseModel";
 
 interface AccessQueueInput {
-    phone: string;
+    email: string;
     attempts?: number;
     sid?: string;
     status?: string;
@@ -9,16 +9,16 @@ interface AccessQueueInput {
 }
 
 export class AccessQueue extends BaseModel {
-    public phone: string;
+    public email: string;
     public dateAdded: number = Date.now();
     public sid?: string;
     public status?: string;
     public start?: number;
     public attempts: number
 
-    constructor({ phone, sid, start, status = 'queued', attempts = 0 }: AccessQueueInput) {
+    constructor({ email, sid, start, status = 'queued', attempts = 0 }: AccessQueueInput) {
         super();
-        this.phone = phone;
+        this.email = email;
         this.sid = sid;
         this.start = start
         this.status = status;

@@ -8,7 +8,7 @@ const getMockPaidSessions = () => {
     new PaidSession({
       cost: 50,
       handle: `bulk3`,
-      phoneNumber: '+11234567890',
+      emailAddress: '+11234567890',
       start: 1636951812153,
       status: "pending",
       wallet: {
@@ -18,7 +18,7 @@ const getMockPaidSessions = () => {
     new PaidSession({
       cost: 50,
       handle: `bulk2`,
-      phoneNumber: '+11234567890',
+      emailAddress: '+11234567890',
       start: 1636951806345,
       status: "pending",
       wallet: {
@@ -28,7 +28,7 @@ const getMockPaidSessions = () => {
     new PaidSession({
       cost: 10,
       handle: `conrad102`,
-      phoneNumber: '+11234567890',
+      emailAddress: '+11234567890',
       start: 1636951724265,
       status: "pending",
       wallet: {
@@ -38,7 +38,7 @@ const getMockPaidSessions = () => {
     new PaidSession({
       cost: 10,
       handle: `conrad103`,
-      phoneNumber: '+11234567890',
+      emailAddress: '+11234567890',
       start: 1636951761791,
       status: "pending",
       wallet: {
@@ -48,7 +48,7 @@ const getMockPaidSessions = () => {
     new PaidSession({
       cost: 10,
       handle: `conrad101`,
-      phoneNumber: '+11234567890',
+      emailAddress: '+11234567890',
       start: 1636951713706,
       status: "pending",
       wallet: {
@@ -58,7 +58,7 @@ const getMockPaidSessions = () => {
     new PaidSession({
       cost: 50,
       handle: `bulk1`,
-      phoneNumber: '+11234567890',
+      emailAddress: '+11234567890',
       start: 1636951799985,
       status: "pending",
       wallet: {

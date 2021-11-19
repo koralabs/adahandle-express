@@ -19,9 +19,9 @@ const checkQueues = async () => {
     console.log('accessQueues', accessQueues);
 
     const [positionRemoved, position2Removed, notRemoved] = await Promise.all([
-        AccessQueues.removeAccessQueueByPhone('111-111-1111'),
-        AccessQueues.removeAccessQueueByPhone('222-222-2222'),
-        AccessQueues.removeAccessQueueByPhone('444-444-4444'), // Doesn't exist, should not remove anything
+        AccessQueues.removeAccessQueueByEmail('111-111-1111'),
+        AccessQueues.removeAccessQueueByEmail('222-222-2222'),
+        AccessQueues.removeAccessQueueByEmail('444-444-4444'), // Doesn't exist, should not remove anything
     ]);
 
     console.log('positionRemoved, position2Removed, notRemoved', positionRemoved, position2Removed, notRemoved);

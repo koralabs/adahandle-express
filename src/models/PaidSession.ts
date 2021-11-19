@@ -4,7 +4,7 @@ import { BaseModel } from "./BaseModel";
 export type PaidSessionStatusType = "pending" | "processing" | "submitted" | "confirmed" | "expired";
 
 interface PaidSessionType {
-  phoneNumber: string;
+  emailAddress: string;
   cost: number;
   handle: string;
   wallet: NewAddress;
@@ -17,7 +17,7 @@ interface PaidSessionType {
 }
 
 export class PaidSession extends BaseModel {
-  public phoneNumber: string;
+  public emailAddress: string;
   public cost: number;
   public handle: string;
   public wallet: NewAddress;
@@ -30,7 +30,7 @@ export class PaidSession extends BaseModel {
 
   constructor({
     id,
-    phoneNumber,
+    emailAddress,
     cost,
     handle,
     wallet,
@@ -42,7 +42,7 @@ export class PaidSession extends BaseModel {
   }: PaidSessionType) {
     super();
     this.id = id;
-    this.phoneNumber = phoneNumber;
+    this.emailAddress = emailAddress;
     this.cost = cost;
     this.handle = handle;
     this.wallet = wallet;

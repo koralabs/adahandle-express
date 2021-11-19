@@ -46,7 +46,7 @@ describe('Job Sessions Tets', () => {
         new ActiveSession(
             {
                 // expired not paid
-                phoneNumber: '222-222-2222',
+                emailAddress: '222-222-2222',
                 cost: 50,
                 handle: 'expired.unpaid',
                 start: expiredDate,
@@ -58,7 +58,7 @@ describe('Job Sessions Tets', () => {
         new ActiveSession(
             {
                 // full payment
-                phoneNumber: '222-222-2222',
+                emailAddress: '222-222-2222',
                 cost: 50,
                 handle: 'paid',
                 start: unexpiredDate,
@@ -70,7 +70,7 @@ describe('Job Sessions Tets', () => {
         new ActiveSession(
             {
                 // not expired invalid payment
-                phoneNumber: '222-222-2222',
+                emailAddress: '222-222-2222',
                 cost: 50,
                 handle: 'invalid',
                 start: unexpiredDate,
@@ -80,7 +80,7 @@ describe('Job Sessions Tets', () => {
         new ActiveSession(
             {
                 // expired and paid
-                phoneNumber: '222-222-2222',
+                emailAddress: '222-222-2222',
                 cost: 50,
                 handle: 'expired.paid',
                 start: expiredDate,
@@ -90,7 +90,7 @@ describe('Job Sessions Tets', () => {
         new ActiveSession(
             {
                 // handle unavailable
-                phoneNumber: '222-222-2222',
+                emailAddress: '222-222-2222',
                 cost: 50,
                 handle: 'paid',
                 start: unexpiredDate,
@@ -102,7 +102,7 @@ describe('Job Sessions Tets', () => {
         new ActiveSession(
             {
                 // zero payment
-                phoneNumber: '222-222-2222',
+                emailAddress: '222-222-2222',
                 cost: 50,
                 handle: 'zero.payment',
                 start: unexpiredDate,
@@ -132,7 +132,7 @@ describe('Job Sessions Tets', () => {
     const PaidWalletsFixture = [
         new PaidSession({
             // full payment
-            phoneNumber: '222-222-2222',
+            emailAddress: '222-222-2222',
             cost: 50,
             handle: 'paid',
             wallet: { address: 'addr_paid' },
@@ -175,7 +175,7 @@ describe('Job Sessions Tets', () => {
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(1, UnpaidSessionFixture[0]);
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, PaidSessionFixture[0], PaidSessions.addPaidSession, { ...PaidSessionFixture[0], attempts: 0, dateAdded: expect.any(Number), phoneNumber: "", status: 'pending' });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, PaidSessionFixture[0], PaidSessions.addPaidSession, { ...PaidSessionFixture[0], attempts: 0, dateAdded: expect.any(Number), emailAddress: "", status: 'pending' });
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].wallet.address)?.amount, "handle": RefundableSessionsFixture[0].handle, "wallet": RefundableSessionsFixture[0].wallet });
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].wallet.address)?.amount, "handle": RefundableSessionsFixture[1].handle, "wallet": RefundableSessionsFixture[1].wallet });
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(5, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].wallet.address)?.amount, "handle": RefundableSessionsFixture[2].handle, "wallet": RefundableSessionsFixture[2].wallet });
@@ -196,7 +196,7 @@ describe('Job Sessions Tets', () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue([new ActiveSession(
                 {
                     // zero payment
-                    phoneNumber: '222-222-2222',
+                    emailAddress: '222-222-2222',
                     cost: 50,
                     handle: 'zero.payment',
                     start: unexpiredDate,

@@ -6,10 +6,10 @@ import { AccessQueue } from "../../models/AccessQueue";
 import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 
 const fixtures = [
-    new AccessQueue({ phone: '333-333-new1' }),
-    new AccessQueue({ phone: '222-222-new2' }),
-    new AccessQueue({ phone: '111-111-pend', status: 'pending', start: Date.now() }),
-    new AccessQueue({ phone: '111-111-pend-ex', status: 'pending', start: Date.now() - AUTH_CODE_EXPIRE }),
+    new AccessQueue({ email: '333-333-new1' }),
+    new AccessQueue({ email: '222-222-new2' }),
+    new AccessQueue({ email: '111-111-pend', status: 'pending', start: Date.now() }),
+    new AccessQueue({ email: '111-111-pend-ex', status: 'pending', start: Date.now() - AUTH_CODE_EXPIRE }),
 ]
 
 const createFixturesInDatabase = async () => {
@@ -17,24 +17,24 @@ const createFixturesInDatabase = async () => {
     await Promise.all(fixtures.map(q => collectionRef.doc().create(q.toJSON())));
 }
 
-const createVerificationFunction = async (phone: string): Promise<VerificationInstance> => {
-    if (phone === '333-333-new1') {
+const createVerificationFunction = async (email: string): Promise<VerificationInstance> => {
+    if (email === '333-333-new1') {
         // @ts-expect-error
         return {
-            sid: `sid-${phone}`,
+            sid: `sid-${email}`,
             status: 'pending',
         }
     }
 
-    if (phone === '222-222-new2') {
+    if (email === '222-222-new2') {
         // @ts-expect-error
         return {
-            sid: `sid-${phone}`,
+            sid: `sid-${email}`,
             status: 'pending',
         }
     }
 
-    throw new Error('phone not found');
+    throw new Error('email not found');
 }
 
 /**

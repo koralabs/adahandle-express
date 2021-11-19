@@ -4,7 +4,7 @@ import { getS3 } from "./aws";
 import { isTesting } from "./constants";
 
 export interface AccessEntry {
-  phone: string;
+  email: string;
   sid?: string;
   status?: 'pending' | 'complete';
   start?: number;
@@ -74,13 +74,13 @@ export const getAccessQueueCount = async (): Promise<number> => {
   return count.length ?? 0;
 }
 
-export const removeAccessQueueData = async (phone: string): Promise<boolean> => {
-  const updated: boolean = await AccessQueues.removeAccessQueueByPhone(phone);
+export const removeAccessQueueData = async (email: string): Promise<boolean> => {
+  const updated: boolean = await AccessQueues.removeAccessQueueByEmail(email);
   return updated;
 }
 
-export const appendAccessQueueData = async (phone: string): Promise<AppendAccessResponse> => {
-  const { updated, alreadyExists } = await AccessQueues.addToQueue(phone);
+export const appendAccessQueueData = async (email: string): Promise<AppendAccessResponse> => {
+  const { updated, alreadyExists } = await AccessQueues.addToQueue(email);
 
   const response = {
     updated,

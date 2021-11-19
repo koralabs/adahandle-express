@@ -34,7 +34,7 @@ export const startServer = async () => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header(
       "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, x-firebase-appcheck, x-handle, x-phone, x-phone-authcode, x-access-token, x-session-token"
+      "Origin, X-Requested-With, Content-Type, Accept, x-firebase-appcheck, x-handle, x-email, x-email-authcode, x-access-token, x-session-token"
     );
     next();
   });
