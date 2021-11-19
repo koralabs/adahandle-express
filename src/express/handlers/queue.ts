@@ -43,15 +43,15 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
 
     if (updated) {
       const total = await AccessQueues.getAccessQueuesCount();
-      const quickResponse = 'We have saved your place in line! Authentication codes can take a bit of time to be received. Your auth code should arrive soon, but could take up to 3 hours.';
-      const longResponse = 'We have saved your place in line! Authentication codes can take a bit of time to be received. Your current wait is longer than 3 hours, so we\'ll email you a reminder before sending the actual auth code.';
+      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access code. Depending on your place in line, you should receive your access code anytime between now and around 3 hours. Make sure you turn on email notifications!';
+      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access code. Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
       await sgMail
         .send({
           to: email,
-          from: 'no-reply@adahandle.com',
+          from: 'hello@adahandle.com',
           templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
           dynamicTemplateData: {
-            title: 'Confirmed!',
+            title: 'Your Spot Is Saved',
             message: total > 300 ? longResponse : quickResponse
           }
         })
