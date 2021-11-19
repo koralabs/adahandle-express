@@ -14,7 +14,7 @@ export const getIPFSImage = async (
   og: boolean,
   ogNumber: number,
   ogTotal: number
-): Promise<string | false> => {
+): Promise<string> => {
   const logStart = Date.now();
   Logger.log({ message: `Started generating Handle image for $${handle}...`, event: 'getIPFSImage' });
   const ipfs = new BlockFrostIPFS({
@@ -53,11 +53,6 @@ export const getIPFSImage = async (
     });
 
     const res = await ipfs.add(outputSlug);
-
-    if (!res) {
-      return false;
-    }
-
     const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
     await pinataClient.pinByHash(res.ipfs_hash);
 
@@ -65,6 +60,8 @@ export const getIPFSImage = async (
     return res.ipfs_hash;
   } catch (e) {
     Logger.log({ message: `Failed to generate Handle image for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage', category: LogCategory.ERROR });
-    return false;
+    throw new Error(
+      'IPFS image generation failed!'
+    );
   }
 }

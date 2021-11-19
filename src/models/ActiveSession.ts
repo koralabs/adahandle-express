@@ -3,7 +3,7 @@ import { BaseModel } from "./BaseModel";
 
 export interface ActiveSessionInput {
 
-    phoneNumber: string,
+    emailAddress: string,
     cost: number,
     handle: string,
     wallet: NewAddress,
@@ -13,7 +13,7 @@ export interface ActiveSessionInput {
 }
 
 export class ActiveSession extends BaseModel {
-    public phoneNumber: string;
+    public emailAddress: string;
     public cost: number;
     public handle: string;
     public wallet: NewAddress;
@@ -21,10 +21,10 @@ export class ActiveSession extends BaseModel {
     public id?: string;
     public txId?: string;
 
-    constructor({ id, phoneNumber, cost, handle, wallet, start, txId }: ActiveSessionInput) {
+    constructor({ id, emailAddress, cost, handle, wallet, start, txId }: ActiveSessionInput) {
         super();
         this.id = id;
-        this.phoneNumber = phoneNumber;
+        this.emailAddress = emailAddress;
         this.cost = cost;
         this.handle = handle;
         this.wallet = wallet;

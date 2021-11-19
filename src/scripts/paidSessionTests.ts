@@ -7,7 +7,7 @@ const run = async () => {
     await Firebase.init();
 
     const paidSession = new PaidSession({
-        phoneNumber: '+12223334444',
+        emailAddress: '+12223334444',
         cost: 0,
         handle: 'burritos',
         wallet: {
@@ -17,7 +17,7 @@ const run = async () => {
     });
 
     const paidSession2 = new PaidSession({
-        phoneNumber: '+12223334444',
+        emailAddress: '+12223334444',
         cost: 0,
         handle: 'tacos',
         wallet: {

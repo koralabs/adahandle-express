@@ -1,10 +1,12 @@
 import * as express from "express";
 import * as fs from 'fs';
+import * as sgMail from "@sendgrid/mail";
 
-import { HEADER_PHONE, isLocal, isTesting } from "../../helpers/constants";
+import { HEADER_EMAIL, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
 import { getTwilioClient } from "../../helpers/twilo";
 import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
+import { LogCategory, Logger } from "../../helpers/Logger";
 
 interface QueueResponseBody {
   error: boolean;
@@ -14,33 +16,18 @@ interface QueueResponseBody {
   queue?: number;
 }
 
-export interface ClientAgentInfo {
-  userAgent?: string,
-  printScreen?: string,
-  colorDepth?: string,
-  currentResolution?: string,
-  availableResolution?: string,
-  dpiX?: string,
-  dpiY?: string,
-  pluginList?: string,
-  fontList?: string,
-  localStorage?: string,
-  sessionStorage?: string,
-  timeZone?: string,
-  language?: string,
-  systemLanguage?: string,
-  cookies?: string,
-  canvasPrint?: string
+const validateEmail = (email: string): boolean => {
+  const res = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return res.test(String(email).toLowerCase());
 }
 
 export const postToQueueHandler = async (req: express.Request, res: express.Response) => {
-  if (!req.headers[HEADER_PHONE]) {
+  if (!req.headers[HEADER_EMAIL]) {
     return res.status(400).json({
       error: true,
-      message: "Missing phone number."
+      message: "Missing email address."
     } as QueueResponseBody);
   }
-
 
   const forbiddenSuspiciousResponse = {
     error: true,
@@ -50,7 +37,6 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
   if (!req.body.clientAgent) {
     return res.status(403).json(forbiddenSuspiciousResponse);
   }
-
 
   const fileName = `${process.cwd()}/dist/adahandle-client-agent-info/src/index.js`;
   if (fs.existsSync(fileName)) {
@@ -66,20 +52,38 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
   try {
     const client = await getTwilioClient();
     const { phoneNumber } = await client.lookups
-      .phoneNumbers(req.headers[HEADER_PHONE] as string)
+      .phoneNumbers(req.headers[HEADER_EMAIL] as string)
       .fetch();
+  const email = req.headers[HEADER_EMAIL] as string;
+  const validEmail = validateEmail(email);
+  if (!validEmail) {
+    return res.status(400).json({
+      error: true,
+      message: "Invalid email."
+    } as QueueResponseBody);
+  }
 
-    const { updated, alreadyExists } = await appendAccessQueueData(phoneNumber);
+  try {
+    const { updated, alreadyExists } = await appendAccessQueueData(email);
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
     if (updated) {
       const total = await AccessQueues.getAccessQueuesCount();
-      const quickResponse = 'ADA Handle: Confirmed! Your spot has been saved. We will alert you as soon as it\'s your turn!';
-      const longResponse = 'ADA Handle: Confirmed! Your spot has been saved. We will alert within ~3 hours of sending your auth code.';
-      await client.messages.create({
-        messagingServiceSid: process.env.TWILIO_MESSAGING_SID as string,
-        to: phoneNumber,
-        body: total > 300 ? longResponse : quickResponse
-      });
+      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access code. Depending on your place in line, you should receive your access code anytime between now and around 3 hours. Make sure you turn on email notifications!';
+      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access code. Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
+      await sgMail
+        .send({
+          to: email,
+          from: 'hello@adahandle.com',
+          templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
+          dynamicTemplateData: {
+            title: 'Your Spot Is Saved',
+            message: total > 300 ? longResponse : quickResponse
+          }
+        })
+        .catch((error) => {
+          Logger.log({ message: JSON.stringify(error), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
+        });
     }
 
     return res.status(200).json({
@@ -91,10 +95,10 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
         : null,
     } as QueueResponseBody);
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.appendAccessQueueData', category: LogCategory.INFO });
     return res.status(404).json({
       error: true,
-      message: "Invalid phone number.",
+      message: JSON.stringify(e),
     } as QueueResponseBody);
   }
 }

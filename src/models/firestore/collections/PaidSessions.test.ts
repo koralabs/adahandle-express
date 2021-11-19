@@ -22,9 +22,9 @@ describe('PaidSessions Tests', () => {
 
     it('should remove queues and add to DLQ', async () => {
         const paidSessions = [
-            new PaidSession({ phoneNumber: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now() }),
-            new PaidSession({ phoneNumber: '222-222-2222', cost: 20, handle: 'tacos', wallet: { address: 'test_addr2' }, start: Date.now() }),
-            new PaidSession({ phoneNumber: '333-333-3333', cost: 20, handle: 'tacos', wallet: { address: 'test_addr3' }, start: Date.now() })
+            new PaidSession({ emailAddress: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now() }),
+            new PaidSession({ emailAddress: '222-222-2222', cost: 20, handle: 'tacos', wallet: { address: 'test_addr2' }, start: Date.now() }),
+            new PaidSession({ emailAddress: '333-333-3333', cost: 20, handle: 'tacos', wallet: { address: 'test_addr3' }, start: Date.now() })
         ];
 
         await PaidSessions.addPaidSessions(paidSessions);
@@ -47,8 +47,8 @@ describe('PaidSessions Tests', () => {
     describe('updateSessionStatuses', () => {
         it('should update sessions statuses and add txId', async () => {
             const paidSessions = [
-                new PaidSession({ phoneNumber: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now() }),
-                new PaidSession({ phoneNumber: '222-222-2222', cost: 20, handle: 'tacos', wallet: { address: 'test_addr2' }, start: Date.now() })
+                new PaidSession({ emailAddress: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now() }),
+                new PaidSession({ emailAddress: '222-222-2222', cost: 20, handle: 'tacos', wallet: { address: 'test_addr2' }, start: Date.now() })
             ];
 
             await PaidSessions.addPaidSessions(paidSessions);
@@ -60,7 +60,7 @@ describe('PaidSessions Tests', () => {
             await PaidSessions.updateSessionStatuses(txId, sessions, status);
 
             const sessionsAfterUpdate = await PaidSessions.getPaidSessionsUnsafe();
-            sessionsAfterUpdate.sort((a, b) => a.phoneNumber.localeCompare(b.phoneNumber));
+            sessionsAfterUpdate.sort((a, b) => a.emailAddress.localeCompare(b.emailAddress));
 
             expect(sessionsAfterUpdate).toEqual([
                 { ...paidSessions[0], id: expect.any(String), status, txId },
@@ -73,17 +73,17 @@ describe('PaidSessions Tests', () => {
         it('should get 10 sessions with status pending', async () => {
             const paidSessionsPending = Array.from({ length: 12 }, () => {
                 const random = Math.random().toString().slice(2, 11);
-                return new PaidSession({ phoneNumber: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now() })
+                return new PaidSession({ emailAddress: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now() })
             });
 
             const paidSessionsSubmitted = Array.from({ length: 3 }, () => {
                 const random = Math.random().toString().slice(2, 11);
-                return new PaidSession({ phoneNumber: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now(), status: 'submitted' })
+                return new PaidSession({ emailAddress: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now(), status: 'submitted' })
             });
 
             const paidSessionsConfirmed = Array.from({ length: 3 }, () => {
                 const random = Math.random().toString().slice(2, 11);
-                return new PaidSession({ phoneNumber: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now(), status: 'confirmed' })
+                return new PaidSession({ emailAddress: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now(), status: 'confirmed' })
             });
 
             await PaidSessions.addPaidSessions([...paidSessionsPending, ...paidSessionsSubmitted, ...paidSessionsConfirmed]);
@@ -98,7 +98,7 @@ describe('PaidSessions Tests', () => {
             const paidSessionsPending = Array.from({ length: 6 }, (_, i) => {
                 const random = Math.random().toString().slice(2, 11);
                 const txId = i % 2 == 0 ? `txId1` : `txId${random}`;
-                return new PaidSession({ phoneNumber: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now(), status: 'pending', txId })
+                return new PaidSession({ emailAddress: random, cost: 20, handle: random, wallet: { address: `test_addr${random}` }, start: Date.now(), status: 'pending', txId })
             });
 
             await PaidSessions.addPaidSessions(paidSessionsPending);
@@ -113,7 +113,7 @@ describe('PaidSessions Tests', () => {
         it('should make 3 attempts then send to the DLQ', async () => {
             const txId = 'txId12345';
             const paidSessions = [
-                new PaidSession({ phoneNumber: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now(), status: 'pending', txId }),
+                new PaidSession({ emailAddress: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now(), status: 'pending', txId }),
             ];
 
             await PaidSessions.addPaidSessions(paidSessions);

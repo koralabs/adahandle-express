@@ -69,20 +69,21 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
   const handlesMetadata = await Promise.all(
     sessions.map(async (session) => {
       const og = twitterHandles.includes(session.handle);
-      const ipfs = await getIPFSImage(
-        session.handle,
-        og,
-        twitterHandles.indexOf(session.handle),
-        twitterHandles.length
-      );
-
-      // File did not upload, try again.
-      if (!ipfs) {
-        return false;
+      let ipfs: string;
+      try {
+        ipfs = await getIPFSImage(
+          session.handle,
+          og,
+          twitterHandles.indexOf(session.handle),
+          twitterHandles.length
+        );
+      } catch(e) {
+        Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
+        throw e;
       }
 
       const metadata = {
-        name: `ADA Handle`,
+        name: `$${session.handle}`,
         description: "The Handle Standard",
         website: "https://adahandle.com",
         image: `ipfs://${ipfs}`,
@@ -113,6 +114,44 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
   };
 
   return data;
+}
+
+export const consolidateOutputs = (outputs: wallet.WalletswalletIdpaymentfeesPayments[]): wallet.WalletswalletIdpaymentfeesPayments[] => {
+  return outputs.reduce((
+    outputs: wallet.WalletswalletIdpaymentfeesPayments[],
+    output
+  ) => {
+    const existingOutputIndex = outputs.findIndex(out => out.address === output.address);
+    if (-1 === existingOutputIndex) {
+      outputs.push(output);
+    } else {
+      // Add total.
+      outputs[existingOutputIndex].amount.quantity += output.amount.quantity;
+
+      // Merge assets.
+      outputs[existingOutputIndex].assets = [
+        ...(outputs[existingOutputIndex].assets || []),
+        ...(output.assets || [])
+      ];
+    }
+
+    return outputs;
+  }, []);
+}
+
+export const consolidateChanges = (changes: wallet.ApiCoinSelectionChange[]): wallet.ApiCoinSelectionChange[] => {
+  const newChange = changes.reduce((newChange: wallet.ApiCoinSelectionChange[], currChange: wallet.ApiCoinSelectionChange, index) => {
+    if (index === 0) {
+      newChange.push(currChange);
+      return newChange;
+    } else {
+      newChange[0].amount.quantity += currChange.amount.quantity;
+    }
+
+    return newChange;
+  }, []);
+
+  return newChange;
 }
 
 export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) => {
@@ -183,24 +222,11 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
     return output;
   });
 
-  // Consolidate the change output to a single utxo.
-  coinSelection.change = coinSelection.change.reduce(
-    (
-      newChange: wallet.ApiCoinSelectionChange[],
-      currChange: wallet.ApiCoinSelectionChange,
-      index
-    ) => {
-      if (index === 0) {
-        newChange.push(currChange);
-        return newChange;
-      } else {
-        newChange[0].amount.quantity += currChange.amount.quantity;
-      }
+  // Consolidate the output addresses for matching addresses.
+  coinSelection.outputs = consolidateOutputs(coinSelection.outputs);
 
-      return newChange;
-    },
-    []
-  );
+  // Consolidate the change output to a single utxo.
+  coinSelection.change = consolidateChanges(coinSelection.change);
 
   // Time to live.
   const info = await walletServer.getNetworkInformation();

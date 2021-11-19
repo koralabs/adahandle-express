@@ -21,10 +21,10 @@ export class AccessQueues {
     return snapshot.size;
   }
 
-  static async removeAccessQueueByPhone(phone: string): Promise<boolean> {
+  static async removeAccessQueueByEmail(email: string): Promise<boolean> {
     try {
       return admin.firestore().runTransaction(async t => {
-        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('phone', '==', phone));
+        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email));
         if (snapshot.empty) {
           return false;
         }
@@ -36,12 +36,12 @@ export class AccessQueues {
         return true;
       });
     } catch (error) {
-      Logger.log({ message: JSON.stringify(error), event: 'removeAccessQueueByPhone.error', category: LogCategory.ERROR });
-      throw new Error(`Unable to remove queues for ${phone}`);
+      Logger.log({ message: JSON.stringify(error), event: 'removeAccessQueueByEmail.error', category: LogCategory.ERROR });
+      throw new Error(`Unable to remove queues for ${email}`);
     }
   }
 
-  static async updateAccessQueue(createVerificationFunction?: (phone: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
+  static async updateAccessQueue(createVerificationFunction?: (email: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
     const stateData = await StateData.getStateData();
 
     const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();
@@ -52,9 +52,9 @@ export class AccessQueues {
 
       let data: VerificationInstance | null = null;
       try {
-        data = createVerificationFunction ? await createVerificationFunction(entry.phone) : await createTwilioVerification(entry.phone)
+        data = createVerificationFunction ? await createVerificationFunction(entry.email) : await createTwilioVerification(entry.email)
       } catch (e) {
-        Logger.log({ message: `Error occurred verifying ${entry.phone}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
+        Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
         Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
 
         // If Twilio throws an error, we are going to retry 2 more times
@@ -65,7 +65,7 @@ export class AccessQueues {
 
           // If there are more than 2 attempts, we need to add to a DLQ and remove the entry from the current queue
           if (failedAccessQueue.attempts >= 3) {
-            Logger.log({ message: `Removing ${failedAccessQueue.phone} from queue and adding to DLQ`, event: 'updateAccessQueue.removeFromQueue.error' });
+            Logger.log({ message: `Removing ${failedAccessQueue.email} from queue and adding to DLQ`, event: 'updateAccessQueue.removeFromQueue.error' });
             t.create(admin.firestore().collection(AccessQueues.collectionNameDLQ).doc(), new AccessQueue({ ...failedAccessQueue }).toJSON());
             t.delete(document.ref);
             return;
@@ -83,7 +83,7 @@ export class AccessQueues {
         await admin.firestore().runTransaction(async t => {
           const document = await t.get(doc.ref);
           t.update(document.ref, {
-            phone: entry.phone,
+            email: entry.email,
             sid: data?.sid,
             status: data?.status,
             start: Date.now(),
@@ -133,16 +133,16 @@ export class AccessQueues {
       .limit(accessQueue_limit ?? 20)
       .get();
 
-    const batchPhoneNumbers = targetBatch.docs.map((doc) => {
+    const batchEmailAddresses = targetBatch.docs.map((doc) => {
       const data = doc.data();
-      return data.phone;
+      return data.email;
     });
 
     try {
       Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
       const client = await getTwilioClient();
       await Promise.all(
-        batchPhoneNumbers.map(async (number: string) => {
+        batchEmailAddresses.map(async (number: string) => {
           client.messages.create({
             messagingServiceSid: process.env.TWILIO_MESSAGING_SID,
             to: number,
@@ -158,10 +158,10 @@ export class AccessQueues {
     }
   }
 
-  static async addToQueue(phone: string): Promise<{ updated: boolean; alreadyExists: boolean }> {
+  static async addToQueue(email: string): Promise<{ updated: boolean; alreadyExists: boolean }> {
     try {
       return admin.firestore().runTransaction(async t => {
-        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('phone', '==', phone).limit(1));
+        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email).limit(1));
         if (!snapshot.empty) {
           return {
             updated: false,
@@ -171,7 +171,7 @@ export class AccessQueues {
 
         // TODO: pretty sure we need to add the notification here...
 
-        t.create(admin.firestore().collection(AccessQueues.collectionName).doc(), new AccessQueue({ phone }).toJSON());
+        t.create(admin.firestore().collection(AccessQueues.collectionName).doc(), new AccessQueue({ email }).toJSON());
         return {
           updated: true,
           alreadyExists: false
@@ -179,7 +179,7 @@ export class AccessQueues {
       });
     } catch (error) {
       Logger.log({ message: JSON.stringify(error), event: 'addToQueue.error', category: LogCategory.ERROR });
-      throw new Error(`Unable to add ${phone} to queue`);
+      throw new Error(`Unable to add ${email} to queue`);
     }
   }
 }
