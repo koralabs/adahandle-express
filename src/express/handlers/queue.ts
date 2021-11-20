@@ -40,7 +40,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
 
   const { clientAgent, clientIp } = req.body;
 
-  const fileName = `${process.env.POLICY_DATA_DIR}/antibot/dist/index.js`;
+  const fileName = `${process.cwd()}/dist/adahandle-client-agent-info/src/index.js`;
   let clientAgentSha = 'unknown';
 
   if (fs.existsSync(fileName)) {
