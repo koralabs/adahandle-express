@@ -39,7 +39,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
 
   const { clientAgent, clientIp } = req.body;
 
-  const fileName = `${process.env.PRIVATE_DIR}/index.js`;
+  const fileName = `${process.env.POLICY_DATA_DIR}/index.js`;
   let clientAgentSha = 'unknown';
 
   if (fs.existsSync(fileName)) {
