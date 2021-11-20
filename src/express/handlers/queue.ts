@@ -33,12 +33,12 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     message: "Forbidden: Suspicious Activity"
   };
 
+  console.log(JSON.stringify(req.body));
   if (!req.body.clientAgent || !req.body.clientIp) {
     return res.status(403).json(forbiddenSuspiciousResponse);
   }
 
   const { clientAgent, clientIp } = req.body;
-  console.log(req.body);
 
   const fileName = `${process.env.POLICY_DATA_DIR}/index.js`;
   let clientAgentSha = 'unknown';
