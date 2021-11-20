@@ -54,16 +54,15 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     const { phoneNumber } = await client.lookups
       .phoneNumbers(req.headers[HEADER_EMAIL] as string)
       .fetch();
-  const email = req.headers[HEADER_EMAIL] as string;
-  const validEmail = validateEmail(email);
-  if (!validEmail) {
-    return res.status(400).json({
-      error: true,
-      message: "Invalid email."
-    } as QueueResponseBody);
-  }
+    const email = req.headers[HEADER_EMAIL] as string;
+    const validEmail = validateEmail(email);
+    if (!validEmail) {
+      return res.status(400).json({
+        error: true,
+        message: "Invalid email."
+      } as QueueResponseBody);
+    }
 
-  try {
     const { updated, alreadyExists } = await appendAccessQueueData(email);
     sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
