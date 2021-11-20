@@ -18,6 +18,7 @@
     "noLib": false,
     "preserveConstEnums": true,
     "suppressImplicitAnyIndexErrors": true,
+    "sourceMap": true,
   },
   "exclude": [
     "node_modules",

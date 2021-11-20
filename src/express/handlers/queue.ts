@@ -1,9 +1,9 @@
 import * as express from "express";
+import * as fs from 'fs';
 import * as sgMail from "@sendgrid/mail";
 
-import { HEADER_EMAIL } from "../../helpers/constants";
+import { HEADER_EMAIL, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
-import { getTwilioClient } from "../../helpers/twilo";
 import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 import { LogCategory, Logger } from "../../helpers/Logger";
 
@@ -28,17 +28,44 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     } as QueueResponseBody);
   }
 
-  const email = req.headers[HEADER_EMAIL] as string;
-  const validEmail = validateEmail(email);
-  if (!validEmail) {
-    return res.status(400).json({
-      error: true,
-      message: "Invalid email."
-    } as QueueResponseBody);
+  const forbiddenSuspiciousResponse = {
+    error: true,
+    message: "Forbidden: Suspicious Activity"
+  };
+
+  if (!req.body.clientAgent || !req.body.clientIp) {
+    return res.status(403).json(forbiddenSuspiciousResponse);
+  }
+
+  const { clientAgent, clientIp } = req.body;
+
+  const fileName = `${process.cwd()}/dist/adahandle-client-agent-info/src/index.js`;
+  let clientAgentSha = 'unknown';
+
+  if (fs.existsSync(fileName)) {
+    const { verifyClientAgentInfo } = await import(fileName);
+    const verifiedInfo = await verifyClientAgentInfo(clientAgent, clientIp);
+    if (!verifiedInfo) {
+      return res.status(403).json(forbiddenSuspiciousResponse);
+    }
+
+    clientAgentSha = verifiedInfo;
+  } else if (!isLocal() || !isTesting()) {
+    Logger.log({ message: 'Missing adahandle-client-agent-info', event: 'adahandleClientAgentInfo.notFound', category: LogCategory.NOTIFY });
+    throw new Error('Missing adahandle-client-agent-info');
   }
 
   try {
-    const { updated, alreadyExists } = await appendAccessQueueData(email);
+    const email = req.headers[HEADER_EMAIL] as string;
+    const validEmail = validateEmail(email);
+    if (!validEmail) {
+      return res.status(400).json({
+        error: true,
+        message: "Invalid email."
+      } as QueueResponseBody);
+    }
+
+    const { updated, alreadyExists } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
     sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
     if (updated) {

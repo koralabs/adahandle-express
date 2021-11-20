@@ -23,7 +23,7 @@ export const startServer = async () => {
   const app = express();
   const router = Router();
 
-  app.use(urlencoded({ extended: false }));
+  app.use(urlencoded({ extended: true }));
   app.use(json());
   app.use(compression());
   app.use(helmet());

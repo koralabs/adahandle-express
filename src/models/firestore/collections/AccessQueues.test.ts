@@ -27,9 +27,9 @@ describe('AccessQueues Tests', () => {
   });
 
   const createQueues = async () => {
-    await AccessQueues.addToQueue('333-333-3333');
-    await AccessQueues.addToQueue('222-222-2222');
-    await AccessQueues.addToQueue('111-111-1111');
+    await AccessQueues.addToQueue({ email: '333-333-3333', clientAgentSha: 'abc123', clientIp: '123' });
+    await AccessQueues.addToQueue({ email: '222-222-2222', clientAgentSha: 'abc123', clientIp: '123' });
+    await AccessQueues.addToQueue({ email: '111-111-1111', clientAgentSha: 'abc123', clientIp: '123' });
   }
 
   it('should have the correct collection name for develop', () => {
@@ -38,7 +38,7 @@ describe('AccessQueues Tests', () => {
 
   it('should add to queue and not have duplicates', async () => {
     await createQueues();
-    await AccessQueues.addToQueue('222-222-2222');
+    await AccessQueues.addToQueue({ email: '222-222-2222', clientAgentSha: 'abc123', clientIp: '123' });
 
     const accessQueues = await AccessQueues.getAccessQueues();
 
@@ -60,6 +60,7 @@ describe('AccessQueues Tests', () => {
   describe('updateAccessQueue', () => {
     const createVerificationFunction = async (email: string): Promise<VerificationInstance> => {
       if (email === '333-333-3333') {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         return {
           sid: `sid-${email}`,
@@ -68,6 +69,7 @@ describe('AccessQueues Tests', () => {
       }
 
       if (email === '222-222-2222') {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         return {
           sid: `sid-${email}`,
