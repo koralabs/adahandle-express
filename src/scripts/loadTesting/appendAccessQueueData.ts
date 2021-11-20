@@ -6,7 +6,7 @@ export const appendAccessQueueDataToFirestore = async () => {
     const promises = Array.from({ length: 10000 }, () => {
         const random = Math.random().toString().slice(2, 11);
         try {
-            return appendAccessQueueData(random).then((data) => {
+            return appendAccessQueueData({ email: random, clientAgentSha: 'sha', clientIp: 'ip' }).then((data) => {
                 index++;
                 console.log(`data at index ${index}`, data);
                 return data;

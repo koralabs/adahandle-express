@@ -10,6 +10,8 @@ export interface AccessEntry {
   start?: number;
 }
 
+export interface AppendAccessQueueInput { email: string; clientAgentSha: string; clientIp: string }
+
 interface AppendAccessResponse {
   updated: boolean;
   alreadyExists: boolean;
@@ -79,8 +81,8 @@ export const removeAccessQueueData = async (email: string): Promise<boolean> => 
   return updated;
 }
 
-export const appendAccessQueueData = async (email: string): Promise<AppendAccessResponse> => {
-  const { updated, alreadyExists } = await AccessQueues.addToQueue(email);
+export const appendAccessQueueData = async (input: AppendAccessQueueInput): Promise<AppendAccessResponse> => {
+  const { updated, alreadyExists } = await AccessQueues.addToQueue(input);
 
   const response = {
     updated,

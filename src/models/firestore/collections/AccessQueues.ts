@@ -158,7 +158,7 @@ export class AccessQueues {
     }
   }
 
-  static async addToQueue(email: string): Promise<{ updated: boolean; alreadyExists: boolean }> {
+  static async addToQueue({ email, clientAgentSha, clientIp }: { email: string; clientAgentSha: string; clientIp: string; }): Promise<{ updated: boolean; alreadyExists: boolean }> {
     try {
       return admin.firestore().runTransaction(async t => {
         const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email).limit(1));
@@ -169,9 +169,7 @@ export class AccessQueues {
           };
         }
 
-        // TODO: pretty sure we need to add the notification here...
-
-        t.create(admin.firestore().collection(AccessQueues.collectionName).doc(), new AccessQueue({ email }).toJSON());
+        t.create(admin.firestore().collection(AccessQueues.collectionName).doc(), new AccessQueue({ email, clientAgentSha, clientIp }).toJSON());
         return {
           updated: true,
           alreadyExists: false

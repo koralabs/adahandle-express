@@ -3,10 +3,10 @@ import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 
 const checkQueues = async () => {
     const [position, position2, position3, position2Duplicate] = await Promise.all([
-        AccessQueues.addToQueue('333-333-3333'),
-        AccessQueues.addToQueue('222-222-2222'),
-        AccessQueues.addToQueue('111-111-1111'),
-        AccessQueues.addToQueue('222-222-2222')
+        AccessQueues.addToQueue({ email: '333-333-3333', clientAgentSha: 'abc123', clientIp: '123' }),
+        AccessQueues.addToQueue({ email: '222-222-2222', clientAgentSha: 'abc123', clientIp: '123' }),
+        AccessQueues.addToQueue({ email: '111-111-1111', clientAgentSha: 'abc123', clientIp: '123' }),
+        AccessQueues.addToQueue({ email: '222-222-2222', clientAgentSha: 'abc123', clientIp: '123' })
     ]);
 
 
