@@ -1,3 +1,3 @@
 [submodule "src/adahandle-client-agent-info"]
 	path = src/adahandle-client-agent-info
-	url = git@github.com:adahandle/adahandle-client-agent-info.git
+	url = ../adahandle-client-agent-info.git
