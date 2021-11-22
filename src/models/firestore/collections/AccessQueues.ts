@@ -1,8 +1,10 @@
 import * as admin from "firebase-admin";
 import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
-import { AUTH_CODE_EXPIRE, isTesting } from "../../../helpers/constants";
+import * as sgMail from "@sendgrid/mail";
+
+import { AUTH_CODE_EXPIRE } from "../../../helpers/constants";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { createTwilioVerification, getTwilioClient } from "../../../helpers/twilo";
+import { createTwilioVerification } from "../../../helpers/twilo";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
@@ -140,16 +142,22 @@ export class AccessQueues {
 
     try {
       Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
-      const client = await getTwilioClient();
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
       await Promise.all(
-        batchEmailAddresses.map(async (number: string) => {
-          client.messages.create({
-            messagingServiceSid: process.env.TWILIO_MESSAGING_SID,
-            to: number,
-            body: `ADA Handle: Heads up! You are about ${hours} hours away from receiving your access code. You don't have to do anything now, but keep an eye out. As a reminder, your access code will be valid for ONLY 10 minutes!`
-          }).catch(e => {
-            Logger.log({ message: `Failed to send a reminder text to ${number}: ${JSON.stringify(e)}.`, event: 'AccessQueues.alertBatchByEstimatedHours.create', category: LogCategory.ERROR });
-          });
+        batchEmailAddresses.map(async (email: string) => {
+          await sgMail
+            .send({
+              to: email,
+              from: 'hello@adahandle.com',
+              templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
+              dynamicTemplateData: {
+                title: 'Almost Your Turn!',
+                message: `Heads up! It's almost your turn to receive an access link to purchase your Handle. It may take around ${hours} to receive your access link, so we suggest turning on email notifications. Remember! Access links are only valid for 10 minutes upon receiving!`
+              }
+            })
+            .catch((error) => {
+              Logger.log({ message: JSON.stringify(error), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
+            });
         })
       );
       Logger.log({ message: `Done!`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
