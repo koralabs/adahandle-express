@@ -142,7 +142,6 @@ export class AccessQueues {
 
     try {
       Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
       await Promise.all(
         batchEmailAddresses.map(async (email: string) => {
           await sgMail

@@ -67,7 +67,6 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     }
 
     const { updated, alreadyExists } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
     if (updated) {
       const total = await AccessQueues.getAccessQueuesCount();
