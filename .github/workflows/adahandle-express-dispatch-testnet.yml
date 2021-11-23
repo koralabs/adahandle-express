@@ -1,0 +1,17 @@
+name: ADA Handle NodeJS App Deploy
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  dispatch:
+    name: Deploy to Testnet
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Workflow Dispatch Event for TestNet
+        run: |
+          curl -XPOST -u "${{secrets.DEPLOYMENT_ACCESS_USERNAME}}:${{secrets.DEPLOYMENT_ACCESS_TOKEN}}" \
+          -H "Accept: application/vnd.github.everest-preview+json" \
+          -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy-testnet.yml/dispatches \
+          --data '{"ref": "master"}'
