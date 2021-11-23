@@ -6,7 +6,7 @@ on:
 
 jobs:
   dispatch:
-    name: Deploy to Testnet
+    name: Dispatch to Deployments
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Workflow Dispatch Event for TestNet
