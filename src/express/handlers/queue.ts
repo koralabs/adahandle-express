@@ -92,7 +92,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       updated,
       alreadyExists,
       message: alreadyExists
-        ? `You already did that!`
+        ? `Whoops! Looks like you're already in line. You'll receive your access link via the email address you entered when it's your turn!`
         : null,
     } as QueueResponseBody);
   } catch (e) {

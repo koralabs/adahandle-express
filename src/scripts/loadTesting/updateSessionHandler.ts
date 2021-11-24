@@ -3,9 +3,7 @@ import { Firebase } from "../../helpers/firebase";
 import { WalletSimplifiedBalance } from "../../helpers/graphql";
 import { delay, toLovelace } from "../../helpers/utils";
 import { ActiveSession } from "../../models/ActiveSession";
-import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
-import { appendAccessQueueDataToFirestore } from "./appendAccessQueueData";
 
 // create 3 sets of Session Tests
 // 1. Session Test with expired sessions
@@ -59,7 +57,6 @@ const createActiveSessions = async () => {
 }
 
 export const updateSessionHandlerTest = async () => {
-    let index = 0;
     const getCheckPayments = async (addresses: string[]): Promise<WalletSimplifiedBalance[]> => {
         const checkPayments = addresses.map(address => {
             // first returns 0, second returns 45, third returns 50
@@ -87,17 +84,17 @@ export const updateSessionHandlerTest = async () => {
     try {
         await createActiveSessions();
 
-        // @ts-expect-error
+        // @ts-expect-error passing in empty objects instead of express request and response
         updateSessionsHandler({}, {}, getCheckPayments);
         await delay(2000);
         await createActiveSessions();
         await delay(5000);
 
-        // @ts-expect-error
+        // @ts-expect-error passing in empty objects instead of express request and response
         await updateSessionsHandler({}, {}, getCheckPayments);
 
         await delay(10000);
-        // @ts-expect-error
+        // @ts-expect-error passing in empty objects instead of express request and response
         await updateSessionsHandler({}, {}, getCheckPayments);
     } catch (error) {
         console.log(error);
