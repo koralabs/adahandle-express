@@ -1,4 +1,0 @@
-[submodule "src/adahandle-client-agent-info"]
-	path = src/adahandle-client-agent-info
-	url = ../adahandle-client-agent-info.git
-    branch = master
