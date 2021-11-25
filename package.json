@@ -13,6 +13,7 @@
     "test": "NODE_ENV=test node node_modules/.bin/jest --testPathIgnorePatterns=/node_modules/ /.build/ '.*models/.*'",
     "start:prod": "NODE_ENV=production forever start ./development.json",
     "start:dev": "NODE_ENV=development forever start ./development.json",
+    "start": "forever start ./development.json",
     "stop": "forever stopall",
     "forever:list": "forever list",
     "logs": "forever logs app",

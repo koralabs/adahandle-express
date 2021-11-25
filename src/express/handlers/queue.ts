@@ -33,7 +33,6 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     message: "Forbidden: Suspicious Activity"
   };
 
-  console.log(JSON.stringify(req.body));
   if (!req.body.clientAgent || !req.body.clientIp) {
     return res.status(403).json(forbiddenSuspiciousResponse);
   }
