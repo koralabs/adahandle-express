@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 require('dotenv').config();
 import { mintHandlesAndSend } from "../../../../helpers/wallet";
 import { PaidSession } from "../../../../models/PaidSession";
@@ -68,7 +69,7 @@ const getMockPaidSessions = () => {
   ]
 }
 
-export const mintMockHandlesAndSend = async (index: number = 0) => {
+export const mintMockHandlesAndSend = async (index = 0) => {
   if (index > 25) {
     return;
   }
@@ -92,11 +93,11 @@ export const mintMockHandlesAndSend = async (index: number = 0) => {
 };
 
 const run = async () => {
-    console.log(`starting`);
-    console.time("mintMockHandleAndSend");
-    const results = await mintMockHandlesAndSend();
-    console.timeEnd("mintMockHandleAndSend");
-    // console.log(`count: ${results.length}`);
+  console.log(`starting`);
+  console.time("mintMockHandleAndSend");
+  const results = await mintMockHandlesAndSend();
+  console.timeEnd("mintMockHandleAndSend");
+  // console.log(`count: ${results.length}`);
 }
 
 run();

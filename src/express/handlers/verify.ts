@@ -55,7 +55,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       return res.status(403).json({
         verified: false,
         error: true,
-        message: 'You either already used this auth code or you entered wrong information.'
+        message: 'Whoops! Your access window has expired. Please re-enter the queue. Make sure to turn on email notifications!'
       } as VerifyResponseBody)
     } else {
       // Remove the number from the access queue.

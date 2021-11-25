@@ -67,12 +67,11 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     }
 
     const { updated, alreadyExists } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
     if (updated) {
       const total = await AccessQueues.getAccessQueuesCount();
-      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access code. Depending on your place in line, you should receive your access code anytime between now and around 3 hours. Make sure you turn on email notifications!';
-      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access code. Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
+      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link. Depending on your place in line, you should receive your access link anytime between now and around 3 hours. Make sure you turn on email notifications!';
+      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link. Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
       await sgMail
         .send({
           to: email,
@@ -93,7 +92,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       updated,
       alreadyExists,
       message: alreadyExists
-        ? `You already did that!`
+        ? `Whoops! Looks like you're already in line. You'll receive your access link via the email address you entered when it's your turn!`
         : null,
     } as QueueResponseBody);
   } catch (e) {
