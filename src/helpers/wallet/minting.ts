@@ -222,8 +222,12 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
     return output;
   });
 
+  console.log(`Before: ${JSON.stringify(coinSelection.outputs)}`);
+
   // Consolidate the output addresses for matching addresses.
   coinSelection.outputs = consolidateOutputs(coinSelection.outputs);
+
+  console.log(`After: ${JSON.stringify(coinSelection.outputs)}`);
 
   // Consolidate the change output to a single utxo.
   coinSelection.change = consolidateChanges(coinSelection.change);

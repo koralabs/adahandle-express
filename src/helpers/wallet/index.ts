@@ -52,6 +52,6 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
     return txId;
   } catch(e) {
     Logger.log({ message: JSON.stringify(e), event: 'mintHandleAndSend.submitTx' });
-    throw Error('Failed to submit transaction.');
+    throw new Error('Failed to submit transaction.');
   }
 };
