@@ -48,9 +48,10 @@ export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<strin
 
   try {
     const signedTransaction = await buildTransactionFromPaidSessions(sessions);
-    const txId = await walletServer.submitTx(signedTransaction).catch(e => console.log(e));
+    const txId = await walletServer.submitTx(signedTransaction);
     return txId;
   } catch(e) {
     Logger.log({ message: JSON.stringify(e), event: 'mintHandleAndSend.submitTx' });
+    throw Error('Failed to submit transaction.');
   }
 };
