@@ -54,7 +54,7 @@ describe('Queue Tests', () => {
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity - CODE: missing_agent_info" });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: missing_agent_info" });
   });
 
   it('should send an 403 response if body does not include clientIp', async () => {
@@ -70,7 +70,7 @@ describe('Queue Tests', () => {
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity - CODE: missing_agent_info" });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: missing_agent_info" });
   });
 
   it('should send an 403 response if body does not include clientAgent', async () => {
@@ -86,7 +86,7 @@ describe('Queue Tests', () => {
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity - CODE: missing_agent_info" });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: missing_agent_info" });
   });
 
   it('should send an 403 response if verifyClientAgentInfo returns error code ', async () => {
@@ -107,7 +107,7 @@ describe('Queue Tests', () => {
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": `Forbidden: Suspicious Activity - CODE: ${errorCode}` });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": `Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: ${errorCode}` });
   });
 
   it('should send an 400 response if email address is invalid', async () => {
