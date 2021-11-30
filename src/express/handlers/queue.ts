@@ -7,6 +7,11 @@ import { appendAccessQueueData } from "../../helpers/firebase";
 import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 import { LogCategory, Logger } from "../../helpers/Logger";
 
+interface VerifyClientAgentInfoResult {
+  sha?: string,
+  errorCode?: string;
+}
+
 interface QueueResponseBody {
   error: boolean;
   updated?: boolean;
@@ -28,13 +33,13 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     } as QueueResponseBody);
   }
 
-  const forbiddenSuspiciousResponse = {
+  const forbiddenSuspiciousResponse = (code: string) => ({
     error: true,
-    message: "Forbidden: Suspicious Activity"
-  };
+    message: `Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: ${code}`
+  });
 
   if (!req.body.clientAgent || !req.body.clientIp) {
-    return res.status(403).json(forbiddenSuspiciousResponse);
+    return res.status(403).json(forbiddenSuspiciousResponse('missing_agent_info'));
   }
 
   const { clientAgent, clientIp } = req.body;
@@ -44,12 +49,12 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
 
   if (fs.existsSync(fileName)) {
     const { verifyClientAgentInfo } = await import(fileName);
-    const verifiedInfo = await verifyClientAgentInfo(clientAgent, clientIp);
-    if (!verifiedInfo) {
-      return res.status(403).json(forbiddenSuspiciousResponse);
+    const verifiedInfo = await verifyClientAgentInfo(clientAgent, clientIp) as VerifyClientAgentInfoResult;
+    if (verifiedInfo.errorCode || !verifiedInfo.sha) {
+      return res.status(403).json(forbiddenSuspiciousResponse(verifiedInfo.errorCode || 'agent_info_failed'));
     }
 
-    clientAgentSha = verifiedInfo;
+    clientAgentSha = verifiedInfo.sha;
   } else if (!isLocal() || !isTesting()) {
     Logger.log({ message: 'Missing adahandle-client-agent-info', event: 'adahandleClientAgentInfo.notFound', category: LogCategory.NOTIFY });
     throw new Error('Missing adahandle-client-agent-info');
