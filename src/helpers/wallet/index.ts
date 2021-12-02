@@ -20,7 +20,6 @@ import { buildTransactionFromPaidSessions, generateMetadataFromPaidSessions, get
 export const getNewAddress = async (): Promise<NewAddress | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress();
 
-  Logger.log(JSON.stringify(newAddress));
   if (!newAddress) {
     Logger.log("Not able to get new address.");
     return false;
