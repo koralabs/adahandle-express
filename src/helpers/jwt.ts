@@ -1,6 +1,7 @@
 import { GetObjectOutput } from 'aws-sdk/clients/s3';
 import { Secret } from 'jsonwebtoken';
 import { getS3 } from "./aws";
+import { LogCategory, Logger } from "../helpers/Logger";
 
 type SecretContext = 'access' | 'session'
 
@@ -35,7 +36,7 @@ export const getKey = async (
       })
       .promise();
   } catch(e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return null;
   }
 

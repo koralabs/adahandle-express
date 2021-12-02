@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { AccessQueues } from "../models/firestore/collections/AccessQueues";
 import { getS3 } from "./aws";
 import { isTesting } from "./constants";
+import { LogCategory, Logger } from "../helpers/Logger";
 
 export interface AccessEntry {
   email: string;
@@ -56,7 +57,7 @@ export const verifyAppCheck = async (token: string): Promise<admin.appCheck.Veri
     const res = await admin.appCheck().verifyToken(token);
     return res;
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return false;
   }
 };
@@ -66,7 +67,7 @@ export const verifyTwitterUser = async (token: string): Promise<number | false> 
     const { exp } = await admin.auth().verifyIdToken(token)
     return exp;
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return false;
   }
 }

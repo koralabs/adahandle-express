@@ -2,6 +2,7 @@ import * as express from "express";
 
 import { HEADER_HANDLE } from "../../helpers/constants";
 import { handleExists, GraphqlHandleExistsResponse } from '../../helpers/graphql';
+import { LogCategory, Logger } from "../../helpers/Logger";
 
 interface ExistsResponseBody {
   error: boolean;
@@ -24,7 +25,7 @@ export const handleExistsHandler = async (req: express.Request, res: express.Res
       ...exists
     });
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return res.status(500).json({
       error: true,
       message: JSON.stringify(e)

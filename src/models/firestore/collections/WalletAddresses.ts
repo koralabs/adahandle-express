@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { WalletAddress } from "../../WalletAddress";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
+import { LogCategory, Logger } from "../../../helpers/Logger";
 
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
@@ -44,12 +45,12 @@ export class WalletAddresses {
             });
 
             await batch.commit();
-            console.log(`Batch ${index} of ${updatedWalletAddresses.length} completed`);
+            Logger.log(`Batch ${index} of ${updatedWalletAddresses.length} completed`);
             await delay(1000);
         });
 
         const end = new Date().getTime();
         const time = end - start;
-        console.log(`Execution time: ${time}`);
+        Logger.log(`Execution time: ${time}`);
     }
 }
