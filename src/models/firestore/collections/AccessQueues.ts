@@ -150,7 +150,7 @@ export class AccessQueues {
               from: 'hello@adahandle.com',
               templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
               dynamicTemplateData: {
-                title: 'ADA Handle: Almost Your Turn!',
+                title: 'Almost Your Turn!',
                 message: `Heads up! It's almost your turn to receive an access link to purchase your Handle. It may take around ${hours} to receive your access link, so we suggest turning on email notifications. Remember! Access links are only valid for 10 minutes upon receiving!`
               }
             })

@@ -82,7 +82,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
           from: 'hello@adahandle.com',
           templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
           dynamicTemplateData: {
-            title: 'ADA Handle: Confirmed!',
+            title: 'Confirmed!',
             message: total > 300 ? longResponse : quickResponse
           }
         })
