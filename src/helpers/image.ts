@@ -38,21 +38,33 @@ export const getIPFSImage = async (
   }
 
   try {
-    await htmlToImage({
-      output: outputSlug,
-      html,
-      quality: 100,
-      type: 'jpeg',
-      pupeteerArgs: {
-        executablePath: '/usr/bin/chromium-browser'
-      },
-      content: {
-        handle,
-        ...templateContent
-      },
-    });
+    try {
+      await htmlToImage({
+        output: outputSlug,
+        html,
+        quality: 100,
+        type: 'jpeg',
+        pupeteerArgs: {
+          executablePath: '/usr/bin/chromium-browser'
+        },
+        content: {
+          handle,
+          ...templateContent
+        },
+      });
+    } catch (e) {
+      Logger.log({ message: `Image generation error for $${handle} in ${Date.now() - logStart}ms. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.htmlToImage', category: LogCategory.ERROR });
+      throw e;
+    }
 
-    const res = await ipfs.add(outputSlug);
+    let res;
+    try {
+      res = await ipfs.add(outputSlug);
+    } catch (e) {
+      Logger.log({ message: `Blockfrost errored for $${handle} in ${Date.now() - logStart}ms. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.ipfs.add', category: LogCategory.ERROR });
+      throw e;
+    }
+
     try {
       const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
       await pinataClient.pinByHash(res.ipfs_hash);
