@@ -36,7 +36,7 @@ export const createTwilioVerification = async (
     .verifications.create({
       channelConfiguration: {
         template_id: 'd-38b228c7f32945b89dfc17f3c9a37695',
-        from: 'no-reply@adahandle.com',
+        from: 'hello@adahandle.com',
         from_name: 'ADA Handle',
         substitutions: {
           domain: isProduction() ? 'adahandle.com' : 'testnet.adahandle.com',
