@@ -147,7 +147,7 @@ export class AccessQueues {
           await sgMail
             .send({
               to: email,
-              from: 'hello@adahandle.com',
+              from: 'ADA Handle <hello@adahandle.com>',
               templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
               dynamicTemplateData: {
                 title: 'Almost Your Turn!',
