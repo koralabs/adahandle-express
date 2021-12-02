@@ -86,8 +86,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
             message: total > 300 ? longResponse : quickResponse
           }
         })
-        .catch((error) => {
-          Logger.log({ message: JSON.stringify(error), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
+        .catch((e) => {
+          Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
         });
     }
 

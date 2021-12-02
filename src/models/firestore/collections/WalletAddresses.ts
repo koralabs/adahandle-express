@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { WalletAddress } from "../../WalletAddress";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
+import { LogCategory, Logger } from "../../../helpers/Logger";
 
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
@@ -23,8 +24,8 @@ export class WalletAddresses {
 
                 return null;
             });
-        } catch (error) {
-            console.error(error);
+        } catch (e) {
+            Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e) });
             throw new Error('Failed to get wallet address');
         }
     }
