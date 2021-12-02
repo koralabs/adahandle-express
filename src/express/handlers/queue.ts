@@ -84,7 +84,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
           dynamicTemplateData: {
             title: 'Confirmed!',
             message: total > 300 ? longResponse : quickResponse
-          }
+          },
+          hideWarnings: true
         })
         .catch((e) => {
           Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });

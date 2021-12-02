@@ -11,7 +11,7 @@ export enum LogCategory {
 export class Logger {
     public static log(args: { message: string, category?: LogCategory, event?: string } | string): void {
         if (typeof args === 'string') {
-            console.log(`{ "category": "LogCategory.INFO", "message": ${args}" }`);
+            console.log(`{ "category": "${LogCategory.INFO}", "message": ${args}" }`);
             return;
         }
 
