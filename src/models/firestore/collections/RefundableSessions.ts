@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { RefundableSession } from "../../RefundableSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
+import { LogCategory, Logger } from "../../../helpers/Logger";
 
 export class RefundableSessions {
     public static readonly collectionName = buildCollectionNameWithSuffix('refundableSessions');
@@ -34,7 +35,7 @@ export class RefundableSessions {
             });
 
             await batch.commit();
-            console.log(`Batch ${index} of ${refundableSessionChunks.length} completed`);
+            Logger.log(`Batch ${index} of ${refundableSessionChunks.length} completed`);
             await delay(1000);
         });
     }
@@ -51,7 +52,7 @@ export class RefundableSessions {
                 t.delete(snapshot.docs[0].ref);
             });
         } catch (error) {
-            console.log(error);
+            Logger.log({ message: JSON.stringify(error), category: LogCategory.ERROR });
             throw new Error(`Unable to remove refundable sessions for wallet ${address}`);
         }
     }
