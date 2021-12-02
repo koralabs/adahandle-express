@@ -53,7 +53,7 @@ export const getIPFSImage = async (
         },
       });
     } catch (e) {
-      Logger.log({ message: `Image generation error for $${handle} in ${Date.now() - logStart}ms. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.htmlToImage', category: LogCategory.ERROR });
+      Logger.log({ message: `Image generation error for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.htmlToImage', category: LogCategory.ERROR });
       throw e;
     }
 
@@ -61,7 +61,7 @@ export const getIPFSImage = async (
     try {
       res = await ipfs.add(outputSlug);
     } catch (e) {
-      Logger.log({ message: `Blockfrost errored for $${handle} in ${Date.now() - logStart}ms. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.ipfs.add', category: LogCategory.ERROR });
+      Logger.log({ message: `Blockfrost errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.ipfs.add', category: LogCategory.ERROR });
       throw e;
     }
 
@@ -69,7 +69,7 @@ export const getIPFSImage = async (
       const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
       await pinataClient.pinByHash(res.ipfs_hash);
     } catch (e) {
-      Logger.log({ message: `Pinata errored for $${handle} in ${Date.now() - logStart}ms. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.pinByHash', category: LogCategory.METRIC });
+      Logger.log({ message: `Pinata errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.pinByHash', category: LogCategory.ERROR });
     }
 
     Logger.log({ message: `Finished generating Handle image for $${handle} in ${Date.now() - logStart}ms. `, event: 'getIPFSImage', category: LogCategory.METRIC });
