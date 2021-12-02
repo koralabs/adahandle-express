@@ -67,7 +67,7 @@ export class PaidSessions {
             });
 
             await batch.commit();
-            console.log(`Batch ${index} of ${paidSessionChunks.length} completed`);
+            Logger.log(`Batch ${index} of ${paidSessionChunks.length} completed`);
             await delay(1000);
         });
     }

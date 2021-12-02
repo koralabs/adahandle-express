@@ -5,6 +5,7 @@ import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH } from "../../helper
 import { removeAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
 import { getTwilioClient, getTwilioVerify } from "../../helpers/twilo";
+import { LogCategory, Logger } from "../../helpers/Logger";
 
 interface VerifyResponseBody {
   error: boolean;
@@ -44,7 +45,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
         code: req.headers[HEADER_EMAIL_AUTH] as string,
       })
       .then(res => res.status)
-      .catch(e => console.log(JSON.stringify({
+      .catch(e => Logger.log(JSON.stringify({
         email,
         auth: req.headers[HEADER_EMAIL_AUTH],
         sid: service.sid,
@@ -80,7 +81,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       );
     }
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return res.status(500).json({
       error: true,
       message: 'Something went wrong with validation. Try again.'

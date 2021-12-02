@@ -1,5 +1,6 @@
 import { fetch } from 'cross-fetch';
 import { getGraphqlEndpoint, getPolicyId, getPolicyPrivateKey } from "./constants";
+import { LogCategory, Logger } from "../helpers/Logger";
 
 export const getTotalHandles = async (): Promise<null | number> => {
   const policyId = getPolicyId();
@@ -33,7 +34,7 @@ export const getTotalHandles = async (): Promise<null | number> => {
     }
   )
     .then((res) => res.json())
-    .catch((e) => console.log(e));
+    .catch((e) => Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR }));
 
   try {
     const {
@@ -47,7 +48,7 @@ export const getTotalHandles = async (): Promise<null | number> => {
 
     return parseInt(count);
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return null;
   }
 }
@@ -83,7 +84,7 @@ export const getChainLoad = async (): Promise<null | number> => {
     }
   )
     .then((res) => res.json())
-    .catch((e) => console.log(e));
+    .catch((e) => Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR }));
 
   try {
     const {
@@ -103,7 +104,7 @@ export const getChainLoad = async (): Promise<null | number> => {
     const load = Math.floor(size) / Math.floor(maxBlockBodySize);
     return load;
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return null;
   }
 };

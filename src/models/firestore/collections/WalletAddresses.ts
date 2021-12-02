@@ -45,12 +45,12 @@ export class WalletAddresses {
             });
 
             await batch.commit();
-            console.log(`Batch ${index} of ${updatedWalletAddresses.length} completed`);
+            Logger.log(`Batch ${index} of ${updatedWalletAddresses.length} completed`);
             await delay(1000);
         });
 
         const end = new Date().getTime();
         const time = end - start;
-        console.log(`Execution time: ${time}`);
+        Logger.log(`Execution time: ${time}`);
     }
 }
