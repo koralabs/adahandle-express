@@ -102,7 +102,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     txResponse = txId;
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
 
-    // Delete sessions data once submitted.
+    // Update session status once submitted.
     if (txId) {
       Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions for minting`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.submitted', category: LogCategory.METRIC });
       await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
