@@ -20,6 +20,6 @@ export class Logger {
 
     private static log_entry(category: LogCategory, message: string, event?: string): void {
         const now = (new Date()).toISOString();
-        console.log(`{ "category": "${category ?? LogCategory.INFO}", "message": "${message}", "event: ${event}" , "timestamp": "${now}" }`);
+        console.log(`{ "category": "${category ?? LogCategory.INFO}", "message": "${message}", "event": "${event}" , "timestamp": "${now}" }`);
     }
 }
