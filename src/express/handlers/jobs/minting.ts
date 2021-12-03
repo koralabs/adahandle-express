@@ -85,7 +85,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 
   // If no handles to mint, abort.
   if (sanitizedSessions.length < 1) {
-    Logger.log({ message: `There were no Handles to mint. Job details: ${JSON.stringify({
+    Logger.log({ message: `There were no Handles to mint after sanitizing. Job details: ${JSON.stringify({
       refundableSessions,
       sanitizedSessions
     })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', category: LogCategory.INFO });
