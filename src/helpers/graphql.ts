@@ -35,6 +35,16 @@ export interface GraphqlCardanoPaymentAddress {
   };
 }
 
+interface GraphqlCardanoSlotNumberResult {
+  data: {
+    cardano: {
+      tip: {
+        slotNo: number;
+      }
+    }
+  }
+}
+
 interface GraphqlCardanoPaymentAddressesResult {
   data: {
     paymentAddresses: GraphqlCardanoPaymentAddress[];
@@ -374,3 +384,38 @@ export const lookupLocation = async (
 
   return assets;
 };
+
+export const getCurrentSlotNumberFromTip = async (): Promise<number> => {
+  const url = getGraphqlEndpoint();
+  const res: GraphqlCardanoSlotNumberResult = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: `
+        query {
+          cardano {
+            tip {
+              slotNo
+            }
+          }
+        }
+      `,
+    })
+  }).then(res => res.json())
+
+  if (!res?.data) {
+    throw new Error('Unable to query current slot number.');
+  }
+
+  const {
+    cardano: {
+      tip: {
+        slotNo
+      }
+    }
+  } = res.data;
+
+  return slotNo;
+}
