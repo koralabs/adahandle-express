@@ -282,7 +282,6 @@ export const lookupReturnAddresses = async (
             }
           ) {
             outputs(
-              limit:1,
               order_by:{
                 index:asc
               }
@@ -305,7 +304,11 @@ export const lookupReturnAddresses = async (
     return null;
   }
 
-  const map = new Map(res.data.transactions.map(tx => [tx.outputs[0].address, tx.inputs[0].address]));
+  const map = new Map(res.data.transactions.map(tx => {
+    // Remove the payment address from output to avoid sending back to ourselves!
+    const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
+    return [cleanedOutputs[0].address, tx.inputs[0].address]
+  }));
   const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as string[];
 
   return orderedTransactions;
