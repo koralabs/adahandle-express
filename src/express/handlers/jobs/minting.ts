@@ -83,6 +83,18 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     await PaidSessions.removeAndAddToDLQ(refundableSessions);
   }
 
+  // If no handles to mint, abort.
+  if (sanitizedSessions.length < 1) {
+    Logger.log({ message: `There were no Handles to mint after sanitizing. Job details: ${JSON.stringify({
+      refundableSessions,
+      sanitizedSessions
+    })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', category: LogCategory.INFO });
+    return res.status(200).json({
+      error: false,
+      message: 'No Handles to mint!'
+    });
+  }
+
   // Mint the handles!
   let txResponse;
   try {
@@ -90,7 +102,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     txResponse = txId;
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
 
-    // Delete sessions data once submitted.
+    // Update session status once submitted.
     if (txId) {
       Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions for minting`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.submitted', category: LogCategory.METRIC });
       await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
@@ -117,7 +129,6 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     const result = await mintPaidSessions(req, res);
     Logger.log(getLogMessage(startTime));
     return result;
-
   } catch (error) {
     Logger.log(getLogMessage(startTime));
     return res.status(200).json({
