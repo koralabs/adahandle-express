@@ -60,7 +60,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     const { exists: existsOnChain } = await handleExists(session.handle);
     const existingSessions = await PaidSessions.getByHandles(session.handle);
     if (existsOnChain || existingSessions.length > 1) {
-      Logger.log({ message: `Handle ${session.handle} already exists on-chain and in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
+      Logger.log({ message: `Handle ${session.handle} already exists on-chain or in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
       refundableSessions.push(session);
       return;
     }
