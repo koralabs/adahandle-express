@@ -183,6 +183,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
     data
   ).catch(e => {
     Logger.log({ message: JSON.stringify(e), event: 'mintHandlesAndSend.getCoinSelection', category: LogCategory.ERROR });
+    throw e;
   });
 
   if (!coinSelection) {

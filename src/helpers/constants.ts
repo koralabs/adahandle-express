@@ -81,13 +81,16 @@ export const getPolicyPrivateKey = (): string => {
 
 export const isProduction = (): boolean => {
   // currently NODE_ENV is not set to 'master' in buddy
-  return process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'master';
+  return process.env.NODE_ENV?.trim() === 'production' || process.env.NODE_ENV?.trim() === 'master';
 }
 
 export const isTesting = (): boolean => {
-  return process.env.NODE_ENV === 'test';
+  return process.env.NODE_ENV?.trim() === 'test';
+}
+export const isEmulating = (): boolean => {
+  return process.env.EMULATE_FIRESTORE?.trim() === 'true';
 }
 
 export const isLocal = (): boolean => {
-  return process.env.NODE_ENV === 'local';
+  return process.env.NODE_ENV?.trim() === 'local';
 }

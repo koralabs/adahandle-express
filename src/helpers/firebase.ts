@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import { AccessQueues } from "../models/firestore/collections/AccessQueues";
 import { getS3 } from "./aws";
-import { isTesting } from "./constants";
+import { isTesting, isEmulating } from "./constants";
 import { LogCategory, Logger } from "../helpers/Logger";
 
 export interface AccessEntry {
@@ -40,7 +40,7 @@ export class Firebase {
       databaseURL: 'https://ada-handle-reserve-default-rtdb.firebaseio.com/'
     });
 
-    if (isTesting()) {
+    if (isTesting() && isEmulating()) {
       const db = admin.firestore();
       db.settings({
         host: "localhost:8080",

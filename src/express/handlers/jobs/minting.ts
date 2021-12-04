@@ -60,7 +60,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     const { exists: existsOnChain } = await handleExists(session.handle);
     const existingSessions = await PaidSessions.getByHandles(session.handle);
     if (existsOnChain || existingSessions.length > 1) {
-      Logger.log({ message: `Handle ${session.handle} already exists on-chain and in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
+      Logger.log({ message: `Handle ${session.handle} already exists on-chain or in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
       refundableSessions.push(session);
       return;
     }
@@ -104,7 +104,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 
     // Update session status once submitted.
     if (txId) {
-      Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions for minting`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.submitted', category: LogCategory.METRIC });
+      Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions for minting`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
       await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
     }
   } catch (e) {
@@ -123,7 +123,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
-  const getLogMessage = (startTime: number) => ({ message: `mintPaidSessionsHandler completed in ${Date.now() - startTime}ms`, event: 'mintPaidSessionsHandler.run', category: LogCategory.METRIC });
+  const getLogMessage = (startTime: number) => ({ message: `mintPaidSessionsHandler completed in ${Date.now() - startTime}ms`, event: 'mintPaidSessionsHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   try {
     const result = await mintPaidSessions(req, res);
