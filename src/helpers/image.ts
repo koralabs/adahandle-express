@@ -72,7 +72,7 @@ export const getIPFSImage = async (
       Logger.log({ message: `Pinata errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.pinByHash', category: LogCategory.ERROR });
     }
 
-    Logger.log({ message: `Finished generating Handle image for $${handle} in ${Date.now() - logStart}ms. `, event: 'getIPFSImage', category: LogCategory.METRIC });
+    Logger.log({ message: `Finished generating Handle image for $${handle} in ${Date.now() - logStart}ms. `, event: 'getIPFSImage', milliseconds: Date.now() - logStart, category: LogCategory.METRIC });
     return res.ipfs_hash;
   } catch (e) {
     Logger.log({ message: `Failed to generate Handle image for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage', category: LogCategory.ERROR });

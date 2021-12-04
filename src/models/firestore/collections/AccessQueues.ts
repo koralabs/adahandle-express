@@ -8,6 +8,7 @@ import { createTwilioVerification } from "../../../helpers/twilo";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
+import { isTesting, isEmulating } from "../../../helpers/constants";
 
 export class AccessQueues {
   public static readonly collectionName = buildCollectionNameWithSuffix('accessQueues');
@@ -47,7 +48,7 @@ export class AccessQueues {
     const stateData = await StateData.getStateData();
 
     const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();
-    Logger.log({ message: `Queued Snapshot: ${queuedSnapshot.docs.length}`, event: 'updateAccessQueue.queuedSnapshot.length', category: LogCategory.METRIC });
+    Logger.log({ message: `Queued Snapshot: ${queuedSnapshot.docs.length}`, event: 'updateAccessQueue.queuedSnapshot', count: queuedSnapshot.docs.length, category: LogCategory.METRIC });
 
     await Promise.all(queuedSnapshot.docs.map(async doc => {
       const entry = doc.data();
@@ -103,7 +104,7 @@ export class AccessQueues {
       .orderBy('start')
       .get();
 
-    Logger.log({ message: `Expired: ${expired.docs.length}`, event: 'updateAccessQueue.access_queues.expired.length', category: LogCategory.METRIC });
+    Logger.log({ message: `Expired: ${expired.docs.length}`, event: 'updateAccessQueue.access_queues.expired', count: expired.docs.length, category: LogCategory.METRIC });
 
     await Promise.all(expired.docs.map(async doc => {
       await admin.firestore().runTransaction(async t => {
@@ -144,6 +145,9 @@ export class AccessQueues {
       Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
       await Promise.all(
         batchEmailAddresses.map(async (email: string) => {
+          if (isTesting()) {
+            return;
+          }
           await sgMail
             .send({
               to: email,

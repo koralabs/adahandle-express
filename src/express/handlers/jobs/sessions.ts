@@ -57,7 +57,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   const startTime = Date.now();
   const sessionPaymentStatuses = await checkPayments(walletAddresses);
-  Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', category: LogCategory.METRIC });
+  Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   dedupeActiveSessions.forEach(
     (entry, index) => {
@@ -129,7 +129,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     }
   );
 
-  Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession.count', category: LogCategory.METRIC });
+  Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession', count: dedupeActiveSessions.length, category: LogCategory.METRIC });
   await StateData.unlockCron(CRON_JOB_LOCK_NAME);
 
   try {

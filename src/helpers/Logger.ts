@@ -26,17 +26,21 @@ export enum LogCategory {
 }
 
 export class Logger {
-    public static log(args: { message: string, category?: LogCategory, event?: string } | string): void {
+    public static log(args: { message: string, category?: LogCategory, event?: string, milliseconds?: number, count?: number, dimensions?: {} } | string): void {
         if (typeof args === 'string') {
             this.log_entry(LogCategory.INFO, args);
             return;
         }
-        const { message, category, event } = args;
-        this.log_entry(category ?? LogCategory.INFO, message, event);
+        const { message, category, event, milliseconds, count, dimensions } = args;
+        this.log_entry(category ?? LogCategory.INFO, message, event, milliseconds, count, dimensions);
     }
 
-    private static log_entry(category: LogCategory, message: string, event?: string): void {
+    private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: {}): void {
         const now = (new Date()).toISOString();
-        console.log(`{ "category": "${category ?? LogCategory.INFO}", "message": "${message}", "event": "${event}" , "timestamp": "${now}" }`);
+        const log_event = event ? `, "event": "${event}"` : "";
+        const log_milliseconds = (milliseconds != undefined && milliseconds != null) ? `, "milliseconds": "${milliseconds}"` : "";
+        const log_count = (count != undefined && count != null) ? `, "count": "${count}"` : "";
+        const log_dimensions = (dimensions && Object.keys(dimensions).length) ? `, "dimensions": "${JSON.stringify(dimensions)}"` : "";
+        console.log(`{ "category": "${category ?? LogCategory.INFO}", "message": "${message}"${log_event}, "timestamp": "${now}"${log_milliseconds}${log_count}${log_dimensions} }`);
     }
 }
