@@ -38,9 +38,9 @@ export class Logger {
     private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: {}): void {
         const now = (new Date()).toISOString();
         const log_event = event ? `, "event": "${event}"` : "";
-        const log_milliseconds = (milliseconds != undefined && milliseconds != null) ? `, "milliseconds": "${milliseconds}"` : "";
-        const log_count = (count != undefined && count != null) ? `, "count": "${count}"` : "";
-        const log_dimensions = (dimensions && Object.keys(dimensions).length) ? `, "dimensions": "${JSON.stringify(dimensions)}"` : "";
+        const log_milliseconds = (milliseconds != undefined && milliseconds != null) ? `, "milliseconds": ${milliseconds}` : "";
+        const log_count = (count != undefined && count != null) ? `, "count": ${count}` : "";
+        const log_dimensions = (dimensions && Object.keys(dimensions).length) ? `, "dimensions": ${JSON.stringify(dimensions)}` : "";
         console.log(`{ "category": "${category ?? LogCategory.INFO}", "message": "${message}"${log_event}, "timestamp": "${now}"${log_milliseconds}${log_count}${log_dimensions} }`);
     }
 }
