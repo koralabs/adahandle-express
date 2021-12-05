@@ -108,13 +108,12 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
       await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
     }
   } catch (e) {
-    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}. Locking cron. Job details: ${JSON.stringify({
+    // Log the failed transaction submission (will try again on next round).
+    await PaidSessions.updateSessionStatuses('', sanitizedSessions, 'pending');
+    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}, re-trying next time. Job details: ${JSON.stringify({
       refundableSessions,
       sanitizedSessions
-    })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.NOTIFY });
-
-    // if anything goes wrong, lock the cron job and troubleshoot.
-    await StateData.lockCron(CRON_JOB_LOCK_NAME);
+    })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR });
     txResponse = false;
   }
 

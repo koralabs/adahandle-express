@@ -1,21 +1,11 @@
-import * as wallet from "cardano-wallet-js";
-
-import {
-  getPolicyPrivateKey,
-  getMintingWalletSeedPhrase,
-  getPolicyId
-} from "../constants";
 import {
   GraphqlCardanoPaymentAddress,
-  lookupReturnAddresses,
 } from "../graphql";
-import { getIPFSImage } from "../image";
-import { getMintWalletServer, getWalletServer, NewAddress } from "./cardano";
+import { getWalletServer, NewAddress } from "./cardano";
 import { WalletAddresses } from "../../models/firestore/collections/WalletAddresses";
-import { ReservedHandles } from "../../models/firestore/collections/ReservedHandles";
 import { PaidSession } from "../../models/PaidSession";
-import { LogCategory, Logger } from "../Logger";
-import { buildTransactionFromPaidSessions, generateMetadataFromPaidSessions, getAddressWalletsFromTransactions, getTransactionsFromPaidSessions } from "./minting";
+import { Logger } from "../Logger";
+import { buildTransactionFromPaidSessions } from "./minting";
 
 export const getNewAddress = async (): Promise<NewAddress | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress();
@@ -44,13 +34,7 @@ export const getAmountsFromPaymentAddresses = (
 
 export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<string | void> => {
   const walletServer = getWalletServer();
-
-  try {
-    const signedTransaction = await buildTransactionFromPaidSessions(sessions);
-    const txId = await walletServer.submitTx(signedTransaction);
-    return txId;
-  } catch(e) {
-    Logger.log({ message: JSON.stringify(e), event: 'mintHandleAndSend.submitTx' });
-    throw new Error('Failed to submit transaction.');
-  }
+  const signedTransaction = await buildTransactionFromPaidSessions(sessions);
+  const txId = await walletServer.submitTx(signedTransaction);
+  return txId;
 };

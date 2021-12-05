@@ -95,7 +95,8 @@ export class PaidSessions {
     }
 
     static async updateSessionStatuses(txId: string, sanitizedSessions: PaidSession[], statusType: PaidSessionStatusType): Promise<boolean[]> {
-        const currentSlotNumber = await getCurrentSlotNumberFromTip();
+        // const currentSlotNumber = await getCurrentSlotNumberFromTip();
+        // console.log(currentSlotNumber);
         return Promise.all(sanitizedSessions.map(async session => {
             return admin.firestore().runTransaction(async t => {
                 const ref = admin.firestore().collection(PaidSessions.collectionName).doc(session.id as string);
