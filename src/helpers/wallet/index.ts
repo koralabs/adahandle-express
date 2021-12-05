@@ -4,7 +4,7 @@ import {
 import { getWalletServer, NewAddress } from "./cardano";
 import { WalletAddresses } from "../../models/firestore/collections/WalletAddresses";
 import { PaidSession } from "../../models/PaidSession";
-import { Logger } from "../Logger";
+import { LogCategory, Logger } from "../Logger";
 import { buildTransactionFromPaidSessions } from "./minting";
 
 export const getNewAddress = async (): Promise<NewAddress | false> => {
@@ -32,7 +32,7 @@ export const getAmountsFromPaymentAddresses = (
   return totalBalances;
 };
 
-export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<string | void> => {
+export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<string> => {
   const walletServer = getWalletServer();
   const signedTransaction = await buildTransactionFromPaidSessions(sessions);
   const txId = await walletServer.submitTx(signedTransaction);

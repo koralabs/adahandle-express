@@ -96,17 +96,15 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   }
 
   // Mint the handles!
-  let txResponse;
   try {
     const txId = await mintHandlesAndSend(sanitizedSessions);
-    txResponse = txId;
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
-
-    // Update session status once submitted.
-    if (txId) {
-      Logger.log({ message: `submitting ${sanitizedSessions.length} paid sessions for minting`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
-      await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
-    }
+    Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
+    await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
+    return res.status(200).json({
+      error: false,
+      message: txId
+    });
   } catch (e) {
     // Log the failed transaction submission (will try again on next round).
     await PaidSessions.updateSessionStatuses('', sanitizedSessions, 'pending');
@@ -114,13 +112,11 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
       refundableSessions,
       sanitizedSessions
     })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR });
-    txResponse = false;
+    return res.status(500).json({
+      error: true,
+      message: 'Transaction submission failed.'
+    });
   }
-
-  return res.status(200).json({
-    error: txResponse === false,
-    message: txResponse
-  });
 }
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
