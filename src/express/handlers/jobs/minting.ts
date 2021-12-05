@@ -107,11 +107,11 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   } catch (e) {
     // Log the failed transaction submission (will try again on next round).
-    await PaidSessions.updateSessionStatuses('', sanitizedSessions, 'pending');
     Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}, re-trying next time. Job details: ${JSON.stringify({
       refundableSessions,
       sanitizedSessions
     })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR });
+    await PaidSessions.updateSessionStatuses('', sanitizedSessions, 'pending');
     return res.status(500).json({
       error: true,
       message: 'Transaction submission failed.'
