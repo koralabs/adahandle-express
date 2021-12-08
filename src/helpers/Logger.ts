@@ -26,7 +26,7 @@ export enum LogCategory {
 }
 
 export class Logger {
-    public static log(args: { message: string, category?: LogCategory, event?: string, milliseconds?: number, count?: number, dimensions?: {} } | string): void {
+    public static log(args: { message: string, category?: LogCategory, event?: string, milliseconds?: number, count?: number, dimensions?: any } | string): void {
         if (typeof args === 'string') {
             this.log_entry(LogCategory.INFO, args);
             return;
