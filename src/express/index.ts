@@ -1,6 +1,7 @@
 import * as express from "express";
 import * as compression from 'compression';
 import * as helmet from 'helmet';
+import * as sgMail from '@sendgrid/mail';
 import { urlencoded, json } from 'body-parser'
 import Router from 'express-promise-router';
 
@@ -11,18 +12,20 @@ import { sessionHandler } from "./handlers/session";
 import { handleExistsHandler } from "./handlers/exists";
 import { paymentConfirmedHandler } from "./handlers/payment";
 import { locationHandler } from './handlers/location';
-import { stateHandler } from './handlers/state';
+import { stateHandler } from './handlers/jobs/state';
 
 // Jobs
 import { sendAuthCodesHandler } from './handlers/jobs/auth';
 import { mintPaidSessionsHandler } from './handlers/jobs/minting';
 import { updateSessionsHandler } from './handlers/jobs/sessions';
+import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
 
 export const startServer = async () => {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
   const app = express();
   const router = Router();
 
-  app.use(urlencoded({ extended: false }));
+  app.use(urlencoded({ extended: true }));
   app.use(json());
   app.use(compression());
   app.use(helmet());
@@ -33,7 +36,7 @@ export const startServer = async () => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header(
       "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, x-firebase-appcheck, x-handle, x-phone, x-phone-authcode, x-access-token, x-session-token"
+      "Origin, X-Requested-With, Content-Type, Accept, x-firebase-appcheck, x-handle, x-email, x-email-authcode, x-access-token, x-session-token"
     );
     next();
   });
@@ -51,6 +54,7 @@ export const startServer = async () => {
   app.post('/sendAuthCodes', sendAuthCodesHandler);
   app.post('/updateActiveSessions', updateSessionsHandler);
   app.post('/mintPaidSessions', mintPaidSessionsHandler);
+  app.post('/mintConfirm', mintConfirmHandler);
 
   app.listen(3000);
 }

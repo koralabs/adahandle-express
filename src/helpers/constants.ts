@@ -11,8 +11,8 @@ export const AUTH_CODE_EXPIRE = 600000; // 10 minutes
 export const PAYMENT_ADDRESS_THRESHOLD = 10;
 export const WALLET_BALANCE_THRESHOLD = 1000 * 1000000;
 export const MAX_CHAIN_LOAD = 0.8;
-export const HEADER_PHONE_AUTH = 'x-phone-authcode';
-export const HEADER_PHONE = 'x-phone';
+export const HEADER_EMAIL_AUTH = 'x-email-authcode';
+export const HEADER_EMAIL = 'x-email';
 export const HEADER_HANDLE = 'x-handle';
 export const HEADER_RECAPTCHA = 'x-recaptcha';
 export const HEADER_TWITTER_ACCESS_TOKEN = 'x-twitter-token';
@@ -81,5 +81,16 @@ export const getPolicyPrivateKey = (): string => {
 
 export const isProduction = (): boolean => {
   // currently NODE_ENV is not set to 'master' in buddy
-  return process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'master';
+  return process.env.NODE_ENV?.trim() === 'production' || process.env.NODE_ENV?.trim() === 'master';
+}
+
+export const isTesting = (): boolean => {
+  return process.env.NODE_ENV?.trim() === 'test';
+}
+export const isEmulating = (): boolean => {
+  return process.env.EMULATE_FIRESTORE?.trim() === 'true';
+}
+
+export const isLocal = (): boolean => {
+  return process.env.NODE_ENV?.trim() === 'local';
 }

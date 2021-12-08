@@ -1,6 +1,4 @@
 import { Firebase } from "../helpers/firebase";
-import { ActiveSession } from "../models/ActiveSession";
-import { ActiveSessions } from "../models/firestore/collections/ActiveSession";
 import { PaidSessions } from "../models/firestore/collections/PaidSessions";
 import { PaidSession } from "../models/PaidSession";
 
@@ -9,7 +7,7 @@ const run = async () => {
     await Firebase.init();
 
     const paidSession = new PaidSession({
-        phoneNumber: '+12223334444',
+        emailAddress: '+12223334444',
         cost: 0,
         handle: 'burritos',
         wallet: {
@@ -19,7 +17,7 @@ const run = async () => {
     });
 
     const paidSession2 = new PaidSession({
-        phoneNumber: '+12223334444',
+        emailAddress: '+12223334444',
         cost: 0,
         handle: 'tacos',
         wallet: {
@@ -30,12 +28,12 @@ const run = async () => {
 
     await PaidSessions.addPaidSessions([paidSession, paidSession2]);
 
-    const paidSessions = await PaidSessions.getPaidSessions();
+    const paidSessions = await PaidSessions.getPaidSessionsUnsafe();
     console.log('paidSessions', paidSessions);
 
-    await PaidSessions.removePaidSessions([paidSession]);
+    await PaidSessions.removeAndAddToDLQ([paidSession]);
 
-    const allPaidSessions = await PaidSessions.getPaidSessions();
+    const allPaidSessions = await PaidSessions.getPaidSessionsUnsafe();
     console.log('allPaidSessions', allPaidSessions);
 
     process.exit();

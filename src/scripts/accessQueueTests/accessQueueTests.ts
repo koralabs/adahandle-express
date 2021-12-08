@@ -1,12 +1,12 @@
-import { Firebase } from "../helpers/firebase";
-import { AccessQueues } from "../models/firestore/collections/AccessQueues";
+import { Firebase } from "../../helpers/firebase";
+import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 
 const checkQueues = async () => {
     const [position, position2, position3, position2Duplicate] = await Promise.all([
-        AccessQueues.addToQueueAndGetPosition('333-333-3333'),
-        AccessQueues.addToQueueAndGetPosition('222-222-2222'),
-        AccessQueues.addToQueueAndGetPosition('111-111-1111'),
-        AccessQueues.addToQueueAndGetPosition('222-222-2222')
+        AccessQueues.addToQueue({ email: '333-333-3333', clientAgentSha: 'abc123', clientIp: '123' }),
+        AccessQueues.addToQueue({ email: '222-222-2222', clientAgentSha: 'abc123', clientIp: '123' }),
+        AccessQueues.addToQueue({ email: '111-111-1111', clientAgentSha: 'abc123', clientIp: '123' }),
+        AccessQueues.addToQueue({ email: '222-222-2222', clientAgentSha: 'abc123', clientIp: '123' })
     ]);
 
 
@@ -19,9 +19,9 @@ const checkQueues = async () => {
     console.log('accessQueues', accessQueues);
 
     const [positionRemoved, position2Removed, notRemoved] = await Promise.all([
-        AccessQueues.removeAccessQueueByPhone('111-111-1111'),
-        AccessQueues.removeAccessQueueByPhone('222-222-2222'),
-        AccessQueues.removeAccessQueueByPhone('444-444-4444'), // Doesn't exist, should not remove anything
+        AccessQueues.removeAccessQueueByEmail('111-111-1111'),
+        AccessQueues.removeAccessQueueByEmail('222-222-2222'),
+        AccessQueues.removeAccessQueueByEmail('444-444-4444'), // Doesn't exist, should not remove anything
     ]);
 
     console.log('positionRemoved, position2Removed, notRemoved', positionRemoved, position2Removed, notRemoved);

@@ -11,6 +11,7 @@ import { getKey } from "../../helpers/jwt";
 import { getNewAddress } from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { ActiveSession } from "../../models/ActiveSession";
+import { LogCategory, Logger } from "../../helpers/Logger";
 
 interface SessionResponseBody {
   error: boolean,
@@ -18,10 +19,12 @@ interface SessionResponseBody {
   address?: string;
 }
 interface SessionJWTPayload extends jwt.JwtPayload {
-  phoneNumber: string;
+  emailAddress: string;
 }
 
 export const sessionHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `sessionHandler processed in ${Date.now() - startTime}ms`, event: 'sessionHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
   const accessToken = req.headers[HEADER_JWT_ACCESS_TOKEN];
   const sessionToken = req.headers[HEADER_JWT_SESSION_TOKEN];
 
@@ -82,9 +85,9 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   }
 
   // Save session.
-  const { phoneNumber, cost, iat = Date.now() } = sessionData;
+  const { emailAddress, cost, iat = Date.now() } = sessionData;
   const newSession = new ActiveSession({
-    phoneNumber,
+    emailAddress,
     handle,
     wallet: walletAddress,
     cost,
@@ -101,6 +104,8 @@ export const sessionHandler = async (req: express.Request, res: express.Response
 
     return res.status(400).json(responseBody);
   }
+
+  Logger.log(getLogMessage(startTime))
 
   return res.status(200).json({
     error: false,

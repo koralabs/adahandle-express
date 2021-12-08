@@ -2,115 +2,150 @@ import * as express from "express";
 
 import { MAX_SESSION_LENGTH } from '../../../helpers/constants';
 import { checkPayments } from '../../../helpers/graphql';
+import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
 import { ActiveSession } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
+import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
 import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
+
+const CRON_JOB_LOCK_NAME = CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK;
 
 /**
  * Filters out old sessions from the /activeSessions document.
  */
 export const updateSessionsHandler = async (req: express.Request, res: express.Response) => {
-  const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
-  if (!activeSessions) {
+  // if process is running, bail out of cron job
+  const stateData = await StateData.getStateData();
+  if (stateData[CRON_JOB_LOCK_NAME]) {
+    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
-      message: 'No active sessions!'
+      message: 'Update Sessions cron is locked. Try again later.'
     });
   }
 
-  // const expiredPending: PendingSession[] = [];
-  const removableActiveVal: ActiveSession[] = [];
-  const refundableVal: RefundableSession[] = [];
-  const paidVal: ActiveSession[] = [];
-  const sessionPaymentStatuses = await checkPayments(activeSessions.map(s => s.wallet.address));
+  await StateData.lockCron(CRON_JOB_LOCK_NAME);
 
-  activeSessions.forEach(
-    (entry, index) => {
-      const sessionAge = Date.now() - entry?.start;
-      const matchingPayment = sessionPaymentStatuses[index];
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-      if (!matchingPayment) {
-        return;
+  try {
+    const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
+    const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
+      if (acc.has(session.wallet.address)) {
+        Logger.log({ message: `Duplicate session found for ${session.wallet.address}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
+        return acc;
       }
 
-      /**
-       * Remove if expired and not paid
-       * Refund if not expired but invalid payment
-       * Refund if expired and paid
-       * Refund if paid sessions already has handle
-       * Move to paid if accurate payment and not expired
-       * Leave alone if not expired and no payment
-       */
+      acc.set(session.wallet.address, session);
+      return acc;
+    }, new Map());
 
-      // Handle expired.
-      if (sessionAge >= MAX_SESSION_LENGTH) {
-        removableActiveVal.push(entry);
+    const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
+    if (dedupeActiveSessions.length == 0) {
+      await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+      return res.status(200).json({
+        error: false,
+        message: 'No active sessions!'
+      });
+    }
 
-        // Refund if it has a balance.
-        if (matchingPayment && matchingPayment.amount !== 0) {
-          refundableVal.push(new RefundableSession({
-            wallet: entry.wallet,
-            amount: matchingPayment.amount,
-            handle: entry.handle,
-          }));
+    const removableActiveVal: ActiveSession[] = [];
+    const refundableVal: RefundableSession[] = [];
+    const paidVal: ActiveSession[] = [];
+    const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
+
+    const startTime = Date.now();
+    const sessionPaymentStatuses = await checkPayments(walletAddresses);
+    Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
+
+    dedupeActiveSessions.forEach(
+      (entry, index) => {
+        const sessionAge = Date.now() - entry?.start;
+        const matchingPayment = sessionPaymentStatuses[index];
+
+        if (!matchingPayment) {
+          return;
         }
-        return;
-      }
 
-      // Refund invalid payments.
-      if (
-        matchingPayment.amount !== 0 &&
-        matchingPayment.amount !== toLovelace(entry.cost)
-      ) {
-        removableActiveVal.push(entry);
-        refundableVal.push(new RefundableSession({
-          wallet: entry.wallet,
-          amount: matchingPayment.amount,
-          handle: entry.handle
-        }));
-        return;
-      }
+        /**
+         * Remove if expired and not paid
+         * Refund if not expired but invalid payment
+         * Refund if expired and paid
+         * Refund if paid sessions already has handle
+         * Move to paid if accurate payment and not expired
+         * Leave alone if not expired and no payment
+         */
 
-      // Move valid paid sessions to minting queue.
-      if (matchingPayment.amount === toLovelace(entry.cost)) {
+        // Handle expired.
+        if (sessionAge >= MAX_SESSION_LENGTH) {
+          if (matchingPayment && matchingPayment.amount !== 0) {
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              wallet: entry.wallet,
+              amount: matchingPayment.amount,
+              handle: entry.handle,
+            }));
 
-        // If already has a handle, refund.
-        if (paidVal.some(e => e.handle === entry.handle)) {
-          refundableVal.push(new RefundableSession({
+            return;
+          }
+
+          ActiveSessions.removeActiveSession(entry);
+          return;
+        }
+
+        // Refund invalid payments.
+        if (
+          matchingPayment.amount !== 0 &&
+          matchingPayment.amount !== toLovelace(entry.cost)
+        ) {
+          ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
             wallet: entry.wallet,
             amount: matchingPayment.amount,
             handle: entry.handle
           }));
-        } else {
-          paidVal.push(entry);
+          return;
         }
 
-        removableActiveVal.push(entry);
-        return;
+        // Move valid paid sessions to minting queue.
+        if (matchingPayment.amount === toLovelace(entry.cost)) {
+
+          // If already has a handle, refund.
+          if (paidVal.some(e => e.handle === entry.handle)) {
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              wallet: entry.wallet,
+              amount: matchingPayment.amount,
+              handle: entry.handle
+            }));
+            return;
+          }
+
+          paidVal.push(entry);
+          ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
+            ...entry,
+            emailAddress: '', // email address intentionally scrubbed for privacy
+            status: 'pending',
+          }));
+        }
       }
-    }
-  );
+    );
 
-  // TODO: add all to a transaction
-  const promises = [
-    RefundableSessions.addRefundableSessions(refundableVal),
-    PaidSessions.addPaidSessions(paidVal),
-    ActiveSessions.removeActiveSessions(removableActiveVal)
-    // PendingSessions.removePendingSessions(expiredPending),
-  ]
+    Logger.log(getLogMessage(startTime, activeSessions.length));
+    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
 
-  try {
-    // Update session states.
-    const updates = await Promise.all(promises);
-    return res.status(200).json({
+    res.status(200).json({
       error: false,
-      jobs: updates
-    })
+      jobs: {
+        refund: refundableVal.length,
+        paid: paidVal.length,
+        removed: removableActiveVal.length
+      }
+    });
   } catch (e) {
+    Logger.log({category: LogCategory.NOTIFY, message: `Active sessions queue has an exception and is locked: ${JSON.stringify(e)}`, event:'updateSessionsHandler.run'})
     return res.status(500).json({
       error: true,
       message: e

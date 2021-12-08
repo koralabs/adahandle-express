@@ -1,4 +1,6 @@
 import * as admin from "firebase-admin";
+import { LogCategory, Logger } from "../../../helpers/Logger";
+import { asyncForEach, chunk, delay } from "../../../helpers/utils";
 import { ActiveSession, ActiveSessionInput } from "../../ActiveSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
@@ -19,24 +21,61 @@ export class ActiveSessions {
         return false;
       }
 
-      t.create(admin.firestore().collection(ActiveSessions.collectionName).doc(), newSession.toJSON());
+      const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc();
+      const newDoc = { ...newSession.toJSON(), id: docRef.id };
+      t.create(docRef, newDoc);
       return true;
     });
   }
 
-  public static async removeActiveSessions(oldSessions: ActiveSession[]): Promise<admin.firestore.WriteResult[]> {
+  public static async addActiveSessions(activeSessions: ActiveSession[]): Promise<void> {
     const db = admin.firestore();
-    const batch = db.batch();
 
-    // This can only handle 25 requests at a time. Do we need to chunk?
-    await Promise.all(
-      oldSessions.slice(0, 25).map(async session => {
-        const collectionQuery = db.collection(ActiveSessions.collectionName).where('wallet.address', '==', session.wallet.address).limit(1);
-        const collectionRef = await collectionQuery.get().then(res => res.docs[0].ref);
-        batch.delete(collectionRef);
-      })
-    );
+    const activeSessionChunks = chunk(activeSessions, 500);
+    await asyncForEach(activeSessionChunks, async (paidSessions, index) => {
+      const batch = db.batch();
+      activeSessions.forEach(session => {
+        const docRef = db.collection(ActiveSessions.collectionName).doc();
+        const newDoc = { ...session.toJSON(), id: docRef.id };
+        batch.create(docRef, newDoc);
+      });
 
-    return await batch.commit();
+      await batch.commit();
+      Logger.log(`Batch ${index + 1} of ${activeSessionChunks.length} completed`);
+      await delay(1000);
+    });
+  }
+
+  public static async removeActiveSession<T>(session: ActiveSession, otherOperation?: (otherOperationArgs: T, t?: admin.firestore.Transaction) => Promise<void>, otherOperationArgs?: T): Promise<void> {
+    if (!session.id) {
+      Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'removeActiveSession.noId', category: LogCategory.ERROR });
+      return;
+    }
+
+    return admin.firestore().runTransaction(async t => {
+      const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
+
+      if (otherOperation && otherOperationArgs) {
+        otherOperation(otherOperationArgs, t);
+      }
+
+      t.delete(docRef);
+    });
+  }
+
+  public static async removeActiveSessions(oldSessions: ActiveSession[]): Promise<void> {
+    await Promise.all(oldSessions.map(async session => {
+      if (!session.id) {
+        Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'removeActiveSessions.noId', category: LogCategory.ERROR });
+        return;
+      }
+
+      return admin.firestore().runTransaction(async t => {
+        const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
+        t.delete(docRef);
+      }).catch(error => {
+        Logger.log({ message: `error: ${JSON.stringify(error)} removing ${session.id}`, event: 'removeActiveSessions.error', category: LogCategory.ERROR });
+      });
+    }));
   }
 }

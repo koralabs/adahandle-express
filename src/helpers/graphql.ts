@@ -2,7 +2,7 @@ import { fetch } from 'cross-fetch';
 import { getGraphqlEndpoint } from "./constants";
 import { getFingerprint } from './utils';
 
-interface WalletSimplifiedBalance {
+export interface WalletSimplifiedBalance {
   address: string;
   amount: number;
 }
@@ -35,14 +35,27 @@ export interface GraphqlCardanoPaymentAddress {
   };
 }
 
+interface GraphqlCardanoSlotNumberResult {
+  data: {
+    cardano: {
+      tip: {
+        slotNo: number;
+      }
+    }
+  }
+}
+
 interface GraphqlCardanoPaymentAddressesResult {
   data: {
     paymentAddresses: GraphqlCardanoPaymentAddress[];
   }
 }
 
-interface GraphqlCardanoSenderAddress {
+export interface GraphqlCardanoSenderAddress {
   inputs: {
+    address: string;
+  }[],
+  outputs: {
     address: string;
   }[]
 }
@@ -256,7 +269,7 @@ export const handleExists = async (handle: string): Promise<GraphqlHandleExistsR
 
 export const lookupReturnAddresses = async (
   receiverAddresses: string[]
-): Promise<GraphqlCardanoSenderAddress[] | null> => {
+): Promise<string[] | null> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
     method: 'POST',
@@ -270,9 +283,6 @@ export const lookupReturnAddresses = async (
       query: `
         query ($addresses: [String!]!) {
           transactions(
-            order_by: {
-              blockIndex:desc
-            }
             where:{
               outputs:{
                 address:{
@@ -281,8 +291,16 @@ export const lookupReturnAddresses = async (
               }
             }
           ) {
+            outputs(
+              order_by:{
+                index:asc
+              }
+            ){
+              address
+            }
+
             inputs(
-              limit:1
+              limit:1,
             ) {
               address
             }
@@ -292,12 +310,18 @@ export const lookupReturnAddresses = async (
     })
   }).then(res => res.json())
 
-  console.log('lookupReturnAddresses response:', res);
   if (!res?.data) {
     return null;
   }
 
-  return res.data.transactions;
+  const map = new Map(res.data.transactions.map(tx => {
+    // Remove the payment address from output to avoid sending back to ourselves!
+    const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
+    return [cleanedOutputs[0].address, tx.inputs[0].address]
+  }));
+  const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as string[];
+
+  return orderedTransactions;
 }
 
 export const lookupLocation = async (
@@ -360,3 +384,38 @@ export const lookupLocation = async (
 
   return assets;
 };
+
+export const getCurrentSlotNumberFromTip = async (): Promise<number> => {
+  const url = getGraphqlEndpoint();
+  const res: GraphqlCardanoSlotNumberResult = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: `
+        query {
+          cardano {
+            tip {
+              slotNo
+            }
+          }
+        }
+      `,
+    })
+  }).then(res => res.json())
+
+  if (!res?.data) {
+    throw new Error('Unable to query current slot number.');
+  }
+
+  const {
+    cardano: {
+      tip: {
+        slotNo
+      }
+    }
+  } = res.data;
+
+  return slotNo;
+}

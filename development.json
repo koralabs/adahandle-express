@@ -2,5 +2,6 @@
   "uid": "app",
   "append": true,
   "watch": false,
+  "port": 3000,
   "script": "./dist/server.js"
 }

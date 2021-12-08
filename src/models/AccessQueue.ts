@@ -1,25 +1,34 @@
 import { BaseModel } from "./BaseModel";
 
 interface AccessQueueInput {
-    phone: string;
+    email: string;
+    attempts?: number;
     sid?: string;
     status?: string;
     start?: number;
+    clientAgentSha?: string;
+    clientIp?: string;
 }
 
 export class AccessQueue extends BaseModel {
-    public phone: string;
+    public email: string;
     public dateAdded: number = Date.now();
     public sid?: string;
     public status?: string;
     public start?: number;
+    public attempts: number;
+    public clientAgentSha?: string;
+    public clientIp?: string;
 
-    constructor({ phone, sid, status, start }: AccessQueueInput) {
+    constructor({ email, sid, start, status = 'queued', attempts = 0, clientAgentSha, clientIp }: AccessQueueInput) {
         super();
-        this.phone = phone;
+        this.email = email;
         this.sid = sid;
+        this.start = start
         this.status = status;
-        this.start = start;
+        this.attempts = attempts;
+        this.clientAgentSha = clientAgentSha;
+        this.clientIp = clientIp;
         this.dateAdded = Date.now();
     }
 }

@@ -1,27 +1,21 @@
 import * as admin from "firebase-admin";
-import { ActiveSession } from "../models/ActiveSession";
 import { AccessQueues } from "../models/firestore/collections/AccessQueues";
-import { PaidSessions } from "../models/firestore/collections/PaidSessions";
-import { RefundableSessions } from "../models/firestore/collections/RefundableSessions";
-import { PaidSession } from "../models/PaidSession";
-import { RefundableSession } from "../models/RefundableSession";
 import { getS3 } from "./aws";
-import { getChainLoad } from "./cardano";
-import { lookupReturnAddresses } from "./graphql";
-import { NewAddress } from "./wallet/cardano";
+import { isTesting, isEmulating } from "./constants";
+import { LogCategory, Logger } from "../helpers/Logger";
 
 export interface AccessEntry {
-  phone: string;
+  email: string;
   sid?: string;
   status?: 'pending' | 'complete';
   start?: number;
 }
 
+export interface AppendAccessQueueInput { email: string; clientAgentSha: string; clientIp: string }
+
 interface AppendAccessResponse {
   updated: boolean;
   alreadyExists: boolean;
-  position: number;
-  chainLoad: number | null;
 }
 export class Firebase {
   public static async init() {
@@ -41,10 +35,20 @@ export class Firebase {
       throw new Error("Firebase did not successfully initialize.");
     }
 
-    return admin.initializeApp({
+    const app = admin.initializeApp({
       credential: admin.credential.cert(credentials),
       databaseURL: 'https://ada-handle-reserve-default-rtdb.firebaseio.com/'
     });
+
+    if (isTesting() && isEmulating()) {
+      const db = admin.firestore();
+      db.settings({
+        host: "localhost:8080",
+        ssl: false
+      });
+    }
+
+    return app;
   }
 }
 
@@ -53,7 +57,7 @@ export const verifyAppCheck = async (token: string): Promise<admin.appCheck.Veri
     const res = await admin.appCheck().verifyToken(token);
     return res;
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return false;
   }
 };
@@ -63,7 +67,7 @@ export const verifyTwitterUser = async (token: string): Promise<number | false> 
     const { exp } = await admin.auth().verifyIdToken(token)
     return exp;
   } catch (e) {
-    console.log(e);
+    Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return false;
   }
 }
@@ -73,21 +77,17 @@ export const getAccessQueueCount = async (): Promise<number> => {
   return count.length ?? 0;
 }
 
-export const removeAccessQueueData = async (phone: string): Promise<boolean> => {
-  const updated: boolean = await AccessQueues.removeAccessQueueByPhone(phone);
+export const removeAccessQueueData = async (email: string): Promise<boolean> => {
+  const updated: boolean = await AccessQueues.removeAccessQueueByEmail(email);
   return updated;
 }
 
-export const appendAccessQueueData = async (phone: string): Promise<AppendAccessResponse> => {
-  const { updated, alreadyExists, position } = await AccessQueues.addToQueueAndGetPosition(phone);
-
-  const chainLoad = await getChainLoad();
+export const appendAccessQueueData = async (input: AppendAccessQueueInput): Promise<AppendAccessResponse> => {
+  const { updated, alreadyExists } = await AccessQueues.addToQueue(input);
 
   const response = {
     updated,
-    alreadyExists,
-    position,
-    chainLoad
+    alreadyExists
   };
 
   return response;

@@ -1,21 +1,33 @@
 import * as admin from "firebase-admin";
+import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
+import * as sgMail from "@sendgrid/mail";
+
 import { AUTH_CODE_EXPIRE } from "../../../helpers/constants";
+import { LogCategory, Logger } from "../../../helpers/Logger";
 import { createTwilioVerification } from "../../../helpers/twilo";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
+import { StateData } from "./StateData";
+import { isTesting, isEmulating } from "../../../helpers/constants";
 
 export class AccessQueues {
   public static readonly collectionName = buildCollectionNameWithSuffix('accessQueues');
+  public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('accessQueuesDLQ');
 
   static async getAccessQueues(): Promise<AccessQueue[]> {
     const collection = await admin.firestore().collection(AccessQueues.collectionName).get();
     return collection.docs.map(doc => doc.data() as AccessQueue);
   }
 
-  static async removeAccessQueueByPhone(phone: string): Promise<boolean> {
+  static async getAccessQueuesCount(): Promise<number> {
+    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).get();
+    return snapshot.size;
+  }
+
+  static async removeAccessQueueByEmail(email: string): Promise<boolean> {
     try {
       return admin.firestore().runTransaction(async t => {
-        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('phone', '==', phone));
+        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email));
         if (snapshot.empty) {
           return false;
         }
@@ -27,83 +39,156 @@ export class AccessQueues {
         return true;
       });
     } catch (error) {
-      console.log(error);
-      throw new Error(`Unable to remove queues for ${phone}`);
+      Logger.log({ message: JSON.stringify(error), event: 'removeAccessQueueByEmail.error', category: LogCategory.ERROR });
+      throw new Error(`Unable to remove queues for ${email}`);
     }
   }
 
-  static async updateAccessQueue(): Promise<void> {
-    await admin.firestore().runTransaction(async t => {
-      const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName));
-      if (snapshot.empty) {
+  static async updateAccessQueue(createVerificationFunction?: (email: string) => Promise<VerificationInstance>): Promise<{ count: number }> {
+    const stateData = await StateData.getStateData();
+
+    const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();
+
+    await Promise.all(queuedSnapshot.docs.map(async doc => {
+      const entry = doc.data();
+
+      let data: VerificationInstance | null = null;
+      try {
+        data = createVerificationFunction ? await createVerificationFunction(entry.email) : await createTwilioVerification(entry.email)
+      } catch (e) {
+        Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
+        Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
+
+        // If Twilio throws an error, we are going to retry 2 more times
+        // If we still fail, we will move the entry to the DLQ
+        await admin.firestore().runTransaction(async t => {
+          const document = await t.get(doc.ref);
+          const failedAccessQueue = document.data() as AccessQueue;
+
+          // If there are more than 2 attempts, we need to add to a DLQ and remove the entry from the current queue
+          if (failedAccessQueue.attempts >= 3) {
+            Logger.log({ message: `Removing ${failedAccessQueue.email} from queue and adding to DLQ`, event: 'updateAccessQueue.removeFromQueue.error' });
+            t.create(admin.firestore().collection(AccessQueues.collectionNameDLQ).doc(), new AccessQueue({ ...failedAccessQueue }).toJSON());
+            t.delete(document.ref);
+            return;
+          }
+
+          // otherwise increment the retries
+          t.update(document.ref, { attempts: admin.firestore.FieldValue.increment(1) });
+        });
+
         return;
       }
 
-      await Promise.all(
-        snapshot.docs
-          .map(async (doc, index) => {
+      Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createTwilioVerification.data' });
+      if (data) {
+        await admin.firestore().runTransaction(async t => {
+          const document = await t.get(doc.ref);
+          t.update(document.ref, {
+            email: entry.email,
+            sid: data?.sid,
+            status: data?.status,
+            start: Date.now(),
+          });
+        });
+      }
+    }));
 
-            // Commenting out for now as this limitation could prevent the queue from filling up.
-            // if (index > 20) {
-            //   return;
-            // }
+    // Alert the upcoming batch.
+    await AccessQueues.alertBatchByEstimatedHours(3);
 
-            const entry = doc.data() as AccessQueue;
+    // delete expired entries
+    const expired = await admin.firestore().collection(AccessQueues.collectionName)
+      .where('start', '<', Date.now() - AUTH_CODE_EXPIRE)
+      .orderBy('start')
+      .get();
 
-            // Remove if older than 10 minutes.
-            if (entry?.start && Date.now() - entry.start > AUTH_CODE_EXPIRE) {
-              t.delete(doc.ref);
-              return;
-            }
+    Logger.log({ message: `Expired: ${expired.docs.length}`, event: 'updateAccessQueue.access_queues.expired', count: expired.docs.length, category: LogCategory.METRIC });
 
-            // Ignore if pending.
-            if (entry?.status === 'pending') {
-              return;
-            }
+    await Promise.all(expired.docs.map(async doc => {
+      await admin.firestore().runTransaction(async t => {
+        Logger.log(`deleting entry ${doc.id}`);
+        const document = await t.get(doc.ref);
+        t.delete(document.ref);
+      });
+    }));
 
-            // Sends auth code!
-            const data = await createTwilioVerification(entry.phone).catch(e => console.log(e));
-            console.log(JSON.stringify(data));
-            data && t.update(doc.ref, {
-              phone: entry.phone,
-              sid: data.sid,
-              status: data.status,
-              start: Date.now(),
-            });
-          }))
-    });
+    return { count: queuedSnapshot.docs.length };
   }
 
-  static async addToQueueAndGetPosition(phone: string): Promise<{ updated: boolean; alreadyExists: boolean; position: number; }> {
+  static async alertBatchByEstimatedHours(hours: number): Promise<void> {
+    const { accessQueue_limit } = await StateData.getStateData();
+    // Estimate starting index in queue by amount of numbers let in every 5 minutes.
+    const batchesPerHour = 12;
+    const targetIndex = (accessQueue_limit * batchesPerHour) * hours;
+
+    const totalQueueCount = await AccessQueues.getAccessQueuesCount();
+    if (totalQueueCount < targetIndex) {
+      Logger.log({ message: `Less numbers than the target index. Skipping alert message.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
+      return;
+    }
+
+    const targetBatch = await admin.firestore().collection(AccessQueues.collectionName)
+      .where('status', '==', 'queued')
+      .orderBy('dateAdded')
+      .offset(targetIndex)
+      .limit(accessQueue_limit ?? 20)
+      .get();
+
+    const batchEmailAddresses = targetBatch.docs.map((doc) => {
+      const data = doc.data();
+      return data.email;
+    });
+
+    try {
+      Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
+      await Promise.all(
+        batchEmailAddresses.map(async (email: string) => {
+          if (isTesting()) {
+            return;
+          }
+          await sgMail
+            .send({
+              to: email,
+              from: 'ADA Handle <hello@adahandle.com>',
+              templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
+              dynamicTemplateData: {
+                title: 'Almost Your Turn!',
+                message: `Heads up! It's almost your turn to receive an access link to purchase your Handle. It may take around ${hours} to receive your access link, so we suggest turning on email notifications. Remember! Access links are only valid for 10 minutes upon receiving!`
+              },
+              hideWarnings: true
+            })
+            .catch((error) => {
+              Logger.log({ message: JSON.stringify(error), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
+            });
+        })
+      );
+      Logger.log({ message: `Done!`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
+    } catch (e) {
+      Logger.log({ message: `Something went wrong: ${JSON.stringify(e)}`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.ERROR });
+    }
+  }
+
+  static async addToQueue({ email, clientAgentSha, clientIp }: { email: string; clientAgentSha: string; clientIp: string; }): Promise<{ updated: boolean; alreadyExists: boolean }> {
     try {
       return admin.firestore().runTransaction(async t => {
-        const accessQueueRef = admin.firestore().collection(AccessQueues.collectionName);
-        const orderedSnapshot = await t.get(accessQueueRef.orderBy('dateAdded'));
-
-        // If the document already exists, get the position and return
-        const alreadyExists = orderedSnapshot.docs.some(doc => doc?.data()?.phone === phone);
-        if (alreadyExists) {
+        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email).limit(1));
+        if (!snapshot.empty) {
           return {
             updated: false,
-            alreadyExists,
-            position: orderedSnapshot.docs.findIndex(doc => doc?.data()?.phone === phone) + 1
+            alreadyExists: true
           };
         }
 
-        // otherwise set the position and add to the queue
-        const position = orderedSnapshot.docs.length + 1;
-
-        t.set(accessQueueRef.doc(), new AccessQueue({ phone }).toJSON());
-
+        t.create(admin.firestore().collection(AccessQueues.collectionName).doc(), new AccessQueue({ email, clientAgentSha, clientIp }).toJSON());
         return {
           updated: true,
-          alreadyExists,
-          position
+          alreadyExists: false
         };
       });
     } catch (error) {
-      console.log(error);
-      throw new Error(`Unable to get details about queues for ${phone}`);
+      Logger.log({ message: JSON.stringify(error), event: 'addToQueue.error', category: LogCategory.ERROR });
+      throw new Error(`Unable to add ${email} to queue`);
     }
   }
 }
