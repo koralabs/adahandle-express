@@ -24,6 +24,8 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
       message: 'Minting cron is locked. Try again later.'
     });
   }
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintPaidSessions processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintPaidSessions.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   if (stateData?.chainLoad > MAX_CHAIN_LOAD) {
     return res.status(200).json({
@@ -101,6 +103,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
     await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
+    Logger.log(getLogMessage(startTime, paidSessions.length))
     return res.status(200).json({
       error: false,
       message: txId
@@ -120,15 +123,10 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 }
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
-  const startTime = Date.now();
-  const getLogMessage = (startTime: number) => ({ message: `mintPaidSessionsHandler completed in ${Date.now() - startTime}ms`, event: 'mintPaidSessionsHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
-
   try {
     const result = await mintPaidSessions(req, res);
-    Logger.log(getLogMessage(startTime));
     return result;
   } catch (error) {
-    Logger.log(getLogMessage(startTime));
     return res.status(200).json({
       error: true,
       message: JSON.stringify(error)
