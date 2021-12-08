@@ -32,6 +32,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       message: "Missing email address."
     } as QueueResponseBody);
   }
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `postToQueueHandler processed in ${Date.now() - startTime}ms`, event: 'postToQueueHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   const forbiddenSuspiciousResponse = (code: string) => ({
     error: true,
@@ -92,6 +94,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
         });
     }
 
+    Logger.log(getLogMessage(startTime))
     return res.status(200).json({
       error: false,
       updated,

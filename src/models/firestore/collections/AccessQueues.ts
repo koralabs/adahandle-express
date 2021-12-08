@@ -44,11 +44,10 @@ export class AccessQueues {
     }
   }
 
-  static async updateAccessQueue(createVerificationFunction?: (email: string) => Promise<VerificationInstance>): Promise<{ data: boolean }> {
+  static async updateAccessQueue(createVerificationFunction?: (email: string) => Promise<VerificationInstance>): Promise<{ count: number }> {
     const stateData = await StateData.getStateData();
 
     const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();
-    Logger.log({ message: `Queued Snapshot: ${queuedSnapshot.docs.length}`, event: 'updateAccessQueue.queuedSnapshot', count: queuedSnapshot.docs.length, category: LogCategory.METRIC });
 
     await Promise.all(queuedSnapshot.docs.map(async doc => {
       const entry = doc.data();
@@ -114,7 +113,7 @@ export class AccessQueues {
       });
     }));
 
-    return { data: true };
+    return { count: queuedSnapshot.docs.length };
   }
 
   static async alertBatchByEstimatedHours(hours: number): Promise<void> {

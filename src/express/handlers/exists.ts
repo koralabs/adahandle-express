@@ -11,6 +11,8 @@ interface ExistsResponseBody {
 }
 
 export const handleExistsHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `handleExistsHandler processed in ${Date.now() - startTime}ms`, event: 'handleExistsHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
   if (!req.headers[HEADER_HANDLE]) {
     return res.status(400).json({
       error: true,
@@ -20,6 +22,7 @@ export const handleExistsHandler = async (req: express.Request, res: express.Res
 
   try {
     const exists: GraphqlHandleExistsResponse = await handleExists(req.headers[HEADER_HANDLE] as string);
+    Logger.log(getLogMessage(startTime))
     return res.status(200).json({
       error: false,
       ...exists

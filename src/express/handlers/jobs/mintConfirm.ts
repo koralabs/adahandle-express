@@ -13,6 +13,8 @@ import { getMintingWalletId, getWalletEndpoint } from "../../../helpers/constant
 const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_CONFIRM_LOCK;
 
 export const mintConfirmHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintConfirmHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintConfirmHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
   const stateData = await StateData.getStateData();
   if (stateData[CRON_JOB_LOCK_NAME]) {
     Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintConfirmHandler.locked', category: LogCategory.NOTIFY });
@@ -70,6 +72,8 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
       await PaidSessions.updateSessionStatusesByTxId(txId, 'expired');
     }
   });
+
+  Logger.log(getLogMessage(startTime, paidSessions.length));
 
   return res.status(200).json({
     error: false,

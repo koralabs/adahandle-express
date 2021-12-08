@@ -30,6 +30,9 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   await StateData.lockCron(CRON_JOB_LOCK_NAME);
 
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
+
   try {
     const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
     const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
@@ -130,7 +133,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       }
     );
 
-    Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.run', count: dedupeActiveSessions.length, category: LogCategory.METRIC });
+    Logger.log(getLogMessage(startTime, activeSessions.length));
     await StateData.unlockCron(CRON_JOB_LOCK_NAME);
 
     res.status(200).json({
