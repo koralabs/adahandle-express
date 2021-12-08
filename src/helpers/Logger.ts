@@ -3,7 +3,7 @@
 if (!('toJSON' in Error.prototype))
 Object.defineProperty(Error.prototype, 'toJSON', {
     value: function () {
-        var alt = {};
+        const alt = {};
 
         Object.getOwnPropertyNames(this).forEach( (key) => {
             alt[key] = this[key];
@@ -35,7 +35,7 @@ export class Logger {
         this.log_entry(category ?? LogCategory.INFO, message, event, milliseconds, count, dimensions);
     }
 
-    private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: {}): void {
+    private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: any): void {
         const now = (new Date()).toISOString();
         const log_event = event ? `, "event": "${event}"` : "";
         const log_milliseconds = (milliseconds != undefined && milliseconds != null) ? `, "milliseconds": ${milliseconds}` : "";
