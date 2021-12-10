@@ -1,6 +1,8 @@
 import * as express from "express";
 import * as fs from 'fs';
 import * as sgMail from "@sendgrid/mail";
+import * as sgClient from '@sendgrid/client';
+import { ClientResponse } from '@sendgrid/client/src/response';
 
 import { HEADER_EMAIL, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
@@ -66,6 +68,22 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     const email = req.headers[HEADER_EMAIL] as string;
     const validEmail = validateEmail(email);
     if (!validEmail) {
+      return res.status(400).json({
+        error: true,
+        message: "Invalid email."
+      } as QueueResponseBody);
+    }
+
+    const emailResponseBody = await sgClient.request({
+      url: '/v3/validations/email',
+      method: 'POST',
+      body: {
+        email,
+        source: 'signup'
+      }
+    }).then(([res, body]) => body);
+    const emailResponseData = JSON.parse(emailResponseBody);
+    if (emailResponseData?.result?.verdict !== 'Valid') {
       return res.status(400).json({
         error: true,
         message: "Invalid email."
