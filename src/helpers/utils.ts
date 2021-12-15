@@ -1,8 +1,8 @@
-import { readFileSync } from 'fs';
 import FingerPrint from '@emurgo/cip14-js';
 import { getPolicyId } from './constants';
 
 export const toLovelace = (adaAmount: number): number => adaAmount * 1000000;
+export const toADA = (lovelaceAmount: number): number => lovelaceAmount / 1000000;
 
 export const chunk = <T>(input: T[], size: number) => {
     return input.reduce<T[][]>((arr: T[][], item: T, idx: number) => {

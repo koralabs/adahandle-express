@@ -26,11 +26,11 @@ export const stateHandler = async (req: express.Request, res: express.Response) 
       chainLoad,
       position,
       totalHandles
-    });
+    } as StateResponseBody);
   } catch (e) {
     return res.status(500).json({
       error: true,
       message: e
-    })
+    } as StateResponseBody)
   }
 }
