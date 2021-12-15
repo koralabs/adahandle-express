@@ -6,7 +6,7 @@ import { LogCategory, Logger } from "../../../helpers/Logger";
 import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
 import { getMintWalletServer } from "../../../helpers/wallet/cardano";
 import { PaidSession } from "../../../models/PaidSession";
-import { asyncForEach } from "../../../helpers/utils";
+import { awaitForEach } from "../../../helpers/utils";
 import { ApiTransactionStatusEnum, TransactionWallet } from "cardano-wallet-js";
 import { getMintingWalletId, getWalletEndpoint } from "../../../helpers/constants";
 
@@ -35,7 +35,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     return acc;
   }, new Map());
 
-  await asyncForEach<string>([...groupedPaidSessionsByTxIdMap.keys()], async (txId) => {
+  await awaitForEach<string>([...groupedPaidSessionsByTxIdMap.keys()], async (txId) => {
     let transactionResponse: Response | undefined;
 
     try {
