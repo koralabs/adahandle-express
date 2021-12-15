@@ -22,12 +22,12 @@ import { awaitForEach, asyncForEach, delay } from "../helpers/utils";
 
 })();
 
-// const awaitStart = Date.now();
-// console.log("STARTING awaitForEach()")
-// awaitForEach([1,2,3,4,5,6,7,8,9,10], async (item: number, index:number, arr: number[]) => {
-//     console.log(`starting awaitForEach item {${item}} at ${(Date.now() - awaitStart) / 1000} seconds`);
-//     await delay(3000);
-//     console.log(`finishing awaitForEach item {${item}} at ${(Date.now() - awaitStart) / 1000} seconds`);
-// }).then(() => {   
-//     console.log(`TOTAL awaitForEach() time ${(Date.now() - awaitStart) / 1000} seconds`)
-// });
+const awaitStart = Date.now();
+console.log("STARTING awaitForEach()")
+awaitForEach([1,2,3,4,5,6,7,8,9,10], async (item: number, index:number, arr: number[]) => {
+    console.log(`starting awaitForEach item {${item}} at ${(Date.now() - awaitStart) / 1000} seconds`);
+    await delay(3000);
+    console.log(`finishing awaitForEach item {${item}} at ${(Date.now() - awaitStart) / 1000} seconds`);
+}).then(() => {   
+    console.log(`TOTAL awaitForEach() time ${(Date.now() - awaitStart) / 1000} seconds`)
+});

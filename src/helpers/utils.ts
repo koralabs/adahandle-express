@@ -20,8 +20,8 @@ export const awaitForEach = async <T>(array: T[], callback: (item: T, index: num
 
 // Used to execute Promises in order, but still async. 
 // Good for adding delay between API calls and you need the complete list of results when they all resolve
-export const asyncForEach = async <T>(array: T[], callback: (item: T, index: number, array: T[]) => Promise<any>, delayInMilliseconds=0) => {
-    const promises: Promise<any>[] = [];
+export const asyncForEach = async <T,U>(array: T[], callback: (item: T, index: number, array: T[]) => Promise<U>, delayInMilliseconds=0) => {
+    const promises: Promise<U>[] = [];
     for (let index = 0; index < array.length; index++) {
         promises.push(callback(array[index], index, array));
         if (delayInMilliseconds > 0) {
