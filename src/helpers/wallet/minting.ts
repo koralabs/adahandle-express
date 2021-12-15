@@ -8,7 +8,7 @@ import { GraphqlCardanoSenderAddress, lookupReturnAddresses } from "../graphql";
 import { getIPFSImage } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
-import { promisedForEach } from '../utils';
+import { asyncForEach } from '../utils';
 
 export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<string[]> => {
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
@@ -68,7 +68,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
 
-  const handlesMetadata = await promisedForEach(sessions, async (session) => {
+  const handlesMetadata = await asyncForEach(sessions, async (session) => {
       const og = twitterHandles.includes(session.handle);
       let ipfs: string;
       try {

@@ -8,10 +8,10 @@ console.log(`starting`);
 console.time("createChromiumImages");
 let index = 0;
 const promises = Array.from({ length: 10 }, async () => {
-    let images = []
+    const images = []
     const path = resolve(__dirname, `../../nftTemplates/basic.html`);
     const html = readFileSync(path).toString();
-    for(var i=0;i<100;i++){
+    for(let i=0;i<100;i++){
         index++;
         const handle = index.toString();
         const slug = getRaritySlug(handle);
