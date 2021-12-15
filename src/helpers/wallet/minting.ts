@@ -99,7 +99,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       }
 
       return metadata;
-    }, 1000);
+    }, 1000); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {
