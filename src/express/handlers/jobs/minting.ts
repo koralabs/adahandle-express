@@ -7,7 +7,7 @@ import { PaidSessions } from '../../../models/firestore/collections/PaidSessions
 import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
-import { asyncForEach, toLovelace } from "../../../helpers/utils";
+import { awaitForEach, toLovelace } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
 import { CollectionLimitName } from "../../../models/State";
@@ -57,7 +57,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   const refundableSessions: PaidSession[] = [];
 
   // check for duplicates
-  await asyncForEach(paidSessions, async (session: PaidSession) => {
+  await awaitForEach(paidSessions, async (session: PaidSession) => {
     // Make sure there isn't an existing handle on-chain.
     const { exists: existsOnChain } = await handleExists(session.handle);
     const existingSessions = await PaidSessions.getByHandles(session.handle);
