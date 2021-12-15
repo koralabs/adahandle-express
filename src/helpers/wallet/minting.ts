@@ -99,7 +99,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       }
 
       return metadata;
-    });
+    }, 1000);
 
   // Setup our metadata JSON object.
   const data = {
