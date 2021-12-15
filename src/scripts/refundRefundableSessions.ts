@@ -4,12 +4,21 @@ import { RefundableSessions } from "../models/firestore/collections/RefundableSe
 import { config } from 'dotenv';
 import { lookupReturnAddresses } from "../helpers/graphql";
 import { getMintWalletServer } from "../helpers/wallet/cardano";
+import { toADA } from '../helpers/utils';
 config();
 
 const run = async () => {
     await Firebase.init();
     const sessions = await RefundableSessions.getRefundableSessions();
-    console.log('sessions', sessions);
+    const refundWallet = await getMintWalletServer();
+    const availableBalance = refundWallet.getTotalBalance();
+    console.log('Attempting to refund: ', sessions.length);
+    console.log(`Total minting wallet balance: ${toADA(availableBalance)}`);
+    const amounts = sessions.map(session => session.amount);
+    if (process.env.DRYRUN) {
+      console.log(`Total amount needed: ${toADA(amounts.reduce((total, curr) => total += curr, 0))}`);
+      process.exit();
+    }
 
     const returnAddresses = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
 
@@ -18,19 +27,11 @@ const run = async () => {
       return;
     }
 
-    const amounts = sessions.map(session => session.amount);
-    const refundWallet = await getMintWalletServer();
-
-    if (process.env.DRYRUN) {
-      console.log(`Total amount needed: ${amounts.reduce((total, curr) => total += curr, 0)})`);
-      process.exit();
-    }
-
-    await refundWallet.sendPayment(
-      'test123test123',
-      returnAddresses.map(addr => new wallet.AddressWallet(addr)),
-      amounts
-    );
+    // await refundWallet.sendPayment(
+    //   'test123test123',
+    //   returnAddresses.map(addr => new wallet.AddressWallet(addr)),
+    //   amounts
+    // );
 
     process.exit();
 }
