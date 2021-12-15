@@ -6,7 +6,7 @@ on:
 
 jobs:
   dispatch-testnet:
-    if: github.ref == 'ref/head/develop'
+    if: github.ref == 'refs/head/develop'
     name: Dispatch to Deployments
     runs-on: ubuntu-latest
     steps:
@@ -17,7 +17,7 @@ jobs:
           -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy-testnet.yml/dispatches \
           --data '{"ref": "master"}'
   dispatch-mainnet:
-    if: github.ref == 'ref/head/master'
+    if: github.ref == 'refs/head/master'
     name: Dispatch to Deployments
     runs-on: ubuntu-latest
     steps:
