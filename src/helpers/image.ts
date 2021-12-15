@@ -18,7 +18,7 @@ export const getIPFSImage = async (
   const logStart = Date.now();
   Logger.log({ message: `Started generating Handle image for $${handle}...`, event: 'getIPFSImage' });
   const ipfs = new BlockFrostIPFS({
-    projectId: process.env.BLOCKFROST_API_KEY as string
+    projectId: process.env.IPFS_KEY as string
   });
 
   const slug = getRaritySlug(handle);
