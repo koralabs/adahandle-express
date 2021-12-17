@@ -3,6 +3,7 @@ import { BaseModel } from "./BaseModel";
 export enum CollectionLimitName {
     ACCESS_QUEUE_LIMIT = "accessQueue_limit",
     PAID_SESSIONS_LIMIT = "paidSessions_limit",
+    MINT_CONFIRMED_PAID_SESSIONS_LIMIT = "mintConfirmPaidSessions_limit",
 }
 
 interface StateConstructor {
@@ -13,6 +14,7 @@ interface StateConstructor {
     mintPaidSessions_lock?: boolean;
     accessQueue_limit?: number;
     paidSessions_limit?: number;
+    mintConfirmPaidSessions_limit?: number;
 }
 
 export class State extends BaseModel {
@@ -23,6 +25,7 @@ export class State extends BaseModel {
     public mintPaidSessions_lock: boolean;
     public accessQueue_limit: number;
     public paidSessions_limit: number;
+    public mintConfirmPaidSessions_limit: number;
 
     constructor({
         chainLoad,
@@ -31,7 +34,8 @@ export class State extends BaseModel {
         updateActiveSessions_lock,
         mintPaidSessions_lock,
         accessQueue_limit = 20,
-        paidSessions_limit = 10
+        paidSessions_limit = 10,
+        mintConfirmPaidSessions_limit = 500,
     }: StateConstructor) {
         super();
         this.chainLoad = chainLoad ?? 0;
@@ -41,5 +45,6 @@ export class State extends BaseModel {
         this.updateActiveSessions_lock = updateActiveSessions_lock ?? false;
         this.accessQueue_limit = accessQueue_limit;
         this.paidSessions_limit = paidSessions_limit;
+        this.mintConfirmPaidSessions_limit = mintConfirmPaidSessions_limit;
     }
 }
