@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { asyncForEach, chunk, delay } from "../../../helpers/utils";
+import { awaitForEach, chunk, delay } from "../../../helpers/utils";
 import { ActiveSession, ActiveSessionInput } from "../../ActiveSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
@@ -32,7 +32,7 @@ export class ActiveSessions {
     const db = admin.firestore();
 
     const activeSessionChunks = chunk(activeSessions, 500);
-    await asyncForEach(activeSessionChunks, async (paidSessions, index) => {
+    await awaitForEach(activeSessionChunks, async (paidSessions, index) => {
       const batch = db.batch();
       activeSessions.forEach(session => {
         const docRef = db.collection(ActiveSessions.collectionName).doc();

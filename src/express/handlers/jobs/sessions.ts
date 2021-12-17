@@ -30,87 +30,78 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
   await StateData.lockCron(CRON_JOB_LOCK_NAME);
 
-  const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
-  const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
-    if (acc.has(session.wallet.address)) {
-      Logger.log({ message: `Duplicate session found for ${session.wallet.address}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
-      return acc;
-    }
-
-    acc.set(session.wallet.address, session);
-    return acc;
-  }, new Map());
-
-  const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
-  if (dedupeActiveSessions.length == 0) {
-    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
-    return res.status(200).json({
-      error: false,
-      message: 'No active sessions!'
-    });
-  }
-
-  const removableActiveVal: ActiveSession[] = [];
-  const refundableVal: RefundableSession[] = [];
-  const paidVal: ActiveSession[] = [];
-  const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
-
   const startTime = Date.now();
-  const sessionPaymentStatuses = await checkPayments(walletAddresses);
-  Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', category: LogCategory.METRIC });
+  const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-  dedupeActiveSessions.forEach(
-    (entry, index) => {
-      const sessionAge = Date.now() - entry?.start;
-      const matchingPayment = sessionPaymentStatuses[index];
-
-      if (!matchingPayment) {
-        return;
+  try {
+    const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
+    const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
+      if (acc.has(session.wallet.address)) {
+        Logger.log({ message: `Duplicate session found for ${session.wallet.address}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
+        return acc;
       }
 
-      /**
-       * Remove if expired and not paid
-       * Refund if not expired but invalid payment
-       * Refund if expired and paid
-       * Refund if paid sessions already has handle
-       * Move to paid if accurate payment and not expired
-       * Leave alone if not expired and no payment
-       */
+      acc.set(session.wallet.address, session);
+      return acc;
+    }, new Map());
 
-      // Handle expired.
-      if (sessionAge >= MAX_SESSION_LENGTH) {
-        if (matchingPayment && matchingPayment.amount !== 0) {
-          ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-            wallet: entry.wallet,
-            amount: matchingPayment.amount,
-            handle: entry.handle,
-          }));
+    const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
+    if (dedupeActiveSessions.length == 0) {
+      await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+      return res.status(200).json({
+        error: false,
+        message: 'No active sessions!'
+      });
+    }
 
+    const removableActiveVal: ActiveSession[] = [];
+    const refundableVal: RefundableSession[] = [];
+    const paidVal: ActiveSession[] = [];
+    const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
+
+    const startTime = Date.now();
+    const sessionPaymentStatuses = await checkPayments(walletAddresses);
+    Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
+
+    dedupeActiveSessions.forEach(
+      (entry, index) => {
+        const sessionAge = Date.now() - entry?.start;
+        const matchingPayment = sessionPaymentStatuses[index];
+
+        if (!matchingPayment) {
           return;
         }
 
-        ActiveSessions.removeActiveSession(entry);
-        return;
-      }
+        /**
+         * Remove if expired and not paid
+         * Refund if not expired but invalid payment
+         * Refund if expired and paid
+         * Refund if paid sessions already has handle
+         * Move to paid if accurate payment and not expired
+         * Leave alone if not expired and no payment
+         */
 
-      // Refund invalid payments.
-      if (
-        matchingPayment.amount !== 0 &&
-        matchingPayment.amount !== toLovelace(entry.cost)
-      ) {
-        ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-          wallet: entry.wallet,
-          amount: matchingPayment.amount,
-          handle: entry.handle
-        }));
-        return;
-      }
+        // Handle expired.
+        if (sessionAge >= MAX_SESSION_LENGTH) {
+          if (matchingPayment && matchingPayment.amount !== 0) {
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              wallet: entry.wallet,
+              amount: matchingPayment.amount,
+              handle: entry.handle,
+            }));
 
-      // Move valid paid sessions to minting queue.
-      if (matchingPayment.amount === toLovelace(entry.cost)) {
+            return;
+          }
 
-        // If already has a handle, refund.
-        if (paidVal.some(e => e.handle === entry.handle)) {
+          ActiveSessions.removeActiveSession(entry);
+          return;
+        }
+
+        // Refund invalid payments.
+        if (
+          matchingPayment.amount !== 0 &&
+          matchingPayment.amount !== toLovelace(entry.cost)
+        ) {
           ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
             wallet: entry.wallet,
             amount: matchingPayment.amount,
@@ -119,20 +110,32 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
           return;
         }
 
-        paidVal.push(entry);
-        ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
-          ...entry,
-          emailAddress: '', // email address intentionally scrubbed for privacy
-          status: 'pending',
-        }));
+        // Move valid paid sessions to minting queue.
+        if (matchingPayment.amount === toLovelace(entry.cost)) {
+
+          // If already has a handle, refund.
+          if (paidVal.some(e => e.handle === entry.handle)) {
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              wallet: entry.wallet,
+              amount: matchingPayment.amount,
+              handle: entry.handle
+            }));
+            return;
+          }
+
+          paidVal.push(entry);
+          ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
+            ...entry,
+            emailAddress: '', // email address intentionally scrubbed for privacy
+            status: 'pending',
+          }));
+        }
       }
-    }
-  );
+    );
 
-  Logger.log({ message: `Active Sessions Processed ${dedupeActiveSessions.length}`, event: 'updateSessionsHandler.activeSession.count', category: LogCategory.METRIC });
-  await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+    Logger.log(getLogMessage(startTime, activeSessions.length));
+    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
 
-  try {
     res.status(200).json({
       error: false,
       jobs: {
@@ -142,6 +145,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       }
     });
   } catch (e) {
+    Logger.log({category: LogCategory.NOTIFY, message: `Active sessions queue has an exception and is locked: ${JSON.stringify(e)}`, event:'updateSessionsHandler.run'})
     return res.status(500).json({
       error: true,
       message: e

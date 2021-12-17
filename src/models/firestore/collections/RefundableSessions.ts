@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { asyncForEach, chunk, delay } from "../../../helpers/utils";
+import { awaitForEach, chunk, delay } from "../../../helpers/utils";
 import { RefundableSession } from "../../RefundableSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { LogCategory, Logger } from "../../../helpers/Logger";
@@ -27,7 +27,7 @@ export class RefundableSessions {
         const db = admin.firestore();
 
         const refundableSessionChunks = chunk(refundableSessions, 500);
-        await asyncForEach(refundableSessionChunks, async (refundableSessionItems, index) => {
+        await awaitForEach(refundableSessionChunks, async (refundableSessionItems, index) => {
             const batch = db.batch();
             refundableSessionItems.forEach(session => {
                 const docRef = db.collection(RefundableSessions.collectionName).doc();

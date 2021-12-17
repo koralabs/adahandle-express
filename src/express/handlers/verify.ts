@@ -16,6 +16,8 @@ interface VerifyResponseBody {
 }
 
 export const verifyHandler: express.RequestHandler = async (req, res) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `verifyHandler processed in ${Date.now() - startTime}ms`, event: 'verifyHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
   if (!req.headers[HEADER_EMAIL]) {
     return res.status(400).json({
       error: true,
@@ -87,6 +89,8 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       message: 'Something went wrong with validation. Try again.'
     } as VerifyResponseBody);
   }
+
+  Logger.log(getLogMessage(startTime))
 
   return token && res.status(200).json({
     error: false,

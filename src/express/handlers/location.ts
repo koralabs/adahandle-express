@@ -1,8 +1,11 @@
 import * as express from "express";
 import { HEADER_HANDLE } from "../../helpers/constants";
 import { lookupLocation, LookupResponseBody } from '../../helpers/graphql';
+import { Logger, LogCategory } from '../../helpers/Logger';
 
 export const locationHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `locationHandler processed in ${Date.now() - startTime}ms`, event: 'locationHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
   const { headers } = req;
   const handle = headers[HEADER_HANDLE];
 
@@ -36,6 +39,7 @@ export const locationHandler = async (req: express.Request, res: express.Respons
     }
 
     const location = assets[0]?.tokenMints[0]?.transaction?.outputs[0]?.address;
+    Logger.log(getLogMessage(startTime))
     if (location) {
       return res.status(200).json({
         error: false,
@@ -45,6 +49,7 @@ export const locationHandler = async (req: express.Request, res: express.Respons
       } as LookupResponseBody);
     }
   } catch (e) {
+    Logger.log({category: LogCategory.ERROR, message: JSON.stringify(e), event: 'locationHandler.run'})
     return res.status(500).json({
       error: true,
       message: e

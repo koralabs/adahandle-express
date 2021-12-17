@@ -8,6 +8,7 @@ import { GraphqlCardanoSenderAddress, lookupReturnAddresses } from "../graphql";
 import { getIPFSImage } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
+import { asyncForEach } from '../utils';
 
 export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<string[]> => {
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
@@ -66,8 +67,8 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
 
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
-  const handlesMetadata = await Promise.all(
-    sessions.map(async (session) => {
+
+  const handlesMetadata = await asyncForEach(sessions, async (session) => {
       const og = twitterHandles.includes(session.handle);
       let ipfs: string;
       try {
@@ -98,8 +99,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       }
 
       return metadata;
-    })
-  );
+    }, 1000); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {
@@ -183,6 +183,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
     data
   ).catch(e => {
     Logger.log({ message: JSON.stringify(e), event: 'mintHandlesAndSend.getCoinSelection', category: LogCategory.ERROR });
+    throw e;
   });
 
   if (!coinSelection) {

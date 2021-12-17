@@ -12,6 +12,8 @@ const CRON_JOB_LOCK_NAME = CronJobLockName.SEND_AUTH_CODES_LOCK;
  * batch, drawing from the queue.
  */
 export const sendAuthCodesHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number, recordCount: number) => ({ message: `sendAuthCodesHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'sendAuthCodesHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
   const stateData = await StateData.getStateData();
   if (stateData[CRON_JOB_LOCK_NAME]) {
     Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'sendAuthCodesHandler.locked', category: LogCategory.NOTIFY });
@@ -32,8 +34,8 @@ export const sendAuthCodesHandler = async (req: express.Request, res: express.Re
 
   // Update queue.
   try {
-    Logger.log('updating access queue');
-    await AccessQueues.updateAccessQueue();
+    const recordCount = await AccessQueues.updateAccessQueue();
+    Logger.log(getLogMessage(startTime, recordCount.count));
     return res.status(200).json({
       error: false,
       message: 'Job complete.'

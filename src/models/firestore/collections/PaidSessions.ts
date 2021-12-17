@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
+import { getCurrentSlotNumberFromTip } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { asyncForEach, chunk, delay } from "../../../helpers/utils";
+import { awaitForEach, chunk, delay } from "../../../helpers/utils";
 import { PaidSession, PaidSessionStatusType } from "../../PaidSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
@@ -58,7 +59,7 @@ export class PaidSessions {
         const db = admin.firestore();
 
         const paidSessionChunks = chunk(paidSessions, 500);
-        await asyncForEach(paidSessionChunks, async (paidSessions, index) => {
+        await awaitForEach(paidSessionChunks, async (paidSessions, index) => {
             const batch = db.batch();
             paidSessions.forEach(session => {
                 const docRef = db.collection(PaidSessions.collectionName).doc();
@@ -94,6 +95,8 @@ export class PaidSessions {
     }
 
     static async updateSessionStatuses(txId: string, sanitizedSessions: PaidSession[], statusType: PaidSessionStatusType): Promise<boolean[]> {
+        // const currentSlotNumber = await getCurrentSlotNumberFromTip();
+        // console.log(currentSlotNumber);
         return Promise.all(sanitizedSessions.map(async session => {
             return admin.firestore().runTransaction(async t => {
                 const ref = admin.firestore().collection(PaidSessions.collectionName).doc(session.id as string);

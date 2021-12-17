@@ -32,6 +32,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       message: "Missing email address."
     } as QueueResponseBody);
   }
+  const startTime = Date.now();
+  const getLogMessage = (startTime: number) => ({ message: `postToQueueHandler processed in ${Date.now() - startTime}ms`, event: 'postToQueueHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   const forbiddenSuspiciousResponse = (code: string) => ({
     error: true,
@@ -74,8 +76,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
 
     if (updated) {
       const total = await AccessQueues.getAccessQueuesCount();
-      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link. Depending on your place in line, you should receive your access link anytime between now and around 3 hours. Make sure you turn on email notifications!';
-      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link. Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
+      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Depending on your place in line, you should receive your access link anytime between now and around 3 hours. Make sure you turn on email notifications!';
+      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
       await sgMail
         .send({
           to: email,
@@ -92,6 +94,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
         });
     }
 
+    Logger.log(getLogMessage(startTime))
     return res.status(200).json({
       error: false,
       updated,

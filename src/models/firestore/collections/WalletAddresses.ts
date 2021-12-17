@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { asyncForEach, chunk, delay } from "../../../helpers/utils";
+import { awaitForEach, chunk, delay } from "../../../helpers/utils";
 import { WalletAddress } from "../../WalletAddress";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { LogCategory, Logger } from "../../../helpers/Logger";
@@ -37,7 +37,7 @@ export class WalletAddresses {
         const walletAddressesChunks = chunk(walletAddresses, 500);
         const updatedWalletAddresses = startAtBatch !== 0 ? walletAddressesChunks.slice(startAtBatch) : walletAddressesChunks;
 
-        await asyncForEach(updatedWalletAddresses, async (walletAddresses, index) => {
+        await awaitForEach(updatedWalletAddresses, async (walletAddresses, index) => {
             const batch = db.batch();
             walletAddresses.forEach(address => {
                 const collectionRef = db.collection(WalletAddresses.collectionName).doc(address.id);
