@@ -1,6 +1,21 @@
 import { PaidSession } from "../models/PaidSession";
 
-const arr = [];
+const arr = [
+    {
+        start: 1639762002294,
+        handle: 'happy',
+        txId: 'test_txid',
+        wallet: {
+            address: 'testaddr'
+        },
+        dateAdded: 1639762142652,
+        status: 'submitted',
+        cost: 50,
+        attempts: 0,
+        id: 'testid',
+        emailAddress: ''
+    }
+];
 
 const run = async () => {
     const groupedPaidSessionsByTxIdMap = arr.reduce<Map<string, PaidSession[]>>((acc, session) => {

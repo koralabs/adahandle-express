@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { chunk, delay } from "../../../helpers/utils";
+import { chunk, delay, awaitForEach } from "../../../helpers/utils";
 import { PaidSession, PaidSessionStatusType } from "../../PaidSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
