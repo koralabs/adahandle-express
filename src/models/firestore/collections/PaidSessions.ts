@@ -1,7 +1,6 @@
 import * as admin from "firebase-admin";
-import { getCurrentSlotNumberFromTip } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { awaitForEach, chunk, delay } from "../../../helpers/utils";
+import { chunk, delay } from "../../../helpers/utils";
 import { PaidSession, PaidSessionStatusType } from "../../PaidSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
@@ -19,7 +18,7 @@ export class PaidSessions {
         return collection.docs.map(doc => doc.data() as PaidSession);
     }
 
-    static async getByStatus({ statusType, limit = 10 }: { statusType: PaidSessionStatusType, limit?: number }): Promise<PaidSession[]> {
+    static async getByStatus({ statusType, limit = 20 }: { statusType: PaidSessionStatusType, limit?: number }): Promise<PaidSession[]> {
         const snapshot = await admin.firestore()
             .collection(PaidSessions.collectionName)
             .where('status', '==', statusType)
@@ -136,3 +135,4 @@ export class PaidSessions {
         });
     }
 }
+

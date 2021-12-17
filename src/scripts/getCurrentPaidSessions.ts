@@ -5,8 +5,8 @@ import { PaidSessions } from "../models/firestore/collections/PaidSessions";
 const run = async () => {
     await Firebase.init();
 
-    // const paidSessions = await PaidSessions.getByStatus({ statusType: "confirmed", limit: 15000 });
-    const paidSessions = await PaidSessions.getPaidSessionsUnsafe();
+    const paidSessions = await PaidSessions.getByStatus({ statusType: "submitted", limit: 15000 });
+    //const paidSessions = await PaidSessions.getPaidSessionsUnsafe();
 
     console.log('paidSessions size', paidSessions.length);
 
