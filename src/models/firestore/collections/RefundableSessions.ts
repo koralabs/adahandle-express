@@ -7,27 +7,27 @@ import { LogCategory, Logger } from "../../../helpers/Logger";
 export class RefundableSessions {
     public static readonly collectionName = buildCollectionNameWithSuffix('refundableSessions');
 
-    static async getRefundableSessionsByLimit(limit: number): Promise<RefundableSession[]> {
+    static async getRefundableSessionsByLimitAndStatus(limit: number, status: 'pending' | 'submitted' | 'confirmed' = 'pending'): Promise<RefundableSession[]> {
         const collection = await admin.firestore()
-          .collection(RefundableSessions.collectionName)
-          .where('status', '==', 'pending')
-          .limit(limit)
-          .get();
+            .collection(RefundableSessions.collectionName)
+            .where('status', '==', status)
+            .limit(limit)
+            .get();
         return collection.docs.map(doc => ({ ...doc.data(), id: doc.id } as RefundableSession));
     }
 
     static async updateRefundableSessions(sessions: RefundableSession[], txId: string, status: 'pending' | 'submitted' | 'confirmed'): Promise<boolean[]> {
-      return Promise.all(sessions.map(async session => {
-        return admin.firestore().runTransaction(async t => {
-            const ref = admin.firestore().collection(RefundableSessions.collectionName).doc(session.id as string);
-            t.update(ref, { txId, status });
-            return true;
-        }).catch(error => {
-            console.log(error);
-            Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'RefundableSessions.updateRefundableSessions.error', category: LogCategory.ERROR });
-            return false;
-        });
-    }));
+        return Promise.all(sessions.map(async session => {
+            return admin.firestore().runTransaction(async t => {
+                const ref = admin.firestore().collection(RefundableSessions.collectionName).doc(session.id as string);
+                t.update(ref, { txId, status });
+                return true;
+            }).catch(error => {
+                console.log(error);
+                Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'RefundableSessions.updateRefundableSessions.error', category: LogCategory.ERROR });
+                return false;
+            });
+        }));
     }
     static async getRefundableSessions(): Promise<RefundableSession[]> {
         const collection = await admin.firestore().collection(RefundableSessions.collectionName).get();

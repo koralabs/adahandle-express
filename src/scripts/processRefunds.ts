@@ -66,6 +66,10 @@ const run = async () => {
         `reProcess ${reProcess.length}`
     );
 
+    // const amounts = [...invalidAda, ...refund, ...reProcess].map(session => session.amount);
+    // console.log(`Total amount: ${toADA(amounts.reduce((total, curr) => total += curr, 0))}`);
+
+
     // TODO: delete notEnoughAda sessions
     // TODO: refund invalidAda sessions and set status to refunded
     // TODO: refund refund sessions and set status to refunded
