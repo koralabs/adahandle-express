@@ -20,6 +20,8 @@ interface SessionResponseBody {
 }
 interface SessionJWTPayload extends jwt.JwtPayload {
   emailAddress: string;
+  cost: number;
+  handle: string;
 }
 
 export const sessionHandler = async (req: express.Request, res: express.Response) => {
