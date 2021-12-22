@@ -2,6 +2,7 @@ import { Firebase } from "../helpers/firebase";
 import { handleExists } from "../helpers/graphql";
 import { getRarityCost } from "../helpers/nft";
 import { toADA } from "../helpers/utils";
+import { PaidSessions } from "../models/firestore/collections/PaidSessions";
 import { RefundableSessions } from "../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../models/RefundableSession";
 
@@ -15,7 +16,8 @@ interface RefundableSessionResult {
 const isHandleOnChain = async (handle: string): Promise<boolean> => {
     try {
         const doesHandleExists = await handleExists(handle);
-        return doesHandleExists.exists || doesHandleExists.duplicate;
+        const existingPaidSessions = await PaidSessions.getByHandles(handle);
+        return doesHandleExists.exists || doesHandleExists.duplicate || existingPaidSessions.length > 1;
     } catch (error) {
         console.log('error', error);
         throw (error);
