@@ -9,7 +9,7 @@ config();
 
 const run = async () => {
     await Firebase.init();
-    const sessions = await RefundableSessions.getRefundableSessionsByLimit(100);
+    const sessions = await RefundableSessions.getRefundableSessionsByLimit(0);
     const refundWallet = await getMintWalletServer();
     const availableBalance = refundWallet.getTotalBalance();
     console.log('Attempting to refund: ', sessions.length);
@@ -23,19 +23,14 @@ const run = async () => {
 
     const returnAddresses = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
 
-    if (!returnAddresses) {
-      console.log('No return addresses.');
+    if (!returnAddresses || returnAddresses.length !== amounts.length) {
+      console.log('No return addresses or they do not match the corresponding amounts.');
       return;
     }
 
-    // First time use to update entries.
-    // const updated = await RefundableSessions.updateRefundableSessions(sessions, '', 'pending');
-    // console.log(updated);
-    console.log(`Refunding: ${JSON.stringify(sessions)}`);
-
     try {
       const tx = await refundWallet.sendPayment(
-        'test123test123',
+        process.env.WALLET_PASSPHRASE,
         returnAddresses.map(addr => new wallet.AddressWallet(addr)),
         amounts
       );
