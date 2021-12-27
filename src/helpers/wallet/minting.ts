@@ -9,6 +9,7 @@ import { getIPFSImage, createNFTImages } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
+import { CronJobLockName, StateData } from "../../models/firestore/collections/StateData";
 
 export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<string[]> => {
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
@@ -64,7 +65,8 @@ export const getPolicyScript = () => {
 
 export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]): Promise<Record<string, unknown>> => {
   Logger.log({ message: `Generating metadata for ${sessions.length} Handles.`, event: 'mintHandlesAndSend' });
-
+  const stateData = await StateData.getStateData();
+  
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
   
@@ -96,7 +98,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       }
 
       return metadata;
-    }, 250); // <- 1 second delay between API calls
+    }, stateData.ipfsRate_delay); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {

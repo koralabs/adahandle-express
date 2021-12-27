@@ -12,7 +12,7 @@ import { LogCategory, Logger } from './Logger';
 import { getRaritySlug } from './nft';
 
 export const createNFTImages = async (sessions: PaidSession[]) => {
-  let rarities = {}; 
+  const rarities = {}; 
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
 
   sessions.forEach((session) => {
@@ -29,7 +29,7 @@ export const createNFTImages = async (sessions: PaidSession[]) => {
     }
     const slug = getRaritySlug(session.handle)
     if (!rarities[slug]) {
-      rarities[slug]=new Array();
+      rarities[slug]=[];
     }
     rarities[slug].push({
       handle: session.handle,
