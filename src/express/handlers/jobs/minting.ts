@@ -77,7 +77,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
       refundableSessions.map(s => new RefundableSession({
         amount: toLovelace(s.cost),
         handle: s.handle,
-        wallet: s.wallet
+        paymentAddress: s.paymentAddress
       }))
     );
 

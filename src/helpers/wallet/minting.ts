@@ -4,22 +4,11 @@ import { ReservedHandles } from '../../models/firestore/collections/ReservedHand
 
 import { PaidSession } from "../../models/PaidSession";
 import { getMintingWalletSeedPhrase, getPolicyId, getPolicyPrivateKey } from '../constants';
-import { GraphqlCardanoSenderAddress, lookupReturnAddresses } from "../graphql";
-import { getIPFSImage } from '../image';
+import { GraphqlCardanoSenderAddress } from "../graphql";
+import { getIPFSImage, createNFTImages } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
-
-export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<string[]> => {
-  const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
-  if (!transactions || transactions.length < 1) {
-    throw new Error(
-      'Unable to find transactions.'
-    );
-  }
-
-  return transactions;
-}
 
 export const getAddressWalletsFromTransactions = async (txs: GraphqlCardanoSenderAddress[]): Promise<wallet.AddressWallet[]> => {
   return txs.map((tx, index) => {
@@ -72,12 +61,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       const og = twitterHandles.includes(session.handle);
       let ipfs: string;
       try {
-        ipfs = await getIPFSImage(
-          session.handle,
-          og,
-          twitterHandles.indexOf(session.handle),
-          twitterHandles.length
-        );
+        ipfs = await getIPFSImage(session.handle);
       } catch(e) {
         Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
         throw e;
@@ -162,7 +146,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
   const ourWallet = await getMintWalletServer();
 
   // Purchase data.
-  const returnAddresses = await getTransactionsFromPaidSessions(sessions);
+  const returnAddresses = sessions.map(session => session.returnAddress);
   const returnWallets = returnAddresses.map(addr => new AddressWallet(addr));
 
   // Policy data.

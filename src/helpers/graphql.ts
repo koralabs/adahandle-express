@@ -5,6 +5,7 @@ import { getFingerprint } from './utils';
 export interface WalletSimplifiedBalance {
   address: string;
   amount: number;
+  returnAddress?: string;
 }
 
 interface GraphqlGenesisSettings {
@@ -209,8 +210,16 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
     return {
       address: paymentAddress.address,
       amount: parseInt(ada.quantity)
-    };
+    } as WalletSimplifiedBalance;
   });
+
+  const addressesWithPayments = checkedAddresses.filter(address => address.amount > 0)
+  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address));
+  if (returnAddresses){
+    addressesWithPayments.forEach((address, index, arr) => {
+      address.returnAddress = returnAddresses[index];
+    });
+  }
 
   return checkedAddresses;
 }

@@ -163,7 +163,7 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
-    mocked(getNewAddress).mockResolvedValue({ address: 'validAddress' });
+    mocked(getNewAddress).mockResolvedValue('validAddress');
     mocked(ActiveSessions.addActiveSession).mockResolvedValue(false);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
@@ -187,7 +187,7 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
-    mocked(getNewAddress).mockResolvedValue({ address: validAddress });
+    mocked(getNewAddress).mockResolvedValue(validAddress);
     const mockedAddActiveSession = mocked(ActiveSessions.addActiveSession).mockResolvedValue(true);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);

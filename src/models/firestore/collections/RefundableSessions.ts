@@ -66,7 +66,7 @@ export class RefundableSessions {
     static async removeSessionByWalletAddress(address: string): Promise<void> {
         try {
             await admin.firestore().runTransaction(async t => {
-                const snapshot = await t.get(admin.firestore().collection(RefundableSessions.collectionName).where('wallet.address', '==', address).limit(1));
+                const snapshot = await t.get(admin.firestore().collection(RefundableSessions.collectionName).where('paymentAddress', '==', address).limit(1));
                 if (snapshot.empty) {
                     return;
                 }

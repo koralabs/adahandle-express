@@ -36,12 +36,12 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   try {
     const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
     const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
-      if (acc.has(session.wallet.address)) {
-        Logger.log({ message: `Duplicate session found for ${session.wallet.address}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
+      if (acc.has(session.paymentAddress)) {
+        Logger.log({ message: `Duplicate session found for ${session.paymentAddress}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
         return acc;
       }
 
-      acc.set(session.wallet.address, session);
+      acc.set(session.paymentAddress, session);
       return acc;
     }, new Map());
 
@@ -57,7 +57,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     const removableActiveVal: ActiveSession[] = [];
     const refundableVal: RefundableSession[] = [];
     const paidVal: ActiveSession[] = [];
-    const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
+    const walletAddresses = dedupeActiveSessions.map(s => s.paymentAddress)
 
     const startTime = Date.now();
     const sessionPaymentStatuses = await checkPayments(walletAddresses);
@@ -85,7 +85,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         if (sessionAge >= MAX_SESSION_LENGTH) {
           if (matchingPayment && matchingPayment.amount !== 0) {
             ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              wallet: entry.wallet,
+              paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
               handle: entry.handle,
             }));
@@ -103,7 +103,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
           matchingPayment.amount !== toLovelace(entry.cost)
         ) {
           ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-            wallet: entry.wallet,
+            paymentAddress: entry.paymentAddress,
             amount: matchingPayment.amount,
             handle: entry.handle
           }));
@@ -116,7 +116,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
           // If already has a handle, refund.
           if (paidVal.some(e => e.handle === entry.handle)) {
             ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              wallet: entry.wallet,
+              paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
               handle: entry.handle
             }));
@@ -126,6 +126,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
           paidVal.push(entry);
           ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
             ...entry,
+            returnAddress: '',
             emailAddress: '', // email address intentionally scrubbed for privacy
             status: 'pending',
           }));

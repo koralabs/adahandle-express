@@ -1,13 +1,13 @@
 import {
   GraphqlCardanoPaymentAddress,
 } from "../graphql";
-import { getWalletServer, NewAddress } from "./cardano";
+import { getWalletServer } from "./cardano";
 import { WalletAddresses } from "../../models/firestore/collections/WalletAddresses";
 import { PaidSession } from "../../models/PaidSession";
 import { LogCategory, Logger } from "../Logger";
 import { buildTransactionFromPaidSessions } from "./minting";
 
-export const getNewAddress = async (): Promise<NewAddress | false> => {
+export const getNewAddress = async (): Promise<string | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress();
 
   if (!newAddress) {
@@ -15,9 +15,7 @@ export const getNewAddress = async (): Promise<NewAddress | false> => {
     return false;
   }
 
-  return {
-    address: newAddress.id,
-  };
+  return newAddress.id;
 };
 
 export const getAmountsFromPaymentAddresses = (

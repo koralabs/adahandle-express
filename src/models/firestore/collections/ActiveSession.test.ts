@@ -22,9 +22,9 @@ describe('ActiveSessions Tests', () => {
 
   it('should remove active sessions', async () => {
     const activeSessions = [
-      new ActiveSession({ emailAddress: '111-111-1111', cost: 20, handle: 'tacos', wallet: { address: 'test_addr1' }, start: Date.now() }),
-      new ActiveSession({ emailAddress: '222-222-2222', cost: 20, handle: 'tacos', wallet: { address: 'test_addr2' }, start: Date.now() }),
-      new ActiveSession({ emailAddress: '333-333-3333', cost: 20, handle: 'tacos', wallet: { address: 'test_addr3' }, start: Date.now() })
+      new ActiveSession({ emailAddress: '111-111-1111', cost: 20, handle: 'tacos', paymentAddress: 'test_addr1', start: Date.now() }),
+      new ActiveSession({ emailAddress: '222-222-2222', cost: 20, handle: 'tacos', paymentAddress: 'test_addr2', start: Date.now() }),
+      new ActiveSession({ emailAddress: '333-333-3333', cost: 20, handle: 'tacos', paymentAddress: 'test_addr3', start: Date.now() })
     ];
 
     await ActiveSessions.addActiveSessions(activeSessions);

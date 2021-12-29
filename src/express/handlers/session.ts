@@ -91,7 +91,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   const newSession = new ActiveSession({
     emailAddress,
     handle,
-    wallet: walletAddress,
+    paymentAddress: walletAddress,
     cost,
     start: iat,
   });
@@ -101,7 +101,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   if (!added) {
     const responseBody: SessionResponseBody = {
       error: true,
-      message: 'Sorry, this handle is being purchased! Try again later.',
+      message: 'Sorry, this handle is being purchased! Try another handle.',
     };
 
     return res.status(400).json(responseBody);
@@ -112,6 +112,6 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   return res.status(200).json({
     error: false,
     message: "Success! Session initiated.",
-    address: walletAddress.address,
+    address: walletAddress,
   } as SessionResponseBody);
 };
