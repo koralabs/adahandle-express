@@ -5,10 +5,11 @@ import { ReservedHandles } from '../../models/firestore/collections/ReservedHand
 import { PaidSession } from "../../models/PaidSession";
 import { getMintingWalletSeedPhrase, getPolicyId, getPolicyPrivateKey } from '../constants';
 import { GraphqlCardanoSenderAddress, lookupReturnAddresses } from "../graphql";
-import { getIPFSImage } from '../image';
+import { getIPFSImage, createNFTImages } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
+import { CronJobLockName, StateData } from "../../models/firestore/collections/StateData";
 
 export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<string[]> => {
   const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
@@ -64,20 +65,18 @@ export const getPolicyScript = () => {
 
 export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]): Promise<Record<string, unknown>> => {
   Logger.log({ message: `Generating metadata for ${sessions.length} Handles.`, event: 'mintHandlesAndSend' });
-
+  const stateData = await StateData.getStateData();
+  
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
+  
+  await createNFTImages(sessions);
 
   const handlesMetadata = await asyncForEach(sessions, async (session) => {
       const og = twitterHandles.includes(session.handle);
       let ipfs: string;
       try {
-        ipfs = await getIPFSImage(
-          session.handle,
-          og,
-          twitterHandles.indexOf(session.handle),
-          twitterHandles.length
-        );
+        ipfs = await getIPFSImage(session.handle);
       } catch(e) {
         Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
         throw e;
@@ -99,7 +98,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       }
 
       return metadata;
-    }, 1000); // <- 1 second delay between API calls
+    }, stateData.ipfsRate_delay); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {

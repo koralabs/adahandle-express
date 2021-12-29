@@ -5,8 +5,6 @@ import { AccessQueues } from '../../../models/firestore/collections/AccessQueues
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
 
-const CRON_JOB_LOCK_NAME = CronJobLockName.SEND_AUTH_CODES_LOCK;
-
 /**
  * Sends an authentication code to users in the next
  * batch, drawing from the queue.
@@ -15,8 +13,8 @@ export const sendAuthCodesHandler = async (req: express.Request, res: express.Re
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `sendAuthCodesHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'sendAuthCodesHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
   const stateData = await StateData.getStateData();
-  if (stateData[CRON_JOB_LOCK_NAME]) {
-    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'sendAuthCodesHandler.locked', category: LogCategory.NOTIFY });
+  if (stateData[CronJobLockName.SEND_AUTH_CODES_LOCK]) {
+    Logger.log({ message: `Cron job ${CronJobLockName.SEND_AUTH_CODES_LOCK} is locked`, event: 'sendAuthCodesHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
       message: 'Send auth codes cron is locked. Try again later.'

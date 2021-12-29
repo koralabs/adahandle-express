@@ -12,23 +12,21 @@ import { CronJobLockName, StateData } from "../../../models/firestore/collection
 import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
 
-const CRON_JOB_LOCK_NAME = CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK;
-
 /**
  * Filters out old sessions from the /activeSessions document.
  */
 export const updateSessionsHandler = async (req: express.Request, res: express.Response) => {
   // if process is running, bail out of cron job
   const stateData = await StateData.getStateData();
-  if (stateData[CRON_JOB_LOCK_NAME]) {
-    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
+  if (stateData[CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK]) {
+    Logger.log({ message: `Cron job ${CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
       message: 'Update Sessions cron is locked. Try again later.'
     });
   }
 
-  await StateData.lockCron(CRON_JOB_LOCK_NAME);
+  await StateData.lockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
 
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
@@ -47,7 +45,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
     const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
     if (dedupeActiveSessions.length == 0) {
-      await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+      await StateData.unlockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
       return res.status(200).json({
         error: false,
         message: 'No active sessions!'
@@ -134,7 +132,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     );
 
     Logger.log(getLogMessage(startTime, activeSessions.length));
-    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+    await StateData.unlockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
 
     res.status(200).json({
       error: false,
