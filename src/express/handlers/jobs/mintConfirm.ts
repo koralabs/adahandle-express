@@ -24,14 +24,14 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     });
   }
 
+  const limit = stateData.mintConfirmPaidSessions_limit;
   // get paid sessions with status 'submitted'
-  const paidSessions = await PaidSessions.getByStatus({ statusType: 'submitted' });
+  const paidSessions = await PaidSessions.getByStatus({ statusType: 'submitted', limit });
   const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, PaidSession[]>>((acc, session) => {
-    if (session.txId && !acc.has(session.txId)) {
+    if (session.txId) {
       const sessions = acc.get(session.txId) ?? [];
-      acc.set(session.txId, [...sessions]);
+      acc.set(session.txId, [...sessions, session as PaidSession]);
     }
-
     return acc;
   }, new Map());
 
