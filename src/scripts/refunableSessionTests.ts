@@ -8,17 +8,13 @@ const run = async () => {
     await Firebase.init();
 
     const paidSession = new RefundableSession({
-        wallet: {
-            address: `addr_test${new Date().getTime()}`
-        },
+        paymentAddress: `addr_test${new Date().getTime()}`,
         amount: 1234,
         handle: "handle_1"
     });
 
     const paidSession2 = new RefundableSession({
-        wallet: {
-            address: `addr_test${new Date().getTime() + 1}`
-        },
+        paymentAddress: `addr_test${new Date().getTime() + 1}`,
         amount: 1234, handle: "handle_2"
     });
 
@@ -27,7 +23,7 @@ const run = async () => {
     const refundableSessions = await RefundableSessions.getRefundableSessions();
     console.log('refundableSessions', refundableSessions);
 
-    await RefundableSessions.removeSessionByWalletAddress(paidSession.wallet.address);
+    await RefundableSessions.removeSessionByWalletAddress(paidSession.paymentAddress);
 
     const remainingSessions = await PaidSessions.getPaidSessionsUnsafe();
     console.log('remainingSessions', remainingSessions);

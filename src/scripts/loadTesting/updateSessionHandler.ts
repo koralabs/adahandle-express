@@ -16,9 +16,7 @@ const createActiveSessions = async () => {
             emailAddress: random,
             cost: 50,
             handle: `test-${random}`,
-            wallet: {
-                address: `exp_test${random}`
-            },
+            paymentAddress: `exp_test${random}`,
             start: new Date().setMinutes(new Date().getMinutes() - 11),
         }
         return new ActiveSession({ ...activeSession });
@@ -30,9 +28,7 @@ const createActiveSessions = async () => {
             emailAddress: random,
             cost: 50,
             handle: `test-${random}`,
-            wallet: {
-                address: `refund_test${random}`
-            },
+            paymentAddress: `refund_test${random}`,
             start: Date.now(),
         }
         return new ActiveSession({ ...activeSession });
@@ -44,9 +40,7 @@ const createActiveSessions = async () => {
             emailAddress: random,
             cost: 50,
             handle: `test-${random}`,
-            wallet: {
-                address: `paid_test${random}`
-            },
+            paymentAddress: `paid_test${random}`,
             start: Date.now(),
         }
         return new ActiveSession({ ...activeSession });
