@@ -121,10 +121,20 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
             return;
           }
 
+          // If no return address, refund.
+          if (!matchingPayment.returnAddress) {
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              paymentAddress: entry.paymentAddress,
+              amount: matchingPayment.amount,
+              handle: entry.handle
+            }));
+            return;
+          }
+
           paidVal.push(entry);
           ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
             ...entry,
-            returnAddress: '',
+            returnAddress: matchingPayment.returnAddress,
             emailAddress: '', // email address intentionally scrubbed for privacy
             status: 'pending',
           }));
