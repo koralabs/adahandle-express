@@ -117,17 +117,17 @@ describe('Job Sessions Tets', () => {
         ...ZeroPaymentFixture
     ]
     const CheckPaymentsFixture = [
-        { address: 'expired_unpaid', amount: 0 },
-        { address: 'addr_paid', amount: 50 * 1000000 },
-        { address: 'addr_invalid_payment', amount: 40 * 1000000 },
-        { address: 'addr_expired_paid', amount: 50 * 1000000 },
-        { address: 'addr_handle_unavailable', amount: 50 * 1000000 },
-        { address: 'addr_zero_payment', amount: 0 }
+        { address: 'expired_unpaid', amount: 0, returnAddress: '' },
+        { address: 'addr_paid', amount: 50 * 1000000, returnAddress: 'return_addr_paid' },
+        { address: 'addr_invalid_payment', amount: 40 * 1000000, returnAddress: 'return_addr_invalid' },
+        { address: 'addr_expired_paid', amount: 50 * 1000000, returnAddress: 'return_addr_expired' },
+        { address: 'addr_handle_unavailable', amount: 50 * 1000000, returnAddress: 'return_addr_unavail' },
+        { address: 'addr_zero_payment', amount: 0, returnAddress: '' }
     ]
     const RefundableWalletsFixture = [
-        new RefundableSession({ paymentAddress: 'addr_invalid_payment', amount: 40 * 1000000, handle: 'invalid' }),
-        new RefundableSession({ paymentAddress: 'addr_expired_paid', amount: 50 * 1000000, handle: 'expired.paid' }),
-        new RefundableSession({ paymentAddress: 'addr_handle_unavailable', amount: 50 * 1000000, handle: 'paid' }),
+        new RefundableSession({ paymentAddress: 'addr_invalid_payment', returnAddress: 'return_addr_invalid', amount: 40 * 1000000, handle: 'invalid' }),
+        new RefundableSession({ paymentAddress: 'addr_expired_paid', returnAddress: 'return_addr_expired', amount: 50 * 1000000, handle: 'expired.paid' }),
+        new RefundableSession({ paymentAddress: 'addr_handle_unavailable', returnAddress: 'return_addr_unavail', amount: 50 * 1000000, handle: 'paid' }),
     ]
     const PaidWalletsFixture = [
         new PaidSession({
@@ -136,6 +136,7 @@ describe('Job Sessions Tets', () => {
             cost: 50,
             handle: 'paid',
             paymentAddress: 'addr_paid',
+            returnAddress: 'addr_paid',
             start: unexpiredDate
         })
     ]
@@ -175,10 +176,22 @@ describe('Job Sessions Tets', () => {
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(1, UnpaidSessionFixture[0]);
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, PaidSessionFixture[0], PaidSessions.addPaidSession, { ...PaidSessionFixture[0], attempts: 0, dateAdded: expect.any(Number), emailAddress: "", status: 'pending' });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.amount, "handle": RefundableSessionsFixture[0].handle, "paymentAddress": RefundableSessionsFixture[0].paymentAddress });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.amount, "handle": RefundableSessionsFixture[1].handle, "paymentAddress": RefundableSessionsFixture[1].paymentAddress });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(5, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, { "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.amount, "handle": RefundableSessionsFixture[2].handle, "paymentAddress": RefundableSessionsFixture[2].paymentAddress });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, PaidSessionFixture[0], PaidSessions.addPaidSession, { ...PaidSessionFixture[0], attempts: 0, dateAdded: expect.any(Number), emailAddress: "", status: 'pending', returnAddress: expect.any(String) });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, { 
+                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.amount, 
+                "handle": RefundableSessionsFixture[0].handle, 
+                "paymentAddress": RefundableSessionsFixture[0].paymentAddress, 
+                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.returnAddress });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, { 
+                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.amount, 
+                "handle": RefundableSessionsFixture[1].handle, 
+                "paymentAddress": RefundableSessionsFixture[1].paymentAddress, 
+                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.returnAddress });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(5, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, { 
+                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.amount, 
+                "handle": RefundableSessionsFixture[2].handle, 
+                "paymentAddress": RefundableSessionsFixture[2].paymentAddress, 
+                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.returnAddress });
             // If the above number of items were called correctly then
             // then the last use case should be true which is
             // The zero payment session is left alone

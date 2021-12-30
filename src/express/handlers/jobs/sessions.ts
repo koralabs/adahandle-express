@@ -86,6 +86,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
               paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
               handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress
             }));
 
             return;
@@ -96,48 +97,53 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         }
 
         // Refund invalid payments.
-        if (
-          matchingPayment.amount !== 0 &&
-          matchingPayment.amount !== toLovelace(entry.cost)
-        ) {
-          ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-            paymentAddress: entry.paymentAddress,
-            amount: matchingPayment.amount,
-            handle: entry.handle
-          }));
-          return;
-        }
-
-        // Move valid paid sessions to minting queue.
-        if (matchingPayment.amount === toLovelace(entry.cost)) {
-
-          // If already has a handle, refund.
-          if (paidVal.some(e => e.handle === entry.handle)) {
-            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              paymentAddress: entry.paymentAddress,
-              amount: matchingPayment.amount,
-              handle: entry.handle
-            }));
-            return;
-          }
+        if (matchingPayment.amount !== 0) {
 
           // If no return address, refund.
           if (!matchingPayment.returnAddress) {
             ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
               paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
-              handle: entry.handle
+              handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress
+            }));
+            // This should never happen:
+            Logger.log({ category: LogCategory.NOTIFY, message: `Refund has no returnAddress! PaymentAddress is ${entry.paymentAddress}`, event: 'updateSessionsHandler.run' });
+            return;
+          }
+
+          if (matchingPayment.amount !== toLovelace(entry.cost)) {
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              paymentAddress: entry.paymentAddress,
+              amount: matchingPayment.amount,
+              handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress,
             }));
             return;
           }
 
-          paidVal.push(entry);
-          ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
-            ...entry,
-            returnAddress: matchingPayment.returnAddress,
-            emailAddress: '', // email address intentionally scrubbed for privacy
-            status: 'pending',
-          }));
+          // Move valid paid sessions to minting queue.
+          if (matchingPayment.amount === toLovelace(entry.cost)) {
+
+            // If already has a handle, refund.
+            if (paidVal.some(e => e.handle === entry.handle)) {
+              ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+                paymentAddress: entry.paymentAddress,
+                amount: matchingPayment.amount,
+                handle: entry.handle,
+                returnAddress: matchingPayment.returnAddress
+              }));
+              return;
+            }
+
+            paidVal.push(entry);
+            ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
+              ...entry,
+              returnAddress: matchingPayment.returnAddress,
+              emailAddress: '', // email address intentionally scrubbed for privacy
+              status: 'pending',
+            }));
+          }
         }
       }
     );
@@ -154,7 +160,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       }
     });
   } catch (e) {
-    Logger.log({category: LogCategory.NOTIFY, message: `Active sessions queue has an exception and is locked: ${JSON.stringify(e)}`, event:'updateSessionsHandler.run'})
+    Logger.log({ category: LogCategory.NOTIFY, message: `Active sessions queue has an exception and is locked: ${JSON.stringify(e)}`, event: 'updateSessionsHandler.run' })
     return res.status(500).json({
       error: true,
       message: e

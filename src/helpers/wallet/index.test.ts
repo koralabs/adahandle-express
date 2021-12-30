@@ -31,7 +31,7 @@ describe('Wallet Index Tests', () => {
              */
             mocked(WalletAddresses.getFirstAvailableWalletAddress).mockResolvedValue(WalletAddressesFixture);
             const newAddress = await getNewAddress();
-            expect(newAddress).toEqual({ "address": WalletAddressesFixture.id });
+            expect(newAddress).toEqual(WalletAddressesFixture.id);
         });
 
         it('should return false and log if an wallet address is not found', async () => {

@@ -169,7 +169,7 @@ describe('Session Tests', () => {
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Sorry, this handle is being purchased! Try again later." });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Sorry, this handle is being purchased! Try another handle." });
   });
 
   it('should send a successful 200 response', async () => {
@@ -192,7 +192,7 @@ describe('Session Tests', () => {
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
-    expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "wallet": { "address": validAddress }, emailAddress: '+1234567890', cost: 10, "start": expect.any(Number) });
+    expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 10, "start": expect.any(Number) });
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
   });
