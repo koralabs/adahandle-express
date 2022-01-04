@@ -7,6 +7,11 @@ import { LogCategory, Logger } from "../../../helpers/Logger";
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
 
+    static async getWalletAddressesUnsafe(): Promise<WalletAddress[]> {
+        const collection = await admin.firestore().collection(WalletAddresses.collectionName).limit(0).get();
+        return collection.docs.map(doc => doc.data() as WalletAddress);
+    }
+
     static async getFirstAvailableWalletAddress(): Promise<WalletAddress | null> {
         // Since we can't have more than one user at a time use an address
         // we need to get the first one then delete it

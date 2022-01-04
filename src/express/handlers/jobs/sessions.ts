@@ -93,6 +93,9 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
             return;
           }
 
+          // TODO: Since users will continue to have an address, there's a change they could make a payment after the handle has expired.
+          // This is a problem for the user, but we should still refund them.
+          // Should remove and send to DLQ?
           ActiveSessions.removeActiveSession(entry);
           return;
         }
@@ -145,7 +148,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       }
     });
   } catch (e) {
-    Logger.log({category: LogCategory.NOTIFY, message: `Active sessions queue has an exception and is locked: ${JSON.stringify(e)}`, event:'updateSessionsHandler.run'})
+    Logger.log({ category: LogCategory.NOTIFY, message: `Active sessions queue has an exception and is locked: ${JSON.stringify(e)}`, event: 'updateSessionsHandler.run' })
     return res.status(500).json({
       error: true,
       message: e
