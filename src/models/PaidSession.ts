@@ -1,4 +1,5 @@
 import { BaseModel } from "./BaseModel";
+import { CreatedBySystem }  from '../helpers/constants';
 
 export type PaidSessionStatusType = "pending" | "processing" | "submitted" | "confirmed" | "expired";
 
@@ -14,6 +15,7 @@ interface PaidSessionType {
   status?: PaidSessionStatusType;
   attempts?: number;
   dateAdded?: number;
+  createdBySystem: CreatedBySystem;
 }
 
 export class PaidSession extends BaseModel {
@@ -28,6 +30,7 @@ export class PaidSession extends BaseModel {
   public txId?: string;
   public status?: PaidSessionStatusType;
   public dateAdded?: number;
+  public createdBySystem: CreatedBySystem;
 
   constructor({
     id,
@@ -40,7 +43,9 @@ export class PaidSession extends BaseModel {
     txId,
     status = 'pending',
     attempts = 0,
-    dateAdded = Date.now()
+    dateAdded = Date.now(),
+    createdBySystem
+    
   }: PaidSessionType) {
     super();
     this.id = id;
@@ -54,5 +59,6 @@ export class PaidSession extends BaseModel {
     this.status = status;
     this.attempts = attempts;
     this.dateAdded = dateAdded;
+    this.createdBySystem = createdBySystem;
   }
 }
