@@ -12,23 +12,21 @@ import { CronJobLockName, StateData } from "../../../models/firestore/collection
 import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
 
-const CRON_JOB_LOCK_NAME = CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK;
-
 /**
  * Filters out old sessions from the /activeSessions document.
  */
 export const updateSessionsHandler = async (req: express.Request, res: express.Response) => {
   // if process is running, bail out of cron job
   const stateData = await StateData.getStateData();
-  if (stateData[CRON_JOB_LOCK_NAME]) {
-    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
+  if (stateData[CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK]) {
+    Logger.log({ message: `Cron job ${CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK} is locked`, event: 'updateSessionsHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
       message: 'Update Sessions cron is locked. Try again later.'
     });
   }
 
-  await StateData.lockCron(CRON_JOB_LOCK_NAME);
+  await StateData.lockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
 
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
@@ -36,18 +34,18 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   try {
     const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
     const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
-      if (acc.has(session.wallet.address)) {
-        Logger.log({ message: `Duplicate session found for ${session.wallet.address}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
+      if (acc.has(session.paymentAddress)) {
+        Logger.log({ message: `Duplicate session found for ${session.paymentAddress}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
         return acc;
       }
 
-      acc.set(session.wallet.address, session);
+      acc.set(session.paymentAddress, session);
       return acc;
     }, new Map());
 
     const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
     if (dedupeActiveSessions.length == 0) {
-      await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+      await StateData.unlockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
       return res.status(200).json({
         error: false,
         message: 'No active sessions!'
@@ -57,7 +55,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     const removableActiveVal: ActiveSession[] = [];
     const refundableVal: RefundableSession[] = [];
     const paidVal: ActiveSession[] = [];
-    const walletAddresses = dedupeActiveSessions.map(s => s.wallet.address)
+    const walletAddresses = dedupeActiveSessions.map(s => s.paymentAddress)
 
     const startTime = Date.now();
     const sessionPaymentStatuses = await checkPayments(walletAddresses);
@@ -85,9 +83,10 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         if (sessionAge >= MAX_SESSION_LENGTH) {
           if (matchingPayment && matchingPayment.amount !== 0) {
             ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              wallet: entry.wallet,
+              paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
               handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress
             }));
 
             return;
@@ -101,43 +100,59 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
         }
 
         // Refund invalid payments.
-        if (
-          matchingPayment.amount !== 0 &&
-          matchingPayment.amount !== toLovelace(entry.cost)
-        ) {
-          ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-            wallet: entry.wallet,
-            amount: matchingPayment.amount,
-            handle: entry.handle
-          }));
-          return;
-        }
+        if (matchingPayment.amount !== 0) {
 
-        // Move valid paid sessions to minting queue.
-        if (matchingPayment.amount === toLovelace(entry.cost)) {
-
-          // If already has a handle, refund.
-          if (paidVal.some(e => e.handle === entry.handle)) {
+          // If no return address, refund.
+          if (!matchingPayment.returnAddress) {
             ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              wallet: entry.wallet,
+              paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
-              handle: entry.handle
+              handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress
+            }));
+            // This should never happen:
+            Logger.log({ category: LogCategory.NOTIFY, message: `Refund has no returnAddress! PaymentAddress is ${entry.paymentAddress}`, event: 'updateSessionsHandler.run' });
+            return;
+          }
+
+          if (matchingPayment.amount !== toLovelace(entry.cost)) {
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              paymentAddress: entry.paymentAddress,
+              amount: matchingPayment.amount,
+              handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress,
             }));
             return;
           }
 
-          paidVal.push(entry);
-          ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
-            ...entry,
-            emailAddress: '', // email address intentionally scrubbed for privacy
-            status: 'pending',
-          }));
+          // Move valid paid sessions to minting queue.
+          if (matchingPayment.amount === toLovelace(entry.cost)) {
+
+            // If already has a handle, refund.
+            if (paidVal.some(e => e.handle === entry.handle)) {
+              ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+                paymentAddress: entry.paymentAddress,
+                amount: matchingPayment.amount,
+                handle: entry.handle,
+                returnAddress: matchingPayment.returnAddress
+              }));
+              return;
+            }
+
+            paidVal.push(entry);
+            ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
+              ...entry,
+              returnAddress: matchingPayment.returnAddress,
+              emailAddress: '', // email address intentionally scrubbed for privacy
+              status: 'pending',
+            }));
+          }
         }
       }
     );
 
     Logger.log(getLogMessage(startTime, activeSessions.length));
-    await StateData.unlockCron(CRON_JOB_LOCK_NAME);
+    await StateData.unlockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
 
     res.status(200).json({
       error: false,

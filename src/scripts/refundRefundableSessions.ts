@@ -21,7 +21,7 @@ const run = async () => {
     process.exit();
   }
 
-  const returnAddresses = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
+  const returnAddresses = await lookupReturnAddresses(sessions.map(session => session.paymentAddress));
 
   if (!returnAddresses || returnAddresses.length !== amounts.length) {
     console.log('No return addresses or they do not match the corresponding amounts.');

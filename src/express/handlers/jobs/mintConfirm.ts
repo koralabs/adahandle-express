@@ -9,7 +9,6 @@ import { PaidSession } from "../../../models/PaidSession";
 import { awaitForEach } from "../../../helpers/utils";
 import { ApiTransactionStatusEnum, TransactionWallet } from "cardano-wallet-js";
 import { getMintingWalletId, getWalletEndpoint } from "../../../helpers/constants";
-import { CollectionLimitName } from "../../../models/State";
 
 const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_CONFIRM_LOCK;
 
@@ -25,7 +24,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     });
   }
 
-  const limit = stateData[CollectionLimitName.MINT_CONFIRMED_PAID_SESSIONS_LIMIT];
+  const limit = stateData.mintConfirmPaidSessions_limit;
   // get paid sessions with status 'submitted'
   const paidSessions = await PaidSessions.getByStatus({ statusType: 'submitted', limit });
   const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, PaidSession[]>>((acc, session) => {

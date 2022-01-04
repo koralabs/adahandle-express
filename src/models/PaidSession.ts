@@ -1,4 +1,3 @@
-import { NewAddress } from "../helpers/wallet/cardano";
 import { BaseModel } from "./BaseModel";
 
 export type PaidSessionStatusType = "pending" | "processing" | "submitted" | "confirmed" | "expired";
@@ -7,8 +6,9 @@ interface PaidSessionType {
   emailAddress: string;
   cost: number;
   handle: string;
-  wallet: NewAddress;
   start: number;
+  paymentAddress: string;
+  returnAddress: string;
   id?: string;
   txId?: string;
   status?: PaidSessionStatusType;
@@ -20,9 +20,10 @@ export class PaidSession extends BaseModel {
   public emailAddress: string;
   public cost: number;
   public handle: string;
-  public wallet: NewAddress;
   public start: number;
   public attempts: number;
+  public paymentAddress: string;
+  public returnAddress: string;
   public id?: string;
   public txId?: string;
   public status?: PaidSessionStatusType;
@@ -33,7 +34,8 @@ export class PaidSession extends BaseModel {
     emailAddress,
     cost,
     handle,
-    wallet,
+    paymentAddress,
+    returnAddress,
     start,
     txId,
     status = 'pending',
@@ -45,7 +47,8 @@ export class PaidSession extends BaseModel {
     this.emailAddress = emailAddress;
     this.cost = cost;
     this.handle = handle;
-    this.wallet = wallet;
+    this.paymentAddress = paymentAddress;
+    this.returnAddress = returnAddress;
     this.start = start;
     this.txId = txId;
     this.status = status;

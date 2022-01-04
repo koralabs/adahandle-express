@@ -10,15 +10,11 @@ import { RefundableSession } from "../../../models/RefundableSession";
 import { awaitForEach, toLovelace } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
-import { CollectionLimitName } from "../../../models/State";
-
-const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_PAID_SESSIONS_LOCK;
-const COLLECTION_LIMIT_NAME = CollectionLimitName.PAID_SESSIONS_LIMIT;
 
 const mintPaidSessions = async (req: express.Request, res: express.Response) => {
   const stateData = await StateData.getStateData();
-  if (stateData[CRON_JOB_LOCK_NAME]) {
-    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintPaidSessionsHandler.locked', category: LogCategory.NOTIFY });
+  if (stateData[CronJobLockName.MINT_PAID_SESSIONS_LOCK]) {
+    Logger.log({ message: `Cron job ${CronJobLockName.MINT_PAID_SESSIONS_LOCK} is locked`, event: 'mintPaidSessionsHandler.locked', category: LogCategory.NOTIFY });
     return res.status(200).json({
       error: false,
       message: 'Minting cron is locked. Try again later.'
@@ -34,7 +30,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   }
 
-  const paidSessionsLimit = stateData[COLLECTION_LIMIT_NAME];
+  const paidSessionsLimit = stateData.paidSessions_limit;
   const paidSessions: PaidSession[] = await PaidSessions.getByStatus({ statusType: 'pending', limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
     return res.status(200).json({
@@ -77,7 +73,8 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
       refundableSessions.map(s => new RefundableSession({
         amount: toLovelace(s.cost),
         handle: s.handle,
-        wallet: s.wallet
+        paymentAddress: s.paymentAddress,
+        returnAddress: s.returnAddress
       }))
     );
 

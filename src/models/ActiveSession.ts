@@ -1,4 +1,3 @@
-import { NewAddress } from "../helpers/wallet/cardano";
 import { BaseModel } from "./BaseModel";
 
 export interface ActiveSessionInput {
@@ -6,7 +5,7 @@ export interface ActiveSessionInput {
     emailAddress: string,
     cost: number,
     handle: string,
-    wallet: NewAddress,
+    paymentAddress: string,
     start: number,
     id?: string,
     txId?: string
@@ -16,18 +15,18 @@ export class ActiveSession extends BaseModel {
     public emailAddress: string;
     public cost: number;
     public handle: string;
-    public wallet: NewAddress;
+    public paymentAddress: string;
     public start: number;
     public id?: string;
     public txId?: string;
 
-    constructor({ id, emailAddress, cost, handle, wallet, start, txId }: ActiveSessionInput) {
+    constructor({ id, emailAddress, cost, handle, paymentAddress, start, txId }: ActiveSessionInput) {
         super();
         this.id = id;
         this.emailAddress = emailAddress;
         this.cost = cost;
         this.handle = handle;
-        this.wallet = wallet;
+        this.paymentAddress = paymentAddress;
         this.start = start;
         this.txId = txId;
     }
