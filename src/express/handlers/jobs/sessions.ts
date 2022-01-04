@@ -33,6 +33,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   try {
+    // TODO: Should we also be checking for duplicate handles here?
     const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
     const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
       if (acc.has(session.paymentAddress)) {
@@ -43,7 +44,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       acc.set(session.paymentAddress, session);
       return acc;
     }, new Map());
-
+    
     const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
     if (dedupeActiveSessions.length == 0) {
       await StateData.unlockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
