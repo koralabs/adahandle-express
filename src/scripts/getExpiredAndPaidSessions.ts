@@ -76,7 +76,7 @@ const run = async () => {
     const allExistingSessions = [...paidSessions, ...paidSessionsDLQ, ...refundableSessions];
     console.log(`allExistingSessions length ${allExistingSessions.length}`);
 
-    const allSessionsMap = new Map(allExistingSessions.map(session => [session.wallet.address, session]));
+    const allSessionsMap = new Map(allExistingSessions.map(session => [session.paymentAddress, session]));
 
     // see what addresses are left over that are not in paid sessions and refundable sessions
     const leftOverAddresses = usedWalletAddresses.filter(address => !allSessionsMap.get(address));
@@ -94,10 +94,13 @@ const run = async () => {
         addressesThatNeedToBeRefunded.push(...results.map(result => {
             return {
                 address: result.address,
-                returnAddress: '',// result.returnAddress,
+                returnAddress: result.returnAddress,
                 amount: result.amount
             }
         }));
+
+        console.log(`addressesThatNeedToBeRefunded`, addressesThatNeedToBeRefunded);
+        process.exit();
     }
 
     process.exit();
