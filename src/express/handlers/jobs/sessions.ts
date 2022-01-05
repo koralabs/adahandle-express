@@ -1,6 +1,6 @@
 import * as express from "express";
 
-import { MAX_SESSION_LENGTH } from '../../../helpers/constants';
+import { MAX_SESSION_LENGTH_UI, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO } from '../../../helpers/constants';
 import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
@@ -11,6 +11,7 @@ import { RefundableSessions } from '../../../models/firestore/collections/Refund
 import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
 import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
+import { CreatedBySystem}  from '../../../helpers/constants';
 
 /**
  * Filters out old sessions from the /activeSessions document.
@@ -32,6 +33,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   try {
+    // TODO: Should we also be checking for duplicate handles here?
     const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
     const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
       if (acc.has(session.paymentAddress)) {
@@ -42,7 +44,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       acc.set(session.paymentAddress, session);
       return acc;
     }, new Map());
-
+    
     const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
     if (dedupeActiveSessions.length == 0) {
       await StateData.unlockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
@@ -64,6 +66,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     dedupeActiveSessions.forEach(
       (entry, index) => {
         const sessionAge = Date.now() - entry?.start;
+        const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ? MAX_SESSION_LENGTH_CLI : (entry.createdBySystem == CreatedBySystem.SPO ? MAX_SESSION_LENGTH_SPO : MAX_SESSION_LENGTH_UI)
         const matchingPayment = sessionPaymentStatuses[index];
 
         if (!matchingPayment) {
@@ -80,13 +83,14 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
          */
 
         // Handle expired.
-        if (sessionAge >= MAX_SESSION_LENGTH) {
+        if (sessionAge >= maxSessionLength) {
           if (matchingPayment && matchingPayment.amount !== 0) {
             ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
               paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
               handle: entry.handle,
-              returnAddress: matchingPayment.returnAddress
+              returnAddress: matchingPayment.returnAddress,
+              createdBySystem: entry.createdBySystem
             }));
 
             return;
@@ -105,7 +109,8 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
               paymentAddress: entry.paymentAddress,
               amount: matchingPayment.amount,
               handle: entry.handle,
-              returnAddress: matchingPayment.returnAddress
+              returnAddress: matchingPayment.returnAddress,
+              createdBySystem: entry.createdBySystem
             }));
             // This should never happen:
             Logger.log({ category: LogCategory.NOTIFY, message: `Refund has no returnAddress! PaymentAddress is ${entry.paymentAddress}`, event: 'updateSessionsHandler.run' });
@@ -118,6 +123,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
               amount: matchingPayment.amount,
               handle: entry.handle,
               returnAddress: matchingPayment.returnAddress,
+              createdBySystem: entry.createdBySystem
             }));
             return;
           }
@@ -131,7 +137,8 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
                 paymentAddress: entry.paymentAddress,
                 amount: matchingPayment.amount,
                 handle: entry.handle,
-                returnAddress: matchingPayment.returnAddress
+                returnAddress: matchingPayment.returnAddress,
+                createdBySystem: entry.createdBySystem
               }));
               return;
             }

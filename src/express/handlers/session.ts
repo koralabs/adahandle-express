@@ -3,7 +3,8 @@ import * as jwt from "jsonwebtoken";
 
 import {
   HEADER_JWT_ACCESS_TOKEN,
-  HEADER_JWT_SESSION_TOKEN
+  HEADER_JWT_SESSION_TOKEN,
+  CreatedBySystem
 } from "../../helpers/constants";
 
 import { isValid, normalizeNFTHandle } from "../../helpers/nft";
@@ -94,6 +95,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     paymentAddress: walletAddress,
     cost,
     start: iat,
+    createdBySystem: CreatedBySystem.UI
   });
 
   const added = await ActiveSessions.addActiveSession(newSession);
