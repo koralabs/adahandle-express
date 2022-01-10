@@ -17,7 +17,7 @@ export class WalletAddresses {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();
                     if (walletAddress) {
-                        t.delete(doc.ref);
+                        t.delete(doc.ref, {exists:true});
                         return walletAddress as WalletAddress;
                     }
                 }
