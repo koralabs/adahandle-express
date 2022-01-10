@@ -4,6 +4,7 @@ import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
 import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
+import { MintingCache } from '../../../models/firestore/collections/MintingCache';
 import { PaidSession } from '../../../models/PaidSession';
 import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
 import { RefundableSession } from "../../../models/RefundableSession";
@@ -57,7 +58,8 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     // Make sure there isn't an existing handle on-chain.
     const { exists: existsOnChain } = await handleExists(session.handle);
     const existingSessions = await PaidSessions.getByHandles(session.handle);
-    if (existsOnChain || existingSessions.length > 1) {
+    const inMintingCache = await MintingCache.addHandleToMintCache(session.handle) == false;
+    if (existsOnChain || existingSessions.length > 1 || inMintingCache) {
       Logger.log({ message: `Handle ${session.handle} already exists on-chain or in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
       refundableSessions.push(session);
       return;
