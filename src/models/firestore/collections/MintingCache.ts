@@ -24,7 +24,7 @@ export class MintingCache {
             });
         }
         catch (error) {
-            Logger.log({ message: `Error adding Handle ${handle} to minting cache. Error: ${error}`, event: 'mintingCache.addHandleToMintCache', category: LogCategory.INFO });
+            Logger.log({ message: `Error adding Handle ${handle} to minting cache. Error: ${error}`, event: 'mintingCache.addHandleToMintCache', category: LogCategory.ERROR });
         }
         return false;
     }
