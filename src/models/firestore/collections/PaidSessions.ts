@@ -18,6 +18,15 @@ export class PaidSessions {
         return collection.docs.map(doc => doc.data() as PaidSession);
     }
 
+    static async getPaidSessionByWalletAddress(id: string): Promise<PaidSession | null> {
+        const collection = await admin.firestore().collection(PaidSessions.collectionName).where('wallet.address', '==', id).limit(1).get();
+        if (collection.empty) {
+            return null;
+        }
+
+        return collection.docs[0].data() as PaidSession;
+    }
+
     static async getByStatus({ statusType, limit = 20 }: { statusType: PaidSessionStatusType, limit?: number }): Promise<PaidSession[]> {
         const snapshot = await admin.firestore()
             .collection(PaidSessions.collectionName)

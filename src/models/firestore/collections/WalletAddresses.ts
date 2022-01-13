@@ -3,6 +3,7 @@ import { awaitForEach, chunk, delay } from "../../../helpers/utils";
 import { WalletAddress } from "../../WalletAddress";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { LogCategory, Logger } from "../../../helpers/Logger";
+import { UsedAddresses } from "./UsedAddresses";
 
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
@@ -22,7 +23,8 @@ export class WalletAddresses {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();
                     if (walletAddress) {
-                        t.delete(doc.ref);
+                        t.delete(doc.ref, { exists: true });
+                        UsedAddresses.addUsedAddress(walletAddress.id);
                         return walletAddress as WalletAddress;
                     }
                 }

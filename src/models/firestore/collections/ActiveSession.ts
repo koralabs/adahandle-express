@@ -6,6 +6,7 @@ import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuff
 
 export class ActiveSessions {
   public static readonly collectionName = buildCollectionNameWithSuffix('activeSessions');
+  public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('activeSessionsDLQ');
 
   public static async getActiveSessions(): Promise<ActiveSession[]> {
     const collection = await admin.firestore().collection(ActiveSessions.collectionName).get();
@@ -76,6 +77,27 @@ export class ActiveSessions {
       }).catch(error => {
         Logger.log({ message: `error: ${JSON.stringify(error)} removing ${session.id}`, event: 'removeActiveSessions.error', category: LogCategory.ERROR });
       });
+    }));
+  }
+
+  public static async removeAndAddToDLQ(activeSessions: ActiveSession[]): Promise<void> {
+    await Promise.all(activeSessions.map(async session => {
+      if (!session.id) {
+        Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'activeSessions.removeAndAddToDLQ.noId', category: LogCategory.ERROR });
+        return;
+      }
+
+      try {
+        return admin.firestore().runTransaction(async (t) => {
+          const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
+          t.delete(ref);
+
+          const dlqRef = admin.firestore().collection(ActiveSessions.collectionNameDLQ).doc();
+          t.create(dlqRef, new ActiveSession({ ...session, id: dlqRef.id }).toJSON());
+        });
+      } catch (error) {
+        Logger.log({ message: `error: ${JSON.stringify(error)} adding ${session.id} to DLQ`, event: 'activeSessions.removeAndAddToDLQ.error', category: LogCategory.ERROR });
+      }
     }));
   }
 }

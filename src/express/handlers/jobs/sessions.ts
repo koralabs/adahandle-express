@@ -57,9 +57,9 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     const paidVal: ActiveSession[] = [];
     const walletAddresses = dedupeActiveSessions.map(s => s.paymentAddress)
 
-    const startTime = Date.now();
+    const startCheckPaymentsTime = Date.now();
     const sessionPaymentStatuses = await checkPayments(walletAddresses);
-    Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
+    Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
     dedupeActiveSessions.forEach(
       (entry, index) => {
@@ -92,10 +92,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
             return;
           }
 
-          // TODO: Since users will continue to have an address, there's a change they could make a payment after the handle has expired.
-          // This is a problem for the user, but we should still refund them.
-          // Should remove and send to DLQ?
-          ActiveSessions.removeActiveSession(entry);
+          ActiveSessions.removeAndAddToDLQ([entry]);
           return;
         }
 
