@@ -74,7 +74,8 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
         amount: toLovelace(s.cost),
         handle: s.handle,
         paymentAddress: s.paymentAddress,
-        returnAddress: s.returnAddress
+        returnAddress: s.returnAddress,
+        createdBySystem: s.createdBySystem
       }))
     );
 

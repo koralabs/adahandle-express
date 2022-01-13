@@ -1,4 +1,5 @@
 import { BaseModel } from "./BaseModel";
+import { CreatedBySystem }  from '../helpers/constants';
 
 export interface ActiveSessionInput {
 
@@ -8,7 +9,8 @@ export interface ActiveSessionInput {
     paymentAddress: string,
     start: number,
     id?: string,
-    txId?: string
+    txId?: string,
+    createdBySystem: CreatedBySystem
 }
 
 export class ActiveSession extends BaseModel {
@@ -19,8 +21,9 @@ export class ActiveSession extends BaseModel {
     public start: number;
     public id?: string;
     public txId?: string;
+    public createdBySystem: CreatedBySystem
 
-    constructor({ id, emailAddress, cost, handle, paymentAddress, start, txId }: ActiveSessionInput) {
+    constructor({ id, emailAddress, cost, handle, paymentAddress, start, txId, createdBySystem }: ActiveSessionInput) {
         super();
         this.id = id;
         this.emailAddress = emailAddress;
@@ -29,5 +32,6 @@ export class ActiveSession extends BaseModel {
         this.paymentAddress = paymentAddress;
         this.start = start;
         this.txId = txId;
+        this.createdBySystem = createdBySystem;
     }
 }

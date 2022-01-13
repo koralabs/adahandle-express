@@ -11,6 +11,7 @@ import { RefundableSessions } from '../../../models/firestore/collections/Refund
 import { updateSessionsHandler } from './sessions';
 import { StateData } from '../../../models/firestore/collections/StateData';
 import { State } from '../../../models/State';
+import { CreatedBySystem } from '../../../helpers/constants';
 
 
 jest.mock('express');
@@ -50,7 +51,8 @@ describe('Job Sessions Tets', () => {
                 cost: 50,
                 handle: 'expired.unpaid',
                 start: expiredDate,
-                paymentAddress: 'addr_expired_unpaid'
+                paymentAddress: 'addr_expired_unpaid',
+                createdBySystem: CreatedBySystem.UI
             }
         )
     ]
@@ -62,7 +64,8 @@ describe('Job Sessions Tets', () => {
                 cost: 50,
                 handle: 'paid',
                 start: unexpiredDate,
-                paymentAddress: 'addr_paid'
+                paymentAddress: 'addr_paid',
+                createdBySystem: CreatedBySystem.UI
             }
         )
     ]
@@ -74,7 +77,8 @@ describe('Job Sessions Tets', () => {
                 cost: 50,
                 handle: 'invalid',
                 start: unexpiredDate,
-                paymentAddress: 'addr_invalid_payment'
+                paymentAddress: 'addr_invalid_payment',
+                createdBySystem: CreatedBySystem.UI
             }
         ),
         new ActiveSession(
@@ -84,7 +88,8 @@ describe('Job Sessions Tets', () => {
                 cost: 50,
                 handle: 'expired.paid',
                 start: expiredDate,
-                paymentAddress: 'addr_expired_paid'
+                paymentAddress: 'addr_expired_paid',
+                createdBySystem: CreatedBySystem.UI
             }
         ),
         new ActiveSession(
@@ -94,7 +99,8 @@ describe('Job Sessions Tets', () => {
                 cost: 50,
                 handle: 'paid',
                 start: unexpiredDate,
-                paymentAddress: 'addr_handle_unavailable'
+                paymentAddress: 'addr_handle_unavailable',
+                createdBySystem: CreatedBySystem.UI
             }
         )
     ]
@@ -106,7 +112,8 @@ describe('Job Sessions Tets', () => {
                 cost: 50,
                 handle: 'zero.payment',
                 start: unexpiredDate,
-                paymentAddress: 'addr_zero_payment'
+                paymentAddress: 'addr_zero_payment',
+                createdBySystem: CreatedBySystem.UI
             }
         )
     ]
@@ -125,9 +132,9 @@ describe('Job Sessions Tets', () => {
         { address: 'addr_zero_payment', amount: 0, returnAddress: '' }
     ]
     const RefundableWalletsFixture = [
-        new RefundableSession({ paymentAddress: 'addr_invalid_payment', returnAddress: 'return_addr_invalid', amount: 40 * 1000000, handle: 'invalid' }),
-        new RefundableSession({ paymentAddress: 'addr_expired_paid', returnAddress: 'return_addr_expired', amount: 50 * 1000000, handle: 'expired.paid' }),
-        new RefundableSession({ paymentAddress: 'addr_handle_unavailable', returnAddress: 'return_addr_unavail', amount: 50 * 1000000, handle: 'paid' }),
+        new RefundableSession({ paymentAddress: 'addr_invalid_payment', returnAddress: 'return_addr_invalid', amount: 40 * 1000000, handle: 'invalid', createdBySystem: CreatedBySystem.UI }),
+        new RefundableSession({ paymentAddress: 'addr_expired_paid', returnAddress: 'return_addr_expired', amount: 50 * 1000000, handle: 'expired.paid', createdBySystem: CreatedBySystem.UI }),
+        new RefundableSession({ paymentAddress: 'addr_handle_unavailable', returnAddress: 'return_addr_unavail', amount: 50 * 1000000, handle: 'paid', createdBySystem: CreatedBySystem.UI }),
     ]
     const PaidWalletsFixture = [
         new PaidSession({
@@ -137,7 +144,8 @@ describe('Job Sessions Tets', () => {
             handle: 'paid',
             paymentAddress: 'addr_paid',
             returnAddress: 'addr_paid',
-            start: unexpiredDate
+            start: unexpiredDate,
+            createdBySystem: CreatedBySystem.UI
         })
     ]
     describe('updateSessionsHandler tests', () => {
@@ -215,7 +223,8 @@ describe('Job Sessions Tets', () => {
                     cost: 50,
                     handle: 'zero.payment',
                     start: unexpiredDate,
-                    paymentAddress: 'addr_zero_payment'
+                    paymentAddress: 'addr_zero_payment',
+                    createdBySystem: CreatedBySystem.UI
                 }
             )])
             jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));

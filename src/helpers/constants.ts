@@ -5,7 +5,9 @@ export const CRON_AUTH_LENGTH = 300000; // 5 minutes
 export const CRON_SESSION_LENGTH = 60000; // 1 minute
 export const CRON_MINT_LENGTH = 30000 // 30 seconds
 export const CRON_REFUND_LENGTH = 30000; // 30 seconds
-export const MAX_SESSION_LENGTH = 600000; // 10 minutes
+export const MAX_SESSION_LENGTH_UI = 600000; // 10 minutes
+export const MAX_SESSION_LENGTH_SPO = 86400000; // 24 hours
+export const MAX_SESSION_LENGTH_CLI = 86400000; // 24 hours
 export const MAX_ACCESS_LENGTH = 1800000; // 30 minutes
 export const AUTH_CODE_EXPIRE = 600000; // 10 minutes
 export const PAYMENT_ADDRESS_THRESHOLD = 10;
@@ -19,6 +21,12 @@ export const HEADER_TWITTER_ACCESS_TOKEN = 'x-twitter-token';
 export const TWITTER_UNLOCK_HEADER = 'x-twitter-credentials';
 export const HEADER_JWT_ACCESS_TOKEN = 'x-access-token';
 export const HEADER_JWT_SESSION_TOKEN = 'x-session-token';
+
+export enum CreatedBySystem {
+    UI = 'UI',
+    CLI = 'CLI',
+    SPO = 'SPO'
+}
 
 /**
  * a-z
