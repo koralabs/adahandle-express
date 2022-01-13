@@ -1,3 +1,4 @@
+import { CreatedBySystem } from "../../../../helpers/constants";
 import * as graphql from "../../../../helpers/graphql";
 import { toLovelace } from "../../../../helpers/utils";
 import { PaidSessions } from "../../../../models/firestore/collections/PaidSessions";
@@ -33,6 +34,7 @@ describe('verifyRefund tests', () => {
             attempts: 0,
             paymentAddress: 'addr_123',
             returnAddress: 'return_123',
+            createdBySystem: CreatedBySystem.UI
         }));
         const refund = await verifyRefund('addr_123');
         expect(refund).toEqual({
@@ -68,6 +70,7 @@ describe('verifyRefund tests', () => {
             attempts: 0,
             paymentAddress: 'addr_123',
             returnAddress: 'return_123',
+            createdBySystem: CreatedBySystem.UI
         }));
 
         const refund = await verifyRefund('addr_123');
