@@ -4,7 +4,7 @@ import { toLovelace } from "../../../../helpers/utils";
 import { PaidSessions } from "../../../../models/firestore/collections/PaidSessions";
 import { UsedAddresses } from "../../../../models/firestore/collections/UsedAddresses";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
-import { Refund } from "./processRefund";
+import { Refund } from "./processRefunds";
 
 export const verifyRefund = async (address: string): Promise<Refund | null> => {
     let results;

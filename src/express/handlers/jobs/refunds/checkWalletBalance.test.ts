@@ -1,6 +1,6 @@
 import * as wallet from 'cardano-wallet-js';
 import { checkWalletBalance } from "./checkWalletBalance";
-import { Refund } from './processRefund';
+import { Refund } from './processRefunds';
 
 jest.mock('../../../../helpers/wallet/cardano');
 

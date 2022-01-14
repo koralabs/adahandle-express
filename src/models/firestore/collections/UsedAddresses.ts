@@ -11,11 +11,12 @@ export class UsedAddresses {
         return collection.docs.map(doc => doc.data() as UsedAddress);
     }
 
-    static async getRefundableAddresses(): Promise<UsedAddress[]> {
+    static async getRefundableAddresses(limit = 50): Promise<UsedAddress[]> {
         const snapshot = await admin.firestore()
             .collection(UsedAddresses.collectionName)
             .where('status', '==', UsedAddressStatus.PENDING)
             .where('dateAdded', '<', Date.now() - 1000 * 60 * 60 * 24)
+            .limit(limit)
             .get();
         return snapshot.docs.map(doc => doc.data() as UsedAddress);
     }
@@ -30,12 +31,22 @@ export class UsedAddresses {
         return true;
     }
 
-    public static async updateUsedAddress(id: string, partialUsedAddress: Partial<UsedAddress>): Promise<boolean> {
+    /**
+     * @param {string[]} paymentAddresses 
+     * @param {Partial<UsedAddress>} partialUsedAddress Can be status, dateAdded, txId
+     */
+    public static async batchUpdateUsedAddresses(paymentAddresses: string[], partialUsedAddress: Partial<UsedAddress>) {
         if (partialUsedAddress.id) {
             throw new Error('Cannot update id');
         }
 
-        await admin.firestore().collection(UsedAddresses.collectionName).doc(id).update(partialUsedAddress);
-        return true;
+        const db = admin.firestore();
+        const batch = db.batch();
+        paymentAddresses.forEach(address => {
+            const docRef = db.collection(UsedAddresses.collectionName).doc(address);
+            batch.update(docRef, partialUsedAddress);
+        });
+
+        await batch.commit();
     }
 }

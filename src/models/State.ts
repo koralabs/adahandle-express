@@ -11,6 +11,7 @@ interface StateConstructor {
     paidSessions_limit?: number;
     ipfsRate_delay?: number;
     mintConfirmPaidSessions_limit?: number;
+    usedAddresses_limit?: number;
 }
 
 export class State extends BaseModel {
@@ -24,6 +25,7 @@ export class State extends BaseModel {
     public paidSessions_limit: number;
     public ipfsRate_delay: number;
     public mintConfirmPaidSessions_limit: number;
+    public usedAddresses_limit: number;
 
     constructor({
         chainLoad,
@@ -36,6 +38,7 @@ export class State extends BaseModel {
         paidSessions_limit = 10,
         ipfsRate_delay = 1000, // <- Blockfrost is 10/sec, Pinata is 3/sec. 2 servers at 1/sec = 2/sec
         mintConfirmPaidSessions_limit = 500,
+        usedAddresses_limit = 50
     }: StateConstructor) {
         super();
         this.chainLoad = chainLoad ?? 0;
@@ -48,5 +51,6 @@ export class State extends BaseModel {
         this.paidSessions_limit = paidSessions_limit;
         this.ipfsRate_delay = ipfsRate_delay;
         this.mintConfirmPaidSessions_limit = mintConfirmPaidSessions_limit;
+        this.usedAddresses_limit = usedAddresses_limit;
     }
 }

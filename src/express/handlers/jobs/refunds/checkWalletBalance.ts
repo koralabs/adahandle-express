@@ -1,7 +1,7 @@
 import * as wallet from 'cardano-wallet-js';
 import { LogCategory, Logger } from '../../../../helpers/Logger';
 
-import { Refund } from "./processRefund";
+import { Refund } from "./processRefunds";
 
 export const checkWalletBalance = async (refunds: Refund[], mintWallet: wallet.ShelleyWallet): Promise<void> => {
     const availableBalance = mintWallet.getTotalBalance();

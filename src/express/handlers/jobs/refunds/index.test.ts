@@ -10,8 +10,8 @@ import { UsedAddresses } from '../../../../models/firestore/collections/UsedAddr
 import { UsedAddress } from '../../../../models/UsedAddress';
 import * as verifyRefund from "./verifyRefund";
 import * as checkWalletBalance from "./checkWalletBalance";
-import * as processRefund from "./processRefund";
-import { Refund } from './processRefund';
+import * as processRefunds from "./processRefunds";
+import { Refund } from './processRefunds';
 
 jest.mock('express');
 jest.mock('../../../../helpers/wallet/cardano');
@@ -21,14 +21,14 @@ jest.mock('../../../../models/firestore/collections/PaidSessions');
 jest.mock('../../../../models/firestore/collections/StateData');
 jest.mock('./verifyRefund');
 jest.mock('./checkWalletBalance');
-jest.mock('./processRefund');
+jest.mock('./processRefunds');
 
 describe('Refund Cron Tests', () => {
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
 
     const checkWalletBalanceSpy = jest.spyOn(checkWalletBalance, 'checkWalletBalance');
-    const processRefundSpy = jest.spyOn(processRefund, 'processRefund');
+    const processRefundsSpy = jest.spyOn(processRefunds, 'processRefunds');
     const lockCronSpy = jest.spyOn(StateData, 'lockCron');
     const unlockCronSpy = jest.spyOn(StateData, 'unlockCron');
 
@@ -100,7 +100,7 @@ describe('Refund Cron Tests', () => {
             expect(lockCronSpy).toHaveBeenCalledTimes(1);
             expect(unlockCronSpy).toHaveBeenCalledTimes(1);
             expect(checkWalletBalanceSpy).toHaveBeenCalledTimes(1);
-            expect(processRefundSpy).toHaveBeenCalledTimes(2);
+            expect(processRefundsSpy).toHaveBeenCalledTimes(1);
 
             expect(mockResponse.status).toHaveBeenCalledWith(200);
             expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Processed 2 refunds." });
