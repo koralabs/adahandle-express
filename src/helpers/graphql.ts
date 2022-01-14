@@ -58,6 +58,7 @@ export interface GraphqlCardanoSenderAddress {
   }[],
   outputs: {
     address: string;
+    value?: string;
   }[]
 }
 
@@ -217,7 +218,7 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
 
   const addressesWithPayments = checkedAddresses.filter(address => address.amount > 0)
   const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address));
-  if (returnAddresses){
+  if (returnAddresses) {
     addressesWithPayments.forEach((address, index, arr) => {
       address.returnAddress = returnAddresses[index];
     });
@@ -302,6 +303,7 @@ export const lookupReturnAddresses = async (
               }
             }
           ) {
+            includedAt
             outputs(
               order_by:{
                 index:asc
@@ -325,6 +327,8 @@ export const lookupReturnAddresses = async (
     return null;
   }
 
+  // TODO: check includedAt to make sure valid transaction
+
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
     const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
@@ -333,6 +337,79 @@ export const lookupReturnAddresses = async (
   const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as string[];
 
   return orderedTransactions;
+}
+
+export const lookupTransaction = async (
+  address: string
+): Promise<{
+  totalPayments: number;
+  returnAddress?: string;
+}> => {
+  const url = getGraphqlEndpoint();
+  const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      variables: {
+        address,
+      },
+      query: `
+        query ($address: String!) {
+          transactions(
+            where:{
+              outputs:{
+                address:{
+                  _eq: $address
+                }
+              }
+            }
+          ) {
+            includedAt
+            outputs(
+              order_by:{
+                index:asc
+              }
+            ){
+              address
+              value
+            }
+
+            inputs(
+              limit:1,
+            ) {
+              address
+            }
+          }
+        }
+      `,
+    })
+  }).then(res => res.json())
+
+  let totalPayments = 0
+  let returnAddress;
+  res?.data?.transactions?.forEach(t => {
+    const outputSum = t.outputs.reduce((acc, output) => {
+      if (output.address === address && output.value) {
+        return acc + parseFloat(output.value);
+      }
+
+      return acc;
+    }, 0);
+
+    totalPayments += outputSum;
+
+    const returnInput = t.inputs.find(input => input.address != address);
+    if (returnInput) {
+      returnAddress = returnInput.address;
+    }
+  });
+
+  return {
+    totalPayments,
+    returnAddress
+  };
 }
 
 export const lookupLocation = async (

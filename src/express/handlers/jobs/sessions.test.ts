@@ -183,26 +183,28 @@ describe('Job Sessions Tets', () => {
             jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(1, UnpaidSessionFixture[0]);
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, PaidSessionFixture[0], PaidSessions.addPaidSession, { ...PaidSessionFixture[0], attempts: 0, dateAdded: expect.any(Number), emailAddress: "", status: 'pending', returnAddress: expect.any(String), createdBySystem: "UI" });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, { 
-                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.amount, 
-                "handle": RefundableSessionsFixture[0].handle, 
-                "paymentAddress": RefundableSessionsFixture[0].paymentAddress, 
-                "createdBySystem": RefundableSessionsFixture[0].createdBySystem, 
-                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.returnAddress });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, { 
-                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.amount, 
-                "handle": RefundableSessionsFixture[1].handle, 
-                "paymentAddress": RefundableSessionsFixture[1].paymentAddress, 
-                "createdBySystem": RefundableSessionsFixture[1].createdBySystem, 
-                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.returnAddress });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(5, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, { 
-                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.amount, 
-                "handle": RefundableSessionsFixture[2].handle, 
-                "paymentAddress": RefundableSessionsFixture[2].paymentAddress, 
-                "createdBySystem": RefundableSessionsFixture[2].createdBySystem, 
-                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.returnAddress });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(1, PaidSessionFixture[0], PaidSessions.addPaidSession, { ...PaidSessionFixture[0], attempts: 0, dateAdded: expect.any(Number), emailAddress: "", status: 'pending', returnAddress: expect.any(String), createdBySystem: "UI" });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, {
+                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.amount,
+                "handle": RefundableSessionsFixture[0].handle,
+                "paymentAddress": RefundableSessionsFixture[0].paymentAddress,
+                "createdBySystem": RefundableSessionsFixture[0].createdBySystem,
+                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.returnAddress
+            });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, {
+                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.amount,
+                "handle": RefundableSessionsFixture[1].handle,
+                "paymentAddress": RefundableSessionsFixture[1].paymentAddress,
+                "createdBySystem": RefundableSessionsFixture[1].createdBySystem,
+                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.returnAddress
+            });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, {
+                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.amount,
+                "handle": RefundableSessionsFixture[2].handle,
+                "paymentAddress": RefundableSessionsFixture[2].paymentAddress,
+                "createdBySystem": RefundableSessionsFixture[2].createdBySystem,
+                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.returnAddress
+            });
             // If the above number of items were called correctly then
             // then the last use case should be true which is
             // The zero payment session is left alone
@@ -213,7 +215,7 @@ describe('Job Sessions Tets', () => {
             jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenCalledTimes(5);
+            expect(activeRemoveSpy).toHaveBeenCalledTimes(4);
         });
 
         it('leave unexpired zero payment sessions alone', async () => {

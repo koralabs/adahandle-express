@@ -3,9 +3,15 @@ import { awaitForEach, chunk, delay } from "../../../helpers/utils";
 import { WalletAddress } from "../../WalletAddress";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { LogCategory, Logger } from "../../../helpers/Logger";
+import { UsedAddresses } from "./UsedAddresses";
 
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
+
+    static async getWalletAddressesUnsafe(): Promise<WalletAddress[]> {
+        const collection = await admin.firestore().collection(WalletAddresses.collectionName).limit(0).get();
+        return collection.docs.map(doc => doc.data() as WalletAddress);
+    }
 
     static async getFirstAvailableWalletAddress(): Promise<WalletAddress | null> {
         // Since we can't have more than one user at a time use an address
@@ -17,7 +23,8 @@ export class WalletAddresses {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();
                     if (walletAddress) {
-                        t.delete(doc.ref, {exists:true});
+                        t.delete(doc.ref, { exists: true });
+                        UsedAddresses.addUsedAddress(walletAddress.id);
                         return walletAddress as WalletAddress;
                     }
                 }
