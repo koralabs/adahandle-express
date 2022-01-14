@@ -10,6 +10,7 @@ jest.mock('../../../../models/firestore/collections/UsedAddresses');
 describe('processRefund tests', () => {
 
     const updateUsedAddressStatusSpy = jest.spyOn(UsedAddresses, 'updateUsedAddressStatus');
+    const updateUsedAddressSpy = jest.spyOn(UsedAddresses, 'updateUsedAddress');
 
     afterEach(() => {
         jest.clearAllMocks();
@@ -32,7 +33,7 @@ describe('processRefund tests', () => {
         }, mockWallet as unknown as wallet.ShelleyWallet);
 
         expect(updateUsedAddressStatusSpy).toHaveBeenNthCalledWith(1, paymentAddress, UsedAddressStatus.PROCESSING);
-        expect(updateUsedAddressStatusSpy).toHaveBeenNthCalledWith(2, paymentAddress, UsedAddressStatus.PROCESSED);
+        expect(updateUsedAddressSpy).toHaveBeenNthCalledWith(1, paymentAddress, { "status": "processed", "txId": "txId" });
         expect(mockSendPayment).toHaveBeenCalledWith(undefined, [{ "id": returnAddress, "state": "unused" }], [amount]);
     });
 

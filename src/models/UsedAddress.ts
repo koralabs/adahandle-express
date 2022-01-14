@@ -10,10 +10,12 @@ export enum UsedAddressStatus {
 export class UsedAddress extends BaseModel {
     public dateAdded: number;
     public status: UsedAddressStatus;
+    public txId: string;
 
-    constructor(public id: string, dateAdded = Date.now()) {
+    constructor(public id: string, dateAdded = Date.now(), txId = '') {
         super();
         this.status = UsedAddressStatus.PENDING;
         this.dateAdded = dateAdded;
+        this.txId = txId;
     }
 }

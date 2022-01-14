@@ -17,6 +17,6 @@ export const processRefund = async (refund: Refund, refundWallet: wallet.Shelley
     );
 
     if (tx.id) {
-        await UsedAddresses.updateUsedAddressStatus(paymentAddress, UsedAddressStatus.PROCESSED);
+        await UsedAddresses.updateUsedAddress(paymentAddress, { status: UsedAddressStatus.PROCESSED, txId: tx.id });
     }
 }

@@ -29,4 +29,13 @@ export class UsedAddresses {
         await admin.firestore().collection(UsedAddresses.collectionName).doc(id).update({ status });
         return true;
     }
+
+    public static async updateUsedAddress(id: string, partialUsedAddress: Partial<UsedAddress>): Promise<boolean> {
+        if (partialUsedAddress.id) {
+            throw new Error('Cannot update id');
+        }
+
+        await admin.firestore().collection(UsedAddresses.collectionName).doc(id).update(partialUsedAddress);
+        return true;
+    }
 }
