@@ -1,6 +1,5 @@
 import * as wallet from 'cardano-wallet-js';
-import { getRefundWallet } from "./getRefundWallet";
-import * as cardano from "../../../../helpers/wallet/cardano";
+import { checkWalletBalance } from "./checkWalletBalance";
 import { Refund } from './processRefund';
 
 jest.mock('../../../../helpers/wallet/cardano');
@@ -20,11 +19,10 @@ describe('getRefundsWallet tests', () => {
         amount: 20
     }]
 
-    it('Should send lock the cron and send notification if there is not enough data', async () => {
+    it('Should lock the cron and send notification if there is not enough data', async () => {
         const mockShellyWallet = {
             getTotalBalance: jest.fn(() => 10),
         } as unknown as wallet.ShelleyWallet;
-        jest.spyOn(cardano, 'getMintWalletServer').mockResolvedValue(mockShellyWallet);
-        expect(getRefundWallet(refundsFixture)).rejects.toThrowError('Balance of 10 is not enough to refund 40!');
+        expect(checkWalletBalance(refundsFixture, mockShellyWallet)).rejects.toThrowError('Balance of 10 is not enough to refund 40!');
     });
 });

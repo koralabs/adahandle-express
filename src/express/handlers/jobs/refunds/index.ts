@@ -1,11 +1,12 @@
 import * as express from "express";
 
 import { LogCategory, Logger } from "../../../../helpers/Logger";
+import { getMintWalletServer } from "../../../../helpers/wallet/cardano";
 import { awaitForEach } from "../../../../helpers/utils";
 import { CronJobLockName, StateData } from "../../../../models/firestore/collections/StateData";
 import { UsedAddresses } from "../../../../models/firestore/collections/UsedAddresses";
 import { verifyRefund } from "./verifyRefund";
-import { getRefundWallet } from "./getRefundWallet";
+import { checkWalletBalance } from "./checkWalletBalance";
 import { processRefund, Refund } from "./processRefund";
 
 const buildLogMessage = (startTime: number, refundsCount: number) => ({ message: `refundsHandler processed ${refundsCount} refunds in ${Date.now() - startTime}ms`, event: 'refundsHandler.run', count: refundsCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
@@ -43,7 +44,9 @@ export const refundsHandler = async (req: express.Request, res: express.Response
             return verifiedRefund;
         }, Promise.resolve([]));
 
-        const refundWallet = await getRefundWallet(verifiedRefunds);
+        const refundWallet = await getMintWalletServer();
+
+        await checkWalletBalance(verifiedRefunds, refundWallet);
         await awaitForEach(verifiedRefunds, (refund) => processRefund(refund, refundWallet));
 
         Logger.log(buildLogMessage(startTime, verifiedRefunds.length));
