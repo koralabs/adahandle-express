@@ -11,7 +11,7 @@ const run = async () => {
 
     await delay(2000);
 
-    const state = new State({ chainLoad: 1, position: 2, totalHandles: 3 });
+    const state = new State({ chainLoad: 1, accessQueueSize: 2, mintingQueueSize: 2, totalHandles: 3 });
     await StateData.upsertStateData(state);
 
     const stateData = await StateData.getStateData();

@@ -19,7 +19,7 @@ describe('AccessQueues Tests', () => {
       ssl: false
     });
 
-    await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).set(new State({ chainLoad: 1, position: 2, totalHandles: 3, updateActiveSessions_lock: false, accessQueue_limit: 20 }).toJSON());
+    await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).set(new State({ chainLoad: 1, accessQueueSize: 2, mintingQueueSize: 2, totalHandles: 3, updateActiveSessionsLock: false, accessQueueLimit: 20 }).toJSON());
   });
 
   afterEach(async () => {

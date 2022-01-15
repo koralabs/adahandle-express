@@ -92,6 +92,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
 
   Logger.log(getLogMessage(startTime))
 
+  res.cookie('sessionTimestamp', Date.now());
   return token && res.status(200).json({
     error: false,
     verified: true,

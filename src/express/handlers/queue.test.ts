@@ -135,7 +135,7 @@ describe('Queue Tests', () => {
     mocked(fs.existsSync).mockReturnValue(true);
       jest.mock(`${fileName}`, () => ({ verifyClientAgentInfo: () => ({ sha: '123' }) }));
     mocked(AccessQueues.addToQueue).mockResolvedValue({ updated: true, alreadyExists: false });
-    mocked(AccessQueues.getAccessQueuesCount).mockResolvedValue(1);
+    mocked(AccessQueues.getAccessQueueCount).mockResolvedValue(1);
 
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
@@ -163,7 +163,7 @@ describe('Queue Tests', () => {
       mocked(fs.existsSync).mockReturnValue(true);
       jest.mock(`${fileName}`, () => { return { verifyClientAgentInfo: () => { return { sha: '123' }; } } });
       mocked(AccessQueues.addToQueue).mockResolvedValue({ updated: true, alreadyExists: false });
-      mocked(AccessQueues.getAccessQueuesCount).mockResolvedValue(1);
+      mocked(AccessQueues.getAccessQueueCount).mockResolvedValue(1);
 
       // @ts-expect-error no need to have a valid response
       const sendMailMock = mocked(sgMail.send).mockResolvedValue([{}, {}]);

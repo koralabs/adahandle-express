@@ -2,11 +2,12 @@ import * as express from "express";
 import * as compression from 'compression';
 import * as helmet from 'helmet';
 import * as sgMail from '@sendgrid/mail';
+import * as cookieParser from 'cookie-parser';
 import { urlencoded, json } from 'body-parser'
 import Router from 'express-promise-router';
 
 // Handlers
-import { postToQueueHandler } from "./handlers/queue";
+import { postToQueueHandler, queuePositionHandler } from "./handlers/queue";
 import { verifyHandler } from "./handlers/verify";
 import { sessionHandler } from "./handlers/session";
 import { handleExistsHandler } from "./handlers/exists";
@@ -31,6 +32,7 @@ export const startServer = async () => {
   app.use(compression());
   app.use(helmet());
   app.use(router);
+  app.use(cookieParser());
 
   // Set headers.
   app.use(function (req, res, next) {
@@ -44,6 +46,7 @@ export const startServer = async () => {
 
   // Handlers
   app.post("/queue", postToQueueHandler);
+  app.post("/queuePosition", queuePositionHandler);
   app.get("/payment", paymentConfirmedHandler);
   app.get("/exists", handleExistsHandler);
   app.get("/verify", verifyHandler);

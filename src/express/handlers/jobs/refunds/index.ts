@@ -22,7 +22,7 @@ export const refundsHandler = async (req: express.Request, res: express.Response
         });
     }
 
-    const refundAddresses = await UsedAddresses.getRefundableAddresses(stateData.usedAddresses_limit);
+    const refundAddresses = await UsedAddresses.getRefundableAddresses(stateData.usedAddressesLimit);
 
     if (refundAddresses.length === 0) {
         return res.status(200).json({

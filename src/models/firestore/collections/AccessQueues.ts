@@ -19,8 +19,8 @@ export class AccessQueues {
     return collection.docs.map(doc => doc.data() as AccessQueue);
   }
 
-  static async getAccessQueuesCount(): Promise<number> {
-    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).get();
+  static async getAccessQueueCount(): Promise<number> {
+    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'pending').get(); // Need to account for the people that haven't clicked their links yet
     return snapshot.size;
   }
 
@@ -47,7 +47,7 @@ export class AccessQueues {
   static async updateAccessQueue(createVerificationFunction?: (email: string) => Promise<VerificationInstance>): Promise<{ count: number }> {
     const stateData = await StateData.getStateData();
 
-    const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueue_limit ?? 20).get();
+    const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueueLimit ?? 20).get();
 
     await Promise.all(queuedSnapshot.docs.map(async doc => {
       const entry = doc.data();
@@ -95,7 +95,10 @@ export class AccessQueues {
     }));
 
     // Alert the upcoming batch.
-    await AccessQueues.alertBatchByEstimatedHours(3);
+    await AccessQueues.alertBatchByEstimatedHours(2);
+
+    stateData.lastAccessTimestamp = queuedSnapshot.docs[queuedSnapshot.size - 1].data().dateAdded;
+    StateData.upsertStateData(stateData)
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)
@@ -117,12 +120,12 @@ export class AccessQueues {
   }
 
   static async alertBatchByEstimatedHours(hours: number): Promise<void> {
-    const { accessQueue_limit } = await StateData.getStateData();
+    const { accessQueueLimit: accessQueueLimit } = await StateData.getStateData();
     // Estimate starting index in queue by amount of numbers let in every 5 minutes.
     const batchesPerHour = 12;
-    const targetIndex = (accessQueue_limit * batchesPerHour) * hours;
+    const targetIndex = (accessQueueLimit * batchesPerHour) * hours;
 
-    const totalQueueCount = await AccessQueues.getAccessQueuesCount();
+    const totalQueueCount = await AccessQueues.getAccessQueueCount();
     if (totalQueueCount < targetIndex) {
       Logger.log({ message: `Less numbers than the target index. Skipping alert message.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
       return;
@@ -132,7 +135,7 @@ export class AccessQueues {
       .where('status', '==', 'queued')
       .orderBy('dateAdded')
       .offset(targetIndex)
-      .limit(accessQueue_limit ?? 20)
+      .limit(accessQueueLimit ?? 20)
       .get();
 
     const batchEmailAddresses = targetBatch.docs.map((doc) => {
@@ -141,7 +144,7 @@ export class AccessQueues {
     });
 
     try {
-      Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueue_limit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
+      Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueueLimit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
       await Promise.all(
         batchEmailAddresses.map(async (email: string) => {
           if (isTesting()) {

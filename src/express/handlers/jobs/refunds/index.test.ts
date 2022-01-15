@@ -65,7 +65,7 @@ describe('Refund Cron Tests', () => {
     describe('updateSessionsHandler tests', () => {
         it('should return 200 if cron is locked', async () => {
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue(usedAddressesFixture);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, refunds_lock: true, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, mintingQueueSize: 10, accessQueueSize: 10, refundsLock: true, totalHandles: 171 }));
             await refundsHandler(mockRequest as Request, mockResponse as Response);
 
             expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -74,7 +74,7 @@ describe('Refund Cron Tests', () => {
 
         it('should return 200 no refundable sessions are found', async () => {
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue([]);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, refunds_lock: false, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, mintingQueueSize: 10, accessQueueSize: 10, refundsLock: false, totalHandles: 171 }));
             await refundsHandler(mockRequest as Request, mockResponse as Response);
 
             expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -87,7 +87,7 @@ describe('Refund Cron Tests', () => {
             } as unknown as wallet.ShelleyWallet;
 
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue(usedAddressesFixture);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, refunds_lock: false, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, mintingQueueSize: 10, accessQueueSize: 10, refundsLock: false, totalHandles: 171 }));
             jest.spyOn(cardano, 'getMintWalletServer').mockResolvedValue(mockShellyWallet);
             jest.spyOn(verifyRefund, 'verifyRefund')
                 .mockResolvedValueOnce(null)

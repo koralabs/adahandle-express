@@ -6,6 +6,8 @@ import { HEADER_EMAIL, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
 import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 import { LogCategory, Logger } from "../../helpers/Logger";
+import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
+import { StateData } from "../../models/firestore/collections/StateData";
 
 interface VerifyClientAgentInfoResult {
   sha?: string,
@@ -18,6 +20,14 @@ interface QueueResponseBody {
   alreadyExists?: boolean;
   message?: string;
   queue?: number;
+}
+
+interface QueuePositionResponseBody {
+  error: boolean;
+  accessQueuePosition: number;
+  mintingQueuePosition: number;
+  minutes: number;
+  message?: string;
 }
 
 const validateEmail = (email: string): boolean => {
@@ -75,7 +85,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     const { updated, alreadyExists } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
 
     if (updated) {
-      const total = await AccessQueues.getAccessQueuesCount();
+      const total = await AccessQueues.getAccessQueueCount();
       const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Depending on your place in line, you should receive your access link anytime between now and around 3 hours. Make sure you turn on email notifications!';
       const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
       await sgMail
@@ -110,4 +120,31 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       message: JSON.stringify(e),
     } as QueueResponseBody);
   }
+}
+
+export const queuePositionHandler = async (req: express.Request, res: express.Response) => {
+  const {
+    accessQueueSize,
+    mintingQueueSize,
+    accessQueueLimit,
+    paidSessionsLimit,
+    availableMintingServers,
+    lastAccessTimestamp,
+    lastMintingTimestamp } = await StateData.getStateData();
+  const userTimestamp = req.cookies?.sessionTimestamp;
+
+  if (!userTimestamp){
+    return res.status(404).statusMessage = 'sessionTimestamp not found';
+  }
+
+  const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, userTimestamp, accessQueueLimit);
+  const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, userTimestamp, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
+
+  return res.status(200).json({
+    error:false,
+    accessQueuePosition: accessQueuePosition.position,
+    mintingQueuePosition: mintingQueuePosition.position,
+    minutes: accessQueuePosition.minutes + mintingQueuePosition.minutes
+  } as QueuePositionResponseBody);
+  
 }
