@@ -7,11 +7,14 @@ import { getKey } from "../../helpers/jwt";
 import { mocked } from 'ts-jest/utils';
 import { getNewAddress } from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
+import { StakePools } from "../../models/firestore/collections/StakePools";
+import { StakePool } from "../../models/StakePool";
 
 jest.mock('jsonwebtoken');
 jest.mock('../../helpers/jwt');
 jest.mock('../../helpers/wallet');
 jest.mock('../../models/firestore/collections/ActiveSession');
+jest.mock('../../models/firestore/collections/StakePools');
 
 describe('Session Tests', () => {
   let mockRequest: Partial<Request>;
@@ -195,5 +198,76 @@ describe('Session Tests', () => {
     expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 10, "start": expect.any(Number), createdBySystem: "UI" });
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
+  });
+
+  describe('SPO tests', () => {
+    it('Should send 200 successful response', async () => {
+      mockRequest = {
+        headers: {
+          'x-access-token': 'test-access-token',
+          'x-session-token': 'test-session-token'
+        }
+      }
+
+      const validAddress = 'burrito_tacos123';
+      const validHandle = 'taco';
+
+      mocked(getKey).mockResolvedValue('valid');
+
+      // @ts-ignore
+      mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
+      mocked(StakePools.getStakePoolsByTicker).mockResolvedValue([new StakePool('1', validHandle, 'stakeKey_1', ['owner1', 'owner2'])]);
+      mocked(getNewAddress).mockResolvedValue(validAddress);
+      const mockedAddActiveSession = mocked(ActiveSessions.addActiveSession).mockResolvedValue(true);
+
+      await sessionHandler(mockRequest as Request, mockResponse as Response);
+
+      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250, "start": expect.any(Number), createdBySystem: "SPO" });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
+    });
+
+    it('Should send 403 if handle does not exist', async () => {
+      mockRequest = {
+        headers: {
+          'x-access-token': 'test-access-token',
+          'x-session-token': 'test-session-token'
+        }
+      }
+
+      const validAddress = 'burrito_tacos123';
+      const validHandle = 'taco';
+
+      mocked(getKey).mockResolvedValue('valid');
+
+      // @ts-ignore
+      mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
+      mocked(StakePools.getStakePoolsByTicker).mockResolvedValue([]);
+
+      await sessionHandler(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Stake pool not found. Please contact support." });
+    });
+
+    it('Should send 403 if there are more than 1 tickers for a handle', async () => {
+      mockRequest = {
+        headers: {
+          'x-access-token': 'test-access-token',
+          'x-session-token': 'test-session-token'
+        }
+      }
+
+      mocked(getKey).mockResolvedValue('valid');
+
+      // @ts-ignore
+      mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'burrito', emailAddress: '+1234567890', cost: 250, isSPO: true });
+      mocked(StakePools.getStakePoolsByTicker).mockResolvedValue([new StakePool('1', 'burrito', 'stakeKey_1', ['owner1', 'owner2']), new StakePool('2', 'burrito', 'stakeKey_2', ['owner3', 'owner4'])]);
+
+      await sessionHandler(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Ticker belongs to multiple stake pools. Please contact support." });
+    });
   });
 });

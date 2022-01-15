@@ -81,21 +81,12 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     } as SessionResponseBody);
   }
 
-  const walletAddress = await getNewAddress();
-
-  if (false === walletAddress) {
-    return res.status(500).json({
-      error: true,
-      message: 'Failed to retrieve payment address data.',
-    } as SessionResponseBody);
-  }
-
   // Save session.
   const { emailAddress, cost, iat = Date.now(), isSPO = false } = sessionData;
   const newSession = new ActiveSession({
     emailAddress,
     handle,
-    paymentAddress: walletAddress,
+    paymentAddress: '',
     cost,
     start: iat,
     createdBySystem: CreatedBySystem.UI
@@ -136,6 +127,16 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     }
   }
 
+  const walletAddress = await getNewAddress();
+
+  if (false === walletAddress) {
+    return res.status(500).json({
+      error: true,
+      message: 'Failed to retrieve payment address data.',
+    } as SessionResponseBody);
+  }
+
+  newSession.paymentAddress = walletAddress;
   const added = await ActiveSessions.addActiveSession(newSession);
 
   if (!added) {

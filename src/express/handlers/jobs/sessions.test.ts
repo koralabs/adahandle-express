@@ -11,7 +11,8 @@ import { RefundableSessions } from '../../../models/firestore/collections/Refund
 import { updateSessionsHandler } from './sessions';
 import { StateData } from '../../../models/firestore/collections/StateData';
 import { State } from '../../../models/State';
-import { CreatedBySystem } from '../../../helpers/constants';
+import { CreatedBySystem, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
+import { toLovelace } from '../../../helpers/utils';
 
 
 jest.mock('express');
@@ -102,6 +103,17 @@ describe('Job Sessions Tets', () => {
                 paymentAddress: 'addr_handle_unavailable',
                 createdBySystem: CreatedBySystem.UI
             }
+        ),
+        new ActiveSession(
+            {
+                // handle unavailable
+                emailAddress: '222-222-2222',
+                cost: 250,
+                handle: 'paid',
+                start: unexpiredDate,
+                paymentAddress: 'addr_spo_invalid_payment',
+                createdBySystem: CreatedBySystem.SPO
+            }
         )
     ]
     const ZeroPaymentFixture = [
@@ -117,11 +129,27 @@ describe('Job Sessions Tets', () => {
             }
         )
     ]
+
+    const SPOSessionFixture = [
+        new ActiveSession(
+            {
+                // zero payment
+                emailAddress: '222-222-2222',
+                cost: 250,
+                handle: 'spo.payment',
+                start: unexpiredDate,
+                paymentAddress: 'addr_spo_payment',
+                createdBySystem: CreatedBySystem.SPO
+            }
+        )
+    ]
+
     const ActiveSessionsFixture = [
         ...UnpaidSessionFixture,
         ...PaidSessionFixture,
         ...RefundableSessionsFixture,
-        ...ZeroPaymentFixture
+        ...ZeroPaymentFixture,
+        ...SPOSessionFixture
     ]
     const CheckPaymentsFixture = [
         { address: 'expired_unpaid', amount: 0, returnAddress: '' },
@@ -129,7 +157,9 @@ describe('Job Sessions Tets', () => {
         { address: 'addr_invalid_payment', amount: 40 * 1000000, returnAddress: 'return_addr_invalid' },
         { address: 'addr_expired_paid', amount: 50 * 1000000, returnAddress: 'return_addr_expired' },
         { address: 'addr_handle_unavailable', amount: 50 * 1000000, returnAddress: 'return_addr_unavail' },
-        { address: 'addr_zero_payment', amount: 0, returnAddress: '' }
+        { address: 'addr_spo_invalid_payment', amount: 100 * 1000000, returnAddress: 'return_addr_spo_invalid_payment' },
+        { address: 'addr_zero_payment', amount: 0, returnAddress: '' },
+        { address: 'addr_spo_payment', amount: 250 * 1000000, returnAddress: 'return_addr_spo' }
     ]
     const RefundableWalletsFixture = [
         new RefundableSession({ paymentAddress: 'addr_invalid_payment', returnAddress: 'return_addr_invalid', amount: 40 * 1000000, handle: 'invalid', createdBySystem: CreatedBySystem.UI }),
@@ -172,6 +202,7 @@ describe('Job Sessions Tets', () => {
          * Refund if not expired but invalid payment
          * Refund if expired and paid
          * Refund if paid sessions already has handle
+         * Refund SPO and charge fee
          * Move to paid if accurate payment and not expired
          * Leave alone if not expired and no payment
          */
@@ -205,6 +236,13 @@ describe('Job Sessions Tets', () => {
                 "createdBySystem": RefundableSessionsFixture[2].createdBySystem,
                 "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.returnAddress
             });
+            expect(activeRemoveSpy).toHaveBeenNthCalledWith(5, RefundableSessionsFixture[3], RefundableSessions.addRefundableSession, {
+                "amount": Math.max(0, (CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[3].paymentAddress)?.amount ?? 0) - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
+                "handle": RefundableSessionsFixture[3].handle,
+                "paymentAddress": RefundableSessionsFixture[3].paymentAddress,
+                "createdBySystem": RefundableSessionsFixture[3].createdBySystem,
+                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[3].paymentAddress)?.returnAddress
+            });
             // If the above number of items were called correctly then
             // then the last use case should be true which is
             // The zero payment session is left alone
@@ -215,7 +253,7 @@ describe('Job Sessions Tets', () => {
             jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenCalledTimes(4);
+            expect(activeRemoveSpy).toHaveBeenCalledTimes(5);
         });
 
         it('leave unexpired zero payment sessions alone', async () => {

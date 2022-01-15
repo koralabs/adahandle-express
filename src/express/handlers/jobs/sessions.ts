@@ -75,55 +75,12 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
           return;
         }
 
-        if (entry.createdBySystem === CreatedBySystem.SPO) {
-          // TODO: verify that session has not expired
-          // If so, add to DQL
-
-          // verify matching payment matches session cost
-          if (matchingPayment.amount !== toLovelace(entry.cost)) {
-            // if not, refund cost plus fee
-            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              paymentAddress: entry.paymentAddress,
-              amount: matchingPayment.amount - SPO_HANDLE_ADA_REFUND_FEE,
-              handle: entry.handle,
-              returnAddress: matchingPayment.returnAddress,
-              createdBySystem: entry.createdBySystem
-            }));
-            return;
-          }
-
-          // verify SPO owns the ticker
-          const stakeKey = getBech32StakeKeyFromAddress(matchingPayment.returnAddress);
-          const [stakePool] = await StakePools.getStakePoolsByTicker(entry.handle);
-
-          if ((!stakePool || !stakeKey) || stakePool.stakeKey !== stakeKey) {
-            // if not, refund cost plus fee
-            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              paymentAddress: entry.paymentAddress,
-              amount: matchingPayment.amount - SPO_HANDLE_ADA_REFUND_FEE,
-              handle: entry.handle,
-              returnAddress: matchingPayment.returnAddress,
-              createdBySystem: entry.createdBySystem
-            }));
-            return;
-          }
-
-          paidVal.push(entry);
-          ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
-            ...entry,
-            returnAddress: matchingPayment.returnAddress,
-            emailAddress: '', // email address intentionally scrubbed for privacy
-            status: 'pending',
-          }));
-
-          return;
-        }
-
         /**
          * Remove if expired and not paid
          * Refund if not expired but invalid payment
          * Refund if expired and paid
          * Refund if paid sessions already has handle
+         * Refund SPO and charge fee
          * Move to paid if accurate payment and not expired
          * Leave alone if not expired and no payment
          */
@@ -166,7 +123,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
           if (matchingPayment.amount !== toLovelace(entry.cost)) {
             ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
               paymentAddress: entry.paymentAddress,
-              amount: matchingPayment.amount,
+              amount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
               handle: entry.handle,
               returnAddress: matchingPayment.returnAddress,
               createdBySystem: entry.createdBySystem
@@ -187,6 +144,24 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
                 createdBySystem: entry.createdBySystem
               }));
               return;
+            }
+
+            // verify SPO can purchase the ticker
+            if (entry.createdBySystem === CreatedBySystem.SPO) {
+              const stakeKey = getBech32StakeKeyFromAddress(matchingPayment.returnAddress);
+              const [stakePool] = await StakePools.getStakePoolsByTicker(entry.handle);
+
+              if ((!stakePool || !stakeKey) || stakePool.stakeKey !== stakeKey) {
+                // if not, refund cost plus fee
+                ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+                  paymentAddress: entry.paymentAddress,
+                  amount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
+                  handle: entry.handle,
+                  returnAddress: matchingPayment.returnAddress,
+                  createdBySystem: entry.createdBySystem
+                }));
+                return;
+              }
             }
 
             paidVal.push(entry);
