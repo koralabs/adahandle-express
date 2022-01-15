@@ -20,6 +20,7 @@ import { sendAuthCodesHandler } from './handlers/jobs/auth';
 import { mintPaidSessionsHandler } from './handlers/jobs/minting';
 import { updateSessionsHandler } from './handlers/jobs/sessions';
 import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
+import { refundsHandler } from "./handlers/jobs/refunds";
 
 export const startServer = async () => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
@@ -58,6 +59,7 @@ export const startServer = async () => {
   app.post('/updateActiveSessions', updateSessionsHandler);
   app.post('/mintPaidSessions', mintPaidSessionsHandler);
   app.post('/mintConfirm', mintConfirmHandler);
+  app.post('/refunds', refundsHandler);
 
   app.listen(3000);
 }

@@ -8,14 +8,14 @@ import { createTwilioVerification } from "../../../helpers/twilo";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
-import { isTesting, isEmulating } from "../../../helpers/constants";
+import { isTesting } from "../../../helpers/constants";
 
 export class AccessQueues {
   public static readonly collectionName = buildCollectionNameWithSuffix('accessQueues');
   public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('accessQueuesDLQ');
 
   static async getAccessQueues(): Promise<AccessQueue[]> {
-    const collection = await admin.firestore().collection(AccessQueues.collectionName).get();
+    const collection = await admin.firestore().collection(AccessQueues.collectionName).orderBy('dateAdded', "desc").get();
     return collection.docs.map(doc => doc.data() as AccessQueue);
   }
 

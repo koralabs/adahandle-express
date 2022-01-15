@@ -30,7 +30,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
   const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, PaidSession[]>>((acc, session) => {
     if (session.txId) {
       const sessions = acc.get(session.txId) ?? [];
-      acc.set(session.txId, [...sessions, session as PaidSession]);
+      acc.set(session.txId, [...sessions, session]);
     }
     return acc;
   }, new Map());

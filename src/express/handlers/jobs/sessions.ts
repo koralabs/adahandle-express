@@ -59,9 +59,9 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     const paidVal: ActiveSession[] = [];
     const walletAddresses = dedupeActiveSessions.map(s => s.paymentAddress)
 
-    const startTime = Date.now();
+    const startCheckPaymentsTime = Date.now();
     const sessionPaymentStatuses = await checkPayments(walletAddresses);
-    Logger.log({ message: `check payment finished in ${Date.now() - startTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
+    Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
     dedupeActiveSessions.forEach(
       (entry, index) => {
@@ -96,7 +96,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
             return;
           }
 
-          ActiveSessions.removeActiveSession(entry);
+          ActiveSessions.removeAndAddToDLQ([entry]);
           return;
         }
 
