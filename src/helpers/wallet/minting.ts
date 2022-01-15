@@ -87,7 +87,7 @@ export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]):
       }
 
       return metadata;
-    }, stateData.ipfsRate_delay); // <- 1 second delay between API calls
+    }, stateData.ipfsRateDelay); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {

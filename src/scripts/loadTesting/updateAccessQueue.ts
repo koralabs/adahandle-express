@@ -25,7 +25,7 @@ const run = async () => {
     console.time("updateAccessQueueTest");
     //await appendAccessQueueDataToFirestore();
     //await updateAccessQueueTest();
-    const count = await AccessQueues.getAccessQueuesCount();
+    const count = await AccessQueues.getAccessQueueCount();
     console.timeEnd("updateAccessQueueTest");
     console.log(`count: ${count}`);
 }

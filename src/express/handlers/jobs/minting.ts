@@ -31,7 +31,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   }
 
-  const paidSessionsLimit = stateData.paidSessions_limit;
+  const paidSessionsLimit = stateData.paidSessionsLimit;
   const paidSessions: PaidSession[] = await PaidSessions.getByStatus({ statusType: 'pending', limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
     return res.status(200).json({
@@ -103,6 +103,10 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
     await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
+
+    stateData.lastMintingTimestamp = paidSessions[paidSessions.length - 1].dateAdded;
+    StateData.upsertStateData(stateData)
+    
     Logger.log(getLogMessage(startTime, paidSessions.length))
     return res.status(200).json({
       error: false,

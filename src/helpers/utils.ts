@@ -41,3 +41,16 @@ export const getFingerprint = (handle: string): string => {
         Buffer.from(handle)
     ).fingerprint();
 }
+
+export const calculatePositionAndMinutesInQueue = (queueSize: number, lastTimestamp: number, userTimestamp: number, queueLimit: number) => {
+    if (queueSize <= queueLimit) {
+        return { position: 0, minutes: 0 };
+    }
+    if (userTimestamp <= lastTimestamp){
+        return { position: 0, minutes: 0 };
+    }
+    const currentTimestamp = Date.now();
+    const position = ((userTimestamp - lastTimestamp) / (currentTimestamp - lastTimestamp)) * queueSize;
+    const minutes = position / queueLimit;
+    return { position, minutes };
+}

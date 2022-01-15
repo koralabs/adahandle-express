@@ -29,7 +29,7 @@ export class PaidSession extends BaseModel {
   public id?: string;
   public txId?: string;
   public status?: PaidSessionStatusType;
-  public dateAdded?: number;
+  public dateAdded: number;
   public createdBySystem: CreatedBySystem;
 
   constructor({

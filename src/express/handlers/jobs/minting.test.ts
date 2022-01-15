@@ -25,7 +25,7 @@ describe('mintPaidSessionsHandler Tests', () => {
   });
 
   it('should not proceed if locked', async () => {
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, mintPaidSessions_lock: true, totalHandles: 171 }));
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, mintPaidSessionsLock: true, totalHandles: 171 }));
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
@@ -34,7 +34,7 @@ describe('mintPaidSessionsHandler Tests', () => {
   });
 
   it('should not proceed if chain load is too high', async () => {
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .90, position: 10, updateActiveSessions_lock: false, mintPaidSessions_lock: false, totalHandles: 171 }));
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .90, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, mintPaidSessionsLock: false, totalHandles: 171 }));
     mocked(getChainLoad).mockResolvedValue(.90);
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);

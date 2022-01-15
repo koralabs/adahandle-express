@@ -2,55 +2,71 @@ import { BaseModel } from "./BaseModel";
 
 interface StateConstructor {
     chainLoad?: number;
-    position: number;
+    accessQueueSize: number;
+    mintingQueueSize: number;
     totalHandles: number;
-    updateActiveSessions_lock?: boolean;
-    mintPaidSessions_lock?: boolean;
-    refunds_lock?: boolean;
-    accessQueue_limit?: number;
-    paidSessions_limit?: number;
-    ipfsRate_delay?: number;
-    mintConfirmPaidSessions_limit?: number;
-    usedAddresses_limit?: number;
+    updateActiveSessionsLock?: boolean;
+    mintPaidSessionsLock?: boolean;
+    refundsLock?: boolean;
+    accessQueueLimit?: number;
+    paidSessionsLimit?: number;
+    mintConfirmPaidSessionsLimit?: number;
+    usedAddressesLimit?: number;
+    ipfsRateDelay?: number;
+    lastMintingTimestamp?: number;
+    lastAccessTimestamp?: number;
+    availableMintingServers?: string;
 }
 
 export class State extends BaseModel {
     public chainLoad: number;
-    public position: number;
+    public accessQueueSize: number;
+    public mintingQueueSize: number;
     public totalHandles: number;
-    public updateActiveSessions_lock: boolean;
-    public mintPaidSessions_lock: boolean;
-    public refunds_lock: boolean;
-    public accessQueue_limit: number;
-    public paidSessions_limit: number;
-    public ipfsRate_delay: number;
-    public mintConfirmPaidSessions_limit: number;
-    public usedAddresses_limit: number;
+    public updateActiveSessionsLock: boolean;
+    public mintPaidSessionsLock: boolean;
+    public refundsLock?: boolean;
+    public accessQueueLimit: number;
+    public paidSessionsLimit: number;
+    public mintConfirmPaidSessionsLimit: number;
+    public usedAddressesLimit: number;
+    public ipfsRateDelay: number;
+    public lastMintingTimestamp: number;
+    public lastAccessTimestamp: number;
+    public availableMintingServers?: string;
 
     constructor({
         chainLoad,
-        position,
+        accessQueueSize,
+        mintingQueueSize,
         totalHandles,
-        updateActiveSessions_lock,
-        mintPaidSessions_lock,
-        refunds_lock,
-        accessQueue_limit = 20,
-        paidSessions_limit = 10,
-        ipfsRate_delay = 1000, // <- Blockfrost is 10/sec, Pinata is 3/sec. 2 servers at 1/sec = 2/sec
-        mintConfirmPaidSessions_limit = 500,
-        usedAddresses_limit = 50
+        updateActiveSessionsLock,
+        mintPaidSessionsLock,
+        refundsLock,
+        accessQueueLimit = 20,
+        paidSessionsLimit = 10,
+        mintConfirmPaidSessionsLimit = 500,
+        usedAddressesLimit = 50,
+        ipfsRateDelay = 1000, // <- Blockfrost is 10/sec, Pinata is 3/sec. 2 servers at 1/sec = 2/sec
+        lastMintingTimestamp = Date.now(),
+        lastAccessTimestamp = Date.now(),
+        availableMintingServers = "testnet01,testnet02",
     }: StateConstructor) {
         super();
         this.chainLoad = chainLoad ?? 0;
-        this.position = position;
+        this.accessQueueSize = accessQueueSize;
+        this.mintingQueueSize = mintingQueueSize;
         this.totalHandles = totalHandles;
-        this.mintPaidSessions_lock = mintPaidSessions_lock ?? false;
-        this.updateActiveSessions_lock = updateActiveSessions_lock ?? false;
-        this.refunds_lock = refunds_lock ?? false;
-        this.accessQueue_limit = accessQueue_limit;
-        this.paidSessions_limit = paidSessions_limit;
-        this.ipfsRate_delay = ipfsRate_delay;
-        this.mintConfirmPaidSessions_limit = mintConfirmPaidSessions_limit;
-        this.usedAddresses_limit = usedAddresses_limit;
+        this.mintPaidSessionsLock = mintPaidSessionsLock ?? false;
+        this.updateActiveSessionsLock = updateActiveSessionsLock ?? false;
+        this.refundsLock = refundsLock ?? false;
+        this.accessQueueLimit = accessQueueLimit;
+        this.paidSessionsLimit = paidSessionsLimit;
+        this.mintConfirmPaidSessionsLimit = mintConfirmPaidSessionsLimit;
+        this.usedAddressesLimit = usedAddressesLimit;
+        this.ipfsRateDelay = ipfsRateDelay;
+        this.lastMintingTimestamp = lastMintingTimestamp;
+        this.lastAccessTimestamp = lastAccessTimestamp;
+        this.availableMintingServers = availableMintingServers;
     }
 }
