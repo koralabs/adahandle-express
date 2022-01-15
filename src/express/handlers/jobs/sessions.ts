@@ -1,6 +1,6 @@
 import * as express from "express";
 
-import { MAX_SESSION_LENGTH_UI, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO } from '../../../helpers/constants';
+import { MAX_SESSION_LENGTH_UI, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
 import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
@@ -11,7 +11,9 @@ import { RefundableSessions } from '../../../models/firestore/collections/Refund
 import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
 import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
-import { CreatedBySystem}  from '../../../helpers/constants';
+import { CreatedBySystem } from '../../../helpers/constants';
+import { getBech32StakeKeyFromAddress } from "../../../helpers/serialization";
+import { StakePools } from "../../../models/firestore/collections/StakePools";
 
 /**
  * Filters out old sessions from the /activeSessions document.
@@ -44,7 +46,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
       acc.set(session.paymentAddress, session);
       return acc;
     }, new Map());
-    
+
     const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
     if (dedupeActiveSessions.length == 0) {
       await StateData.unlockCron(CronJobLockName.UPDATE_ACTIVE_SESSIONS_LOCK);
@@ -64,12 +66,56 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
     Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
     dedupeActiveSessions.forEach(
-      (entry, index) => {
+      async (entry, index) => {
         const sessionAge = Date.now() - entry?.start;
         const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ? MAX_SESSION_LENGTH_CLI : (entry.createdBySystem == CreatedBySystem.SPO ? MAX_SESSION_LENGTH_SPO : MAX_SESSION_LENGTH_UI)
         const matchingPayment = sessionPaymentStatuses[index];
 
         if (!matchingPayment) {
+          return;
+        }
+
+        if (entry.createdBySystem === CreatedBySystem.SPO) {
+          // TODO: verify that session has not expired
+          // If so, add to DQL
+
+          // verify matching payment matches session cost
+          if (matchingPayment.amount !== toLovelace(entry.cost)) {
+            // if not, refund cost plus fee
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              paymentAddress: entry.paymentAddress,
+              amount: matchingPayment.amount - SPO_HANDLE_ADA_REFUND_FEE,
+              handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress,
+              createdBySystem: entry.createdBySystem
+            }));
+            return;
+          }
+
+          // verify SPO owns the ticker
+          const stakeKey = getBech32StakeKeyFromAddress(matchingPayment.returnAddress);
+          const [stakePool] = await StakePools.getStakePoolsByTicker(entry.handle);
+
+          if ((!stakePool || !stakeKey) || stakePool.stakeKey !== stakeKey) {
+            // if not, refund cost plus fee
+            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
+              paymentAddress: entry.paymentAddress,
+              amount: matchingPayment.amount - SPO_HANDLE_ADA_REFUND_FEE,
+              handle: entry.handle,
+              returnAddress: matchingPayment.returnAddress,
+              createdBySystem: entry.createdBySystem
+            }));
+            return;
+          }
+
+          paidVal.push(entry);
+          ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
+            ...entry,
+            returnAddress: matchingPayment.returnAddress,
+            emailAddress: '', // email address intentionally scrubbed for privacy
+            status: 'pending',
+          }));
+
           return;
         }
 
