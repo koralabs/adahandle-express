@@ -57,10 +57,11 @@ export interface GraphqlCardanoSenderAddress {
   }[],
   outputs: {
     address: string;
+    value: string;
   }[]
 }
 
-interface GraphqlCardanoSenderAddressesResult {
+export interface GraphqlCardanoSenderAddressesResult {
   data: {
     transactions: GraphqlCardanoSenderAddress[];
   }
