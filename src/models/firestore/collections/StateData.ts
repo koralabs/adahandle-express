@@ -5,11 +5,11 @@ import { State } from "../../State";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 
 export enum CronJobLockName {
-    MINT_PAID_SESSIONS_LOCK = "mintPaidSessions_lock",
-    SAVE_STATE_LOCK = "saveState_lock",
-    SEND_AUTH_CODES_LOCK = "sendAuthCodes_lock",
-    UPDATE_ACTIVE_SESSIONS_LOCK = "updateActiveSessions_lock",
-    MINT_CONFIRM_LOCK = "mintConfirm_lock"
+    MINT_PAID_SESSIONS_LOCK = "mintPaidSessionsLock",
+    SAVE_STATE_LOCK = "saveStateLock",
+    SEND_AUTH_CODES_LOCK = "sendAuthCodesLock",
+    UPDATE_ACTIVE_SESSIONS_LOCK = "updateActiveSessionsLock",
+    MINT_CONFIRM_LOCK = "mintConfirmLock"
 }
 
 export class StateData {
@@ -29,7 +29,7 @@ export class StateData {
 
     public static async upsertStateData(state: State): Promise<void> {
         const stateObj = Object.keys(state).reduce((acc, key) => {
-            if (key.endsWith('_lock') || key.endsWith('_limit')) {
+            if (key.endsWith('Lock') || key.endsWith('Limit')) {
                 return acc;
             }
 

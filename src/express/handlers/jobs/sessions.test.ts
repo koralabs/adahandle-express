@@ -151,7 +151,7 @@ describe('Job Sessions Tets', () => {
     describe('updateSessionsHandler tests', () => {
         it('should return 200 if cron is locked', async () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: true, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: true, totalHandles: 171 }));
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
 
             expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -160,7 +160,7 @@ describe('Job Sessions Tets', () => {
 
         it('should return no active sessions', async () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue([]);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
 
             expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -180,7 +180,7 @@ describe('Job Sessions Tets', () => {
 
         it('should process paid, refunds, and expired sessions correctly', async () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
             expect(activeRemoveSpy).toHaveBeenNthCalledWith(1, UnpaidSessionFixture[0]);
@@ -210,7 +210,7 @@ describe('Job Sessions Tets', () => {
 
         it('should remove duplicate active sessions', async () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue([...ActiveSessionsFixture, ...ActiveSessionsFixture]);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
             expect(activeRemoveSpy).toHaveBeenCalledTimes(5);
@@ -228,7 +228,7 @@ describe('Job Sessions Tets', () => {
                     createdBySystem: CreatedBySystem.UI
                 }
             )])
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, totalHandles: 171 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
             expect(activeRemoveSpy).toHaveBeenCalledTimes(0);

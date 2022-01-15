@@ -24,7 +24,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     });
   }
 
-  const limit = stateData.mintConfirmPaidSessions_limit;
+  const limit = stateData.mintConfirmPaidSessionsLimit;
   // get paid sessions with status 'submitted'
   const paidSessions = await PaidSessions.getByStatus({ statusType: 'submitted', limit });
   const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, PaidSession[]>>((acc, session) => {
