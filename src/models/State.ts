@@ -4,9 +4,12 @@ interface StateConstructor {
     chainLoad?: number;
     accessQueueSize: number;
     mintingQueueSize: number;
-    totalHandles: number;
+    totalHandles?: number;
     updateActiveSessionsLock?: boolean;
     mintPaidSessionsLock?: boolean;
+    sendAuthCodesLock?: boolean;
+    saveStateLock?: boolean;
+    mintConfirmLock?: boolean;
     refundsLock?: boolean;
     accessQueueLimit?: number;
     paidSessionsLimit?: number;
@@ -20,11 +23,14 @@ interface StateConstructor {
 
 export class State extends BaseModel {
     public chainLoad: number;
+    public totalHandles?: number;
     public accessQueueSize: number;
     public mintingQueueSize: number;
-    public totalHandles: number;
     public updateActiveSessionsLock: boolean;
     public mintPaidSessionsLock: boolean;
+    public sendAuthCodesLock: boolean;
+    public saveStateLock: boolean;
+    public mintConfirmLock: boolean;
     public refundsLock?: boolean;
     public accessQueueLimit: number;
     public paidSessionsLimit: number;
@@ -37,10 +43,13 @@ export class State extends BaseModel {
 
     constructor({
         chainLoad,
+        totalHandles,
         accessQueueSize,
         mintingQueueSize,
-        totalHandles,
         updateActiveSessionsLock,
+        sendAuthCodesLock,
+        saveStateLock,
+        mintConfirmLock,
         mintPaidSessionsLock,
         refundsLock,
         accessQueueLimit = 20,
@@ -54,12 +63,15 @@ export class State extends BaseModel {
     }: StateConstructor) {
         super();
         this.chainLoad = chainLoad ?? 0;
+        this.totalHandles = totalHandles;
         this.accessQueueSize = accessQueueSize;
         this.mintingQueueSize = mintingQueueSize;
-        this.totalHandles = totalHandles;
         this.mintPaidSessionsLock = mintPaidSessionsLock ?? false;
         this.updateActiveSessionsLock = updateActiveSessionsLock ?? false;
         this.refundsLock = refundsLock ?? false;
+        this.sendAuthCodesLock = sendAuthCodesLock ?? false;
+        this.saveStateLock = saveStateLock ?? false;
+        this.mintConfirmLock = mintConfirmLock ?? false;
         this.accessQueueLimit = accessQueueLimit;
         this.paidSessionsLimit = paidSessionsLimit;
         this.mintConfirmPaidSessionsLimit = mintConfirmPaidSessionsLimit;

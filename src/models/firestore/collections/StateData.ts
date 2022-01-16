@@ -4,28 +4,15 @@ import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuff
 import { State } from "../../State";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 
-export enum CronJobLockName {
-    MINT_PAID_SESSIONS_LOCK = "mintPaidSessionsLock",
-    SAVE_STATE_LOCK = "saveStateLock",
-    SEND_AUTH_CODES_LOCK = "sendAuthCodesLock",
-    UPDATE_ACTIVE_SESSIONS_LOCK = "updateActiveSessionsLock",
-    MINT_CONFIRM_LOCK = "mintConfirmLock",
-    REFUNDS_LOCK = "refundsLock",
-}
+export type CronJobLockName = "mintPaidSessionsLock" | "saveStateLock" | "sendAuthCodesLock" | "updateActiveSessionsLock" | "mintConfirmLock" | "refundsLock"
 
 export class StateData {
     public static readonly collectionName = buildCollectionNameWithSuffix('stateData');
     public static readonly docName = 'state';
 
-    static async getStateData(): Promise<State> {
+    public static async getStateData(): Promise<State> {
         const doc = await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).get();
-        const state = doc.data();
-
-        if (!state) {
-            throw new Error('Unable to find state');
-        }
-
-        return state as State;
+        return doc.data() as State;
     }
 
     public static async upsertStateData(state: State): Promise<void> {
@@ -47,6 +34,18 @@ export class StateData {
         }
 
         await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).update(stateObj);
+    }
+
+    public static async checkAndLockCron(name: CronJobLockName): Promise<boolean> {
+        const state = await StateData.getStateData();
+        console.log(`looking at ${name} = ${state[name]}`);
+        if (state[name] == true) {
+          Logger.log({ message: `Cron job ${name} is locked`, event: `{name}.locked`, category: LogCategory.NOTIFY });
+          return false;
+        }
+        await StateData.lockCron(name);
+        return true;
+
     }
 
     public static async lockCron(name: CronJobLockName) {

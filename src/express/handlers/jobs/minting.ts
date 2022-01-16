@@ -10,28 +10,22 @@ import { RefundableSessions } from "../../../models/firestore/collections/Refund
 import { RefundableSession } from "../../../models/RefundableSession";
 import { awaitForEach, toLovelace } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
+import { StateData } from "../../../models/firestore/collections/StateData";
 
 const mintPaidSessions = async (req: express.Request, res: express.Response) => {
-  const stateData = await StateData.getStateData();
-  if (stateData[CronJobLockName.MINT_PAID_SESSIONS_LOCK]) {
-    Logger.log({ message: `Cron job ${CronJobLockName.MINT_PAID_SESSIONS_LOCK} is locked`, event: 'mintPaidSessionsHandler.locked', category: LogCategory.NOTIFY });
-    return res.status(200).json({
-      error: false,
-      message: 'Minting cron is locked. Try again later.'
-    });
-  }
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintPaidSessions processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintPaidSessions.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-  if (stateData?.chainLoad > MAX_CHAIN_LOAD) {
+  const state = await StateData.getStateData();
+  if (state.chainLoad > MAX_CHAIN_LOAD) {
+
     return res.status(200).json({
       error: false,
       message: 'Chain load is too high.'
     });
   }
 
-  const paidSessionsLimit = stateData.paidSessionsLimit;
+  const paidSessionsLimit = state.paidSessionsLimit;
   const paidSessions: PaidSession[] = await PaidSessions.getByStatus({ statusType: 'pending', limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
     return res.status(200).json({
@@ -104,10 +98,10 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
     await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
 
-    stateData.lastMintingTimestamp = paidSessions[paidSessions.length - 1].dateAdded;
-    StateData.upsertStateData(stateData)
+    state.lastMintingTimestamp = paidSessions[paidSessions.length - 1].dateAdded;
+    StateData.upsertStateData(state)
     
-    Logger.log(getLogMessage(startTime, paidSessions.length))
+    Logger.log(getLogMessage(startTime, paidSessions.length));
     return res.status(200).json({
       error: false,
       message: txId
@@ -128,9 +122,22 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   try {
+
+    if (!await StateData.checkAndLockCron('mintPaidSessionsLock')){
+      return res.status(200).json({
+        error: false,
+        message: 'Mint Paid Sessions cron is locked. Try again later.'
+      });
+    }  
+
     const result = await mintPaidSessions(req, res);
+
+    await StateData.unlockCron('mintPaidSessionsLock');
+
     return result;
   } catch (error) {
+
+    await StateData.unlockCron('mintPaidSessionsLock');
     return res.status(200).json({
       error: true,
       message: JSON.stringify(error)
