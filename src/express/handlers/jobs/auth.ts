@@ -40,6 +40,8 @@ export const sendAuthCodesHandler = async (req: express.Request, res: express.Re
       message: 'Job complete.'
     });
   } catch (e) {
+    Logger.log({message: JSON.stringify(e), event: 'sendAuthCodesHandler.run', category: LogCategory.ERROR});
+    await StateData.unlockCron('sendAuthCodesLock');
     return res.status(500).json({
       error: true,
       message: e
