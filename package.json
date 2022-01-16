@@ -51,7 +51,6 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "tailwindcss": "^2.2.16",
-    "ts-transformer-keys": "^0.4.3",
     "twilio": "^3.68.0"
   },
   "devDependencies": {
