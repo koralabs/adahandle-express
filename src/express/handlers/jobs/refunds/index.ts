@@ -2,7 +2,7 @@ import * as express from "express";
 
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { getMintWalletServer } from "../../../../helpers/wallet/cardano";
-import { CronJobLockName, StateData } from "../../../../models/firestore/collections/StateData";
+import { StateData } from "../../../../models/firestore/collections/StateData";
 import { UsedAddresses } from "../../../../models/firestore/collections/UsedAddresses";
 import { verifyRefund } from "./verifyRefund";
 import { checkWalletBalance } from "./checkWalletBalance";
@@ -10,18 +10,10 @@ import { processRefunds, Refund } from "./processRefunds";
 
 const buildLogMessage = (startTime: number, refundsCount: number) => ({ message: `refundsHandler processed ${refundsCount} refunds in ${Date.now() - startTime}ms`, event: 'refundsHandler.run', count: refundsCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-export const refundsHandler = async (req: express.Request, res: express.Response) => {
+export const handleRefunds = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
 
     const stateData = await StateData.getStateData();
-    if (stateData[CronJobLockName.REFUNDS_LOCK]) {
-        Logger.log({ message: `Cron job ${CronJobLockName.REFUNDS_LOCK} is locked`, event: 'refundsHandler.locked', category: LogCategory.NOTIFY });
-        return res.status(200).json({
-            error: false,
-            message: 'Refunds cron is locked. Try again later.'
-        });
-    }
-
     const refundAddresses = await UsedAddresses.getRefundableAddresses(stateData.usedAddressesLimit);
 
     if (refundAddresses.length === 0) {
@@ -30,8 +22,6 @@ export const refundsHandler = async (req: express.Request, res: express.Response
             message: 'No refundable addresses found.'
         });
     }
-
-    await StateData.lockCron(CronJobLockName.REFUNDS_LOCK);
 
     try {
         const verifiedRefunds = await refundAddresses.reduce<Promise<Refund[]>>(async (acc, address) => {
@@ -50,8 +40,6 @@ export const refundsHandler = async (req: express.Request, res: express.Response
 
         Logger.log(buildLogMessage(startTime, verifiedRefunds.length));
 
-        await StateData.unlockCron(CronJobLockName.REFUNDS_LOCK);
-
         return res.status(200).json({
             error: false,
             message: `Processed ${verifiedRefunds.length} refunds.`
@@ -64,3 +52,15 @@ export const refundsHandler = async (req: express.Request, res: express.Response
         });
     }
 }
+
+
+export const refundsHandler = async (req: express.Request, res: express.Response) => {
+    if (!await StateData.checkAndLockCron('refundsLock')){
+      return res.status(200).json({
+        error: false,
+        message: 'Refunds cron is locked. Try again later.'
+      });
+    }
+    const result = await handleRefunds(req, res);
+    await StateData.unlockCron('refundsLock');
+  }

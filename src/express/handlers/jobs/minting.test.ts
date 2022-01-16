@@ -30,11 +30,12 @@ describe('mintPaidSessionsHandler Tests', () => {
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Minting cron is locked. Try again later." });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Mint Paid Sessions cron is locked. Try again later." });
   });
 
   it('should not proceed if chain load is too high', async () => {
     jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .90, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, mintPaidSessionsLock: false, totalHandles: 171 }));
+    jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
     mocked(getChainLoad).mockResolvedValue(.90);
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
