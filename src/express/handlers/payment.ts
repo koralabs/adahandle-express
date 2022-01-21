@@ -23,6 +23,7 @@ export const paymentConfirmedHandler = async (req: express.Request, res: express
   }
 
   try {
+    // TODO: Fix this to account for accurate payment from an SPO
     const addresses = await checkPayments((req.query.addresses as string).split(','))
     Logger.log(getLogMessage(startTime))
     return res.status(200).json({
@@ -30,7 +31,7 @@ export const paymentConfirmedHandler = async (req: express.Request, res: express
       addresses
     });
   } catch (e) {
-    Logger.log({category: LogCategory.ERROR, message: JSON.stringify(e), event: 'paymentConfirmedHandler.run'})
+    Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'paymentConfirmedHandler.run' })
     return res.status(500).json({
       error: true,
       message: e

@@ -12,7 +12,6 @@ const buildLogMessage = (startTime: number, refundsCount: number) => ({ message:
 
 export const refundsHandler = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
-
     const stateData = await StateData.getStateData();
     if (stateData[CronJobLockName.REFUNDS_LOCK]) {
         Logger.log({ message: `Cron job ${CronJobLockName.REFUNDS_LOCK} is locked`, event: 'refundsHandler.locked', category: LogCategory.NOTIFY });
@@ -43,9 +42,19 @@ export const refundsHandler = async (req: express.Request, res: express.Response
             return verifiedRefund;
         }, Promise.resolve([]));
 
+        if (verifiedRefunds.length === 0) {
+            await StateData.unlockCron(CronJobLockName.REFUNDS_LOCK);
+
+            return res.status(200).json({
+                error: false,
+                message: 'No verified refunds found.'
+            });
+        }
+
         const refundWallet = await getMintWalletServer();
 
         await checkWalletBalance(verifiedRefunds, refundWallet);
+
         await processRefunds(verifiedRefunds, refundWallet)
 
         Logger.log(buildLogMessage(startTime, verifiedRefunds.length));
