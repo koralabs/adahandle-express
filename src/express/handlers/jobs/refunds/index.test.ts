@@ -46,10 +46,10 @@ describe('Refund Cron Tests', () => {
     });
 
     const usedAddressesFixture: UsedAddress[] = [
-        new UsedAddress('0x1'),
-        new UsedAddress('0x2'),
-        new UsedAddress('0x3'),
-        new UsedAddress('0x4'),
+        new UsedAddress({ id: '0x1' }),
+        new UsedAddress({ id: '0x2' }),
+        new UsedAddress({ id: '0x3' }),
+        new UsedAddress({ id: '0x4' }),
     ]
 
     const refunds: Refund[] = [{

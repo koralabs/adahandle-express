@@ -127,7 +127,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     }
   }
 
-  const walletAddress = await getNewAddress();
+  const walletAddress = await getNewAddress(newSession.createdBySystem);
 
   if (false === walletAddress) {
     return res.status(500).json({

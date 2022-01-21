@@ -4,11 +4,12 @@ import {
 import { getWalletServer } from "./cardano";
 import { WalletAddresses } from "../../models/firestore/collections/WalletAddresses";
 import { PaidSession } from "../../models/PaidSession";
-import { LogCategory, Logger } from "../Logger";
+import { Logger } from "../Logger";
 import { buildTransactionFromPaidSessions } from "./minting";
+import { CreatedBySystem } from "../constants";
 
-export const getNewAddress = async (): Promise<string | false> => {
-  const newAddress = await WalletAddresses.getFirstAvailableWalletAddress();
+export const getNewAddress = async (createdBySystem?: CreatedBySystem): Promise<string | false> => {
+  const newAddress = await WalletAddresses.getFirstAvailableWalletAddress(createdBySystem);
 
   if (!newAddress) {
     Logger.log("Not able to get new address.");

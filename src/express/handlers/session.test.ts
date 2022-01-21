@@ -9,6 +9,7 @@ import { getNewAddress } from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { StakePools } from "../../models/firestore/collections/StakePools";
 import { StakePool } from "../../models/StakePool";
+import { CreatedBySystem } from "../../helpers/constants";
 
 jest.mock('jsonwebtoken');
 jest.mock('../../helpers/jwt');
@@ -223,6 +224,7 @@ describe('Session Tests', () => {
       await sessionHandler(mockRequest as Request, mockResponse as Response);
 
       expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250, "start": expect.any(Number), createdBySystem: "SPO" });
+      expect(getNewAddress).toHaveBeenCalledWith(CreatedBySystem.SPO);
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
     });

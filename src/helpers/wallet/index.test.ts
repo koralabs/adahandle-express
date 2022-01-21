@@ -4,6 +4,7 @@ import { getNewAddress } from '.';
 import { WalletAddresses } from '../../models/firestore/collections/WalletAddresses';
 import { WalletAddress } from '../../models/WalletAddress';
 import { LogCategory, Logger } from "../../helpers/Logger";
+import { CreatedBySystem } from "../constants";
 
 jest.mock('firebase-admin');
 jest.mock('../../models/firestore/collections/WalletAddresses');
@@ -39,6 +40,15 @@ describe('Wallet Index Tests', () => {
             const newAddress = await getNewAddress();
             expect(newAddress).toBeFalsy();
             expect(consoleLogSpy).toHaveBeenCalledWith("Not able to get new address.");
+        });
+
+        it('should allow createdBySystem as an input', async () => {
+            /**
+             * the mocked function is used to mock the return value of the function.
+             */
+            mocked(WalletAddresses.getFirstAvailableWalletAddress).mockResolvedValue(WalletAddressesFixture);
+            const newAddress = await getNewAddress(CreatedBySystem.UI);
+            expect(newAddress).toEqual(WalletAddressesFixture.id);
         });
     });
 });

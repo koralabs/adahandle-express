@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { CreatedBySystem } from "../../../helpers/constants";
 import { UsedAddress, UsedAddressStatus } from "../../UsedAddress";
 
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
@@ -21,8 +22,8 @@ export class UsedAddresses {
         return snapshot.docs.map(doc => doc.data() as UsedAddress);
     }
 
-    public static async addUsedAddress(address: string, dateAdded?: number): Promise<boolean> {
-        await admin.firestore().collection(UsedAddresses.collectionName).doc(address).set(new UsedAddress(address, dateAdded).toJSON());
+    public static async addUsedAddress({ address, dateAdded, createdBySystem }: { address: string, dateAdded?: number, createdBySystem?: CreatedBySystem }): Promise<boolean> {
+        await admin.firestore().collection(UsedAddresses.collectionName).doc(address).set(new UsedAddress({ id: address, dateAdded, createdBySystem }).toJSON());
         return true;
     }
 
