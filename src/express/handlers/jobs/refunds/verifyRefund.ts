@@ -1,7 +1,9 @@
+import { CreatedBySystem, SPO_HANDLE_ADA_REFUND_FEE } from "../../../../helpers/constants";
 import { lookupTransaction } from "../../../../helpers/graphql";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { toLovelace } from "../../../../helpers/utils";
 import { PaidSessions } from "../../../../models/firestore/collections/PaidSessions";
+import { StakePools } from "../../../../models/firestore/collections/StakePools";
 import { UsedAddresses } from "../../../../models/firestore/collections/UsedAddresses";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
 import { Refund } from "./processRefunds";
@@ -30,7 +32,21 @@ export const verifyRefund = async (address: string): Promise<Refund | null> => {
     }
 
     const paymentSession = await PaidSessions.getPaidSessionByWalletAddress(address);
-    const lovelaceBalance = results.totalPayments - toLovelace(paymentSession?.cost ?? 0);
+    if (!paymentSession) {
+        Logger.log({ message: `There was a transaction for address: ${address} with no payment session. This should not happen.`, event: 'verifyRefunds.noPaymentSession', category: LogCategory.NOTIFY });
+        await UsedAddresses.updateUsedAddressStatus(address, UsedAddressStatus.BAD_STATE);
+        return null;
+    }
+
+    let lovelaceBalance = results.totalPayments - toLovelace(paymentSession.cost ?? 0);
+
+    if (paymentSession.createdBySystem === CreatedBySystem.SPO) {
+        const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(results.returnAddress, paymentSession.handle);
+        if (!returnAddressOwnsStakePool) {
+            // return address does not own stake pool. Refund and deduct a fee
+            lovelaceBalance = Math.max(0, results.totalPayments - toLovelace(SPO_HANDLE_ADA_REFUND_FEE))
+        }
+    }
 
     // only refund if balance is greater than 2 lovelace (we aren't refunding payments that are less than 2 lovelace)
     if (lovelaceBalance > toLovelace(1)) {

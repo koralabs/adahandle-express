@@ -12,7 +12,6 @@ import { CronJobLockName, StateData } from "../../../models/firestore/collection
 import { PaidSession } from "../../../models/PaidSession";
 import { RefundableSession } from '../../../models/RefundableSession';
 import { CreatedBySystem } from '../../../helpers/constants';
-import { getBech32StakeKeyFromAddress } from "../../../helpers/serialization";
 import { StakePools } from "../../../models/firestore/collections/StakePools";
 
 /**
@@ -148,10 +147,8 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
 
             // verify SPO can purchase the ticker
             if (entry.createdBySystem === CreatedBySystem.SPO) {
-              const stakeKey = getBech32StakeKeyFromAddress(matchingPayment.returnAddress);
-              const [stakePool] = await StakePools.getStakePoolsByTicker(entry.handle);
-
-              if ((!stakePool || !stakeKey) || stakePool.stakeKey !== stakeKey) {
+              const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(matchingPayment.returnAddress, entry.handle);
+              if (!returnAddressOwnsStakePool) {
                 // if not, refund cost plus fee
                 ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
                   paymentAddress: entry.paymentAddress,
@@ -169,7 +166,7 @@ export const updateSessionsHandler = async (req: express.Request, res: express.R
               ...entry,
               returnAddress: matchingPayment.returnAddress,
               emailAddress: '', // email address intentionally scrubbed for privacy
-              status: 'pending',
+              status: 'pending'
             }));
           }
         }

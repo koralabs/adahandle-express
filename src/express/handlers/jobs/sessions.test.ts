@@ -3,8 +3,6 @@ import { Request, Response } from 'express';
 import { mocked } from 'ts-jest/utils';
 import { checkPayments } from '../../../helpers/graphql';
 import { ActiveSession } from '../../../models/ActiveSession';
-import { PaidSession } from '../../../models/PaidSession';
-import { RefundableSession } from '../../../models/RefundableSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
@@ -23,8 +21,6 @@ jest.mock('../../../models/firestore/collections/RefundableSessions');
 jest.mock('../../../models/firestore/collections/StateData');
 
 describe('Job Sessions Tets', () => {
-    const refundSpy = jest.spyOn(RefundableSessions, 'addRefundableSession')
-    const paidSpy = jest.spyOn(PaidSessions, 'addPaidSession')
     const activeRemoveSpy = jest.spyOn(ActiveSessions, 'removeActiveSession')
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
@@ -151,6 +147,7 @@ describe('Job Sessions Tets', () => {
         ...ZeroPaymentFixture,
         ...SPOSessionFixture
     ]
+
     const CheckPaymentsFixture = [
         { address: 'expired_unpaid', amount: 0, returnAddress: '' },
         { address: 'addr_paid', amount: 50 * 1000000, returnAddress: 'return_addr_paid' },
@@ -161,23 +158,7 @@ describe('Job Sessions Tets', () => {
         { address: 'addr_zero_payment', amount: 0, returnAddress: '' },
         { address: 'addr_spo_payment', amount: 250 * 1000000, returnAddress: 'return_addr_spo' }
     ]
-    const RefundableWalletsFixture = [
-        new RefundableSession({ paymentAddress: 'addr_invalid_payment', returnAddress: 'return_addr_invalid', amount: 40 * 1000000, handle: 'invalid', createdBySystem: CreatedBySystem.UI }),
-        new RefundableSession({ paymentAddress: 'addr_expired_paid', returnAddress: 'return_addr_expired', amount: 50 * 1000000, handle: 'expired.paid', createdBySystem: CreatedBySystem.UI }),
-        new RefundableSession({ paymentAddress: 'addr_handle_unavailable', returnAddress: 'return_addr_unavail', amount: 50 * 1000000, handle: 'paid', createdBySystem: CreatedBySystem.UI }),
-    ]
-    const PaidWalletsFixture = [
-        new PaidSession({
-            // full payment
-            emailAddress: '222-222-2222',
-            cost: 50,
-            handle: 'paid',
-            paymentAddress: 'addr_paid',
-            returnAddress: 'addr_paid',
-            start: unexpiredDate,
-            createdBySystem: CreatedBySystem.UI
-        })
-    ]
+
     describe('updateSessionsHandler tests', () => {
         it('should return 200 if cron is locked', async () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture);
