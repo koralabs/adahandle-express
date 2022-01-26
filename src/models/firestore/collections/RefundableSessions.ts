@@ -62,6 +62,15 @@ export class RefundableSessions {
         });
     }
 
+    public static async getRefundableSessionByWalletAddress(address: string): Promise<RefundableSession | null> {
+        const collection = await admin.firestore().collection(RefundableSessions.collectionName).where('paymentAddress', '==', address).limit(1).get();
+        if (collection.empty) {
+            return null;
+        }
+
+        return collection.docs[0].data() as RefundableSession;
+    }
+
     // TODO: Add load test
     static async removeSessionByWalletAddress(address: string): Promise<void> {
         try {

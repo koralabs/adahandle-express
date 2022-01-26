@@ -1,73 +1,15 @@
 import * as express from "express";
-import { CreatedBySystem } from "../../helpers/constants";
-import { checkPayments, WalletSimplifiedBalance } from '../../helpers/graphql';
+import { checkPayments } from '../../helpers/graphql';
 import { Logger, LogCategory } from '../../helpers/Logger';
-import { toLovelace } from "../../helpers/utils";
-import { PaidSessions } from "../../models/firestore/collections/PaidSessions";
-import { StakePools } from "../../models/firestore/collections/StakePools";
 
-export enum ConfirmPaymentStatusCode {
-  CONFIRMED = 'CONFIRMED',
-  INVALID_PAYMENT = 'INVALID_PAYMENT',
-  INVALID_PAYMENT_SPO = 'INVALID_PAYMENT_SPO',
-  SERVER_ERROR = 'SERVER_ERROR',
-  MISSING_PARAM = 'MISSING_PARAM',
-  NO_PAYMENTS_FOUND_ON_CHAIN = 'NO_PAYMENTS_FOUND_ON_CHAIN',
-  BAD_STATE = 'BAD_STATE'
-}
-
-interface PaymentConfirmedItem {
-  statusCode: ConfirmPaymentStatusCode;
-  address: string;
-}
-
-interface PaymentConfirmedResponse {
+interface PaymentResponseBody {
   error: boolean;
-  statusCode?: ConfirmPaymentStatusCode;
-  items?: PaymentConfirmedItem[];
+  message?: string;
+  addresses: {
+    address: string;
+    amount: number;
+  }[];
 }
-
-const buildPaymentConfirmResponses = async (onChainPayments: WalletSimplifiedBalance[]): Promise<PaymentConfirmedItem[]> => {
-  const responses = onChainPayments.map(async onChainPayment => {
-    const { address, amount, returnAddress } = onChainPayment;
-    const paidSession = await PaidSessions.getPaidSessionByWalletAddress(address);
-    if (!paidSession) {
-      // if there is a transaction, we should always have a paid session
-      Logger.log({ message: `No paid session found for ${address}`, event: 'buildPaymentConfirmResponses.noPaidSession', category: LogCategory.NOTIFY });
-      return {
-        statusCode: ConfirmPaymentStatusCode.BAD_STATE,
-        address
-      };
-    }
-
-    const { cost, createdBySystem } = paidSession;
-    if (amount === toLovelace(cost)) {
-      if (createdBySystem === CreatedBySystem.SPO) {
-        const isStakePoolOwner = await StakePools.verifyReturnAddressOwnsStakePool(returnAddress, paidSession.handle);
-        if (!isStakePoolOwner) {
-          return {
-            statusCode: ConfirmPaymentStatusCode.INVALID_PAYMENT_SPO,
-            address,
-          };
-        }
-      }
-
-      // Since payment is not from an SPO, it is a valid payment
-      return {
-        statusCode: ConfirmPaymentStatusCode.CONFIRMED,
-        address,
-      };
-    }
-
-    // payments doesn't match, send invalid payment
-    return {
-      statusCode: ConfirmPaymentStatusCode.INVALID_PAYMENT,
-      address,
-    };
-  });
-
-  return Promise.all(responses);
-};
 
 export const paymentConfirmedHandler = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
@@ -75,31 +17,22 @@ export const paymentConfirmedHandler = async (req: express.Request, res: express
   if (!req.query.addresses) {
     return res.status(400).json({
       error: true,
-      statusCode: ConfirmPaymentStatusCode.MISSING_PARAM
-    } as PaymentConfirmedResponse);
+      message: "Missing addresses query parameter."
+    } as PaymentResponseBody);
   }
 
   try {
-    const splitAddresses = (req.query.addresses as string).split(',');
-    const onChainPayments = await checkPayments(splitAddresses);
-
-    if (onChainPayments.length === 0) {
-      return res.status(200).json({
-        error: false,
-        statusCode: ConfirmPaymentStatusCode.NO_PAYMENTS_FOUND_ON_CHAIN
-      } as PaymentConfirmedResponse);
-    }
-
-    // determine if the payments are valid.
-    const paymentResponse = await buildPaymentConfirmResponses(onChainPayments);
-
+    const addresses = await checkPayments((req.query.addresses as string).split(','))
     Logger.log(getLogMessage(startTime))
-    return res.status(200).json({ error: false, items: paymentResponse } as PaymentConfirmedResponse);
+    return res.status(200).json({
+      error: false,
+      addresses
+    });
   } catch (e) {
     Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'paymentConfirmedHandler.run' })
     return res.status(500).json({
       error: true,
-      statusCode: ConfirmPaymentStatusCode.SERVER_ERROR
+      message: e
     })
   }
 }

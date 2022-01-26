@@ -19,7 +19,7 @@ export class PaidSessions {
     }
 
     static async getPaidSessionByWalletAddress(id: string): Promise<PaidSession | null> {
-        const collection = await admin.firestore().collection(PaidSessions.collectionName).where('wallet.address', '==', id).limit(1).get();
+        const collection = await admin.firestore().collection(PaidSessions.collectionName).where('paymentAddress', '==', id).limit(1).get();
         if (collection.empty) {
             return null;
         }

@@ -3,7 +3,7 @@ import * as express from "express";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { getMintWalletServer } from "../../../../helpers/wallet/cardano";
 import { StateData } from "../../../../models/firestore/collections/StateData";
-import { UsedAddresses } from "../../../../models/firestore/collections/UsedAddresses";
+import { UsedAddresses, UsedAddressUpdates } from "../../../../models/firestore/collections/UsedAddresses";
 import { verifyRefund } from "./verifyRefund";
 import { checkWalletBalance } from "./checkWalletBalance";
 import { processRefunds, Refund } from "./processRefunds";
@@ -14,6 +14,7 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
     const startTime = Date.now();
     const stateData = await StateData.getStateData();
     const refundAddresses = await UsedAddresses.getRefundableAddresses(stateData.usedAddressesLimit);
+    console.log(`Refund addresses: ${refundAddresses.length}`);
 
     if (refundAddresses.length === 0) {
         return res.status(200).json({
@@ -23,18 +24,26 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
     }
 
     try {
-        const verifiedRefunds = await refundAddresses.reduce<Promise<Refund[]>>(async (acc, address) => {
+        const { verifiedRefunds, usedAddressUpdates } = await refundAddresses.reduce<Promise<{ verifiedRefunds: Refund[], usedAddressUpdates: UsedAddressUpdates[] }>>(async (acc, address) => {
             const verifiedRefund = await acc;
-            const refund = await verifyRefund(address.id);
-            if (refund) {
-                verifiedRefund.push(refund);
+            const { verifiedRefunds, usedAddressUpdates } = verifiedRefund;
+            const result = await verifyRefund(address.id);
+            if (result) {
+                const { refund, status } = result;
+                if (refund) {
+                    verifiedRefunds.push(refund);
+                } else if (status) {
+                    usedAddressUpdates.push({ address: address.id, props: { status } });
+                }
             }
             return verifiedRefund;
-        }, Promise.resolve([]));
+        }, Promise.resolve({ verifiedRefunds: [], usedAddressUpdates: [] }));
+
+        if (usedAddressUpdates.length > 0) {
+            await UsedAddresses.batchUpdateUsedAddresses(usedAddressUpdates);
+        }
 
         if (verifiedRefunds.length === 0) {
-            await StateData.unlockCron(CronJobLockName.REFUNDS_LOCK);
-
             return res.status(200).json({
                 error: false,
                 message: 'No verified refunds found.'
@@ -62,14 +71,13 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
     }
 }
 
-
 export const refundsHandler = async (req: express.Request, res: express.Response) => {
-    if (!await StateData.checkAndLockCron('refundsLock')){
-      return res.status(200).json({
-        error: false,
-        message: 'Refunds cron is locked. Try again later.'
-      });
+    if (!await StateData.checkAndLockCron('refundsLock')) {
+        return res.status(200).json({
+            error: false,
+            message: 'Refunds cron is locked. Try again later.'
+        });
     }
-    const result = await handleRefunds(req, res);
+    await handleRefunds(req, res);
     await StateData.unlockCron('refundsLock');
-  }
+}

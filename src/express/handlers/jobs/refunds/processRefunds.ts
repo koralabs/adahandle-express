@@ -14,7 +14,8 @@ export const processRefunds = async (refunds: Refund[], refundWallet: wallet.She
         return acc;
     }, { paymentAddresses: [], returnAddresses: [], amounts: [] });
 
-    await UsedAddresses.batchUpdateUsedAddresses(paymentAddresses, { status: UsedAddressStatus.PROCESSING });
+    const usedAddressUpdates = paymentAddresses.map((paymentAddress) => ({ address: paymentAddress, props: { status: UsedAddressStatus.PROCESSING } }));
+    await UsedAddresses.batchUpdateUsedAddresses(usedAddressUpdates);
 
     const tx = await refundWallet.sendPayment(
         process.env.WALLET_PASSPHRASE,
@@ -23,6 +24,7 @@ export const processRefunds = async (refunds: Refund[], refundWallet: wallet.She
     );
 
     if (tx.id) {
-        await UsedAddresses.batchUpdateUsedAddresses(paymentAddresses, { status: UsedAddressStatus.PROCESSED, txId: tx.id });
+        const usedAddressUpdatesWithTxIds = paymentAddresses.map((paymentAddress) => ({ address: paymentAddress, props: { status: UsedAddressStatus.PROCESSED, txId: tx.id } }));
+        await UsedAddresses.batchUpdateUsedAddresses(usedAddressUpdatesWithTxIds);
     }
 }

@@ -7,7 +7,7 @@ import { refundsHandler } from '.';
 import { StateData } from '../../../../models/firestore/collections/StateData';
 import { State } from '../../../../models/State';
 import { UsedAddresses } from '../../../../models/firestore/collections/UsedAddresses';
-import { UsedAddress } from '../../../../models/UsedAddress';
+import { UsedAddress, UsedAddressStatus } from '../../../../models/UsedAddress';
 import * as verifyRefund from "./verifyRefund";
 import * as checkWalletBalance from "./checkWalletBalance";
 import * as processRefunds from "./processRefunds";
@@ -31,6 +31,7 @@ describe('Refund Cron Tests', () => {
     const processRefundsSpy = jest.spyOn(processRefunds, 'processRefunds');
     const lockCronSpy = jest.spyOn(StateData, 'checkAndLockCron');
     const unlockCronSpy = jest.spyOn(StateData, 'unlockCron');
+    const batchUpdateUsedAddresses = jest.spyOn(UsedAddresses, 'batchUpdateUsedAddresses');
 
     beforeEach(() => {
         mockRequest = {};
@@ -93,10 +94,10 @@ describe('Refund Cron Tests', () => {
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
             jest.spyOn(cardano, 'getMintWalletServer').mockResolvedValue(mockShellyWallet);
             jest.spyOn(verifyRefund, 'verifyRefund')
-                .mockResolvedValueOnce(null)
-                .mockResolvedValueOnce(null)
-                .mockResolvedValueOnce(refunds[0])
-                .mockResolvedValueOnce(refunds[1]);
+                .mockResolvedValueOnce({ status: UsedAddressStatus.PROCESSED })
+                .mockResolvedValueOnce({ status: UsedAddressStatus.PROCESSED })
+                .mockResolvedValueOnce({ refund: refunds[0] })
+                .mockResolvedValueOnce({ refund: refunds[1] });
 
             await refundsHandler(mockRequest as Request, mockResponse as Response);
 
@@ -104,6 +105,7 @@ describe('Refund Cron Tests', () => {
             expect(unlockCronSpy).toHaveBeenCalledTimes(1);
             expect(checkWalletBalanceSpy).toHaveBeenCalledTimes(1);
             expect(processRefundsSpy).toHaveBeenCalledTimes(1);
+            expect(batchUpdateUsedAddresses).toHaveBeenCalledTimes(1);
 
             expect(mockResponse.status).toHaveBeenCalledWith(200);
             expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Processed 2 refunds." });
