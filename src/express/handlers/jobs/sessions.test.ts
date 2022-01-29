@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Request, Response } from 'express';
 import * as graphql from '../../../helpers/graphql';
-import { ActiveSession } from '../../../models/ActiveSession';
+import { ActiveSession, ActiveSessionStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { updateSessionsHandler } from './sessions';
 import { StateData } from '../../../models/firestore/collections/StateData';
@@ -209,17 +209,17 @@ describe('Job Sessions Tets', () => {
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
             expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(8);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(1, [{ ...UnpaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: 0, returnAddress: expect.any(String) }], 'dlq');
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(2, [{ ...PaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String) }], 'paid_pending');
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(3, [{ ...RefundableSessionsFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(40), returnAddress: expect.any(String) }], 'refundable_pending');
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(4, [{ ...RefundableSessionsFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String) }], 'refundable_pending');
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(5, [{ ...RefundableSessionsFixture[2], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String) }], 'refundable_pending');
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(6, [{ ...RefundableSessionsFixture[3], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String) }], 'refundable_pending');
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(1, [{ ...UnpaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: 0, returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(2, [{ ...PaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), status: ActiveSessionStatus.PAID_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(3, [{ ...RefundableSessionsFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(40), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(4, [{ ...RefundableSessionsFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(5, [{ ...RefundableSessionsFixture[2], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(6, [{ ...RefundableSessionsFixture[3], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
 
             // since the 7th item is a 0 payment session, it should skip and be left alone
 
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(7, [{ ...SPOSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String) }], 'paid_pending');
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(8, [{ ...SPOSessionFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(200), returnAddress: expect.any(String) }], 'refundable_pending');
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(7, [{ ...SPOSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), status: ActiveSessionStatus.PAID_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(8, [{ ...SPOSessionFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(200), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
             // If the above number of items were called correctly then
             // then the last use case should be true which is
             // The zero payment session is left alone
