@@ -65,9 +65,10 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   if (refundableSessions.length > 0) {
     const items = refundableSessions.map(s => new ActiveSession({
       ...s,
-      refundAmount: s.cost
+      refundAmount: s.cost,
+      status: ActiveSessionStatus.REFUNDABLE_PENDING,
     }));
-    await ActiveSessions.updateStatusForSessions(items, ActiveSessionStatus.REFUNDABLE_PENDING);
+    await ActiveSessions.updateSessions(items);
   }
 
   // If no handles to mint, abort.

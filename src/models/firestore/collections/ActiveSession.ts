@@ -59,11 +59,11 @@ export class ActiveSessions {
     return snapshot.docs.map(doc => doc.data() as ActiveSession);
   }
 
-  static async updateStatusForSessions(sessions: ActiveSession[], status: ActiveSessionStatus): Promise<boolean[]> {
+  static async updateSessions(sessions: ActiveSession[]): Promise<boolean[]> {
     return Promise.all(sessions.map(async session => {
       return admin.firestore().runTransaction(async t => {
         const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
-        t.update(ref, { status });
+        t.update(ref, { ...session.toJSON() });
         return true;
       }).catch(error => {
         console.log(error);

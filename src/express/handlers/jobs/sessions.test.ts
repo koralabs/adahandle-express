@@ -18,7 +18,7 @@ jest.mock('../../../models/firestore/collections/StateData');
 jest.mock('../../../models/firestore/collections/StakePools');
 
 describe('Job Sessions Tets', () => {
-    const updateStatusForSessionsSpy = jest.spyOn(ActiveSessions, 'updateStatusForSessions')
+    const updateStatusForSessionsSpy = jest.spyOn(ActiveSessions, 'updateSessions')
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
 

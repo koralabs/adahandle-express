@@ -71,22 +71,24 @@ export const updateSessions = async (req: express.Request, res: express.Response
         // Handle expired.
         if (sessionAge >= maxSessionLength) {
           if (matchingPayment && matchingPayment.amount !== 0) {
-            ActiveSessions.updateStatusForSessions([new ActiveSession({
+            ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               refundAmount: matchingPayment.amount,
-              returnAddress: matchingPayment.returnAddress
-            })], ActiveSessionStatus.REFUNDABLE_PENDING);
+              returnAddress: matchingPayment.returnAddress,
+              status: ActiveSessionStatus.REFUNDABLE_PENDING
+            })]);
             return;
           }
 
           // If there is no amount, it's possible that a payment was made after the session expired.
-          ActiveSessions.updateStatusForSessions([new ActiveSession({
+          ActiveSessions.updateSessions([new ActiveSession({
             ...entry,
             emailAddress: '',
             refundAmount: matchingPayment.amount,
-            returnAddress: matchingPayment.returnAddress
-          })], ActiveSessionStatus.DLQ);
+            returnAddress: matchingPayment.returnAddress,
+            status: ActiveSessionStatus.REFUNDABLE_PENDING
+          })]);
           return;
         }
 
@@ -95,24 +97,26 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
           // If no return address, refund.
           if (!matchingPayment.returnAddress) {
-            ActiveSessions.updateStatusForSessions([new ActiveSession({
+            ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               refundAmount: matchingPayment.amount,
-              returnAddress: matchingPayment.returnAddress
-            })], ActiveSessionStatus.REFUNDABLE_PENDING);
+              returnAddress: matchingPayment.returnAddress,
+              status: ActiveSessionStatus.REFUNDABLE_PENDING
+            })]);
             // This should never happen:
             Logger.log({ category: LogCategory.NOTIFY, message: `Refund has no returnAddress! PaymentAddress is ${entry.paymentAddress}`, event: 'updateSessionsHandler.run' });
             return;
           }
 
           if (matchingPayment.amount !== entry.cost) {
-            ActiveSessions.updateStatusForSessions([new ActiveSession({
+            ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               refundAmount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
-              returnAddress: matchingPayment.returnAddress
-            })], ActiveSessionStatus.REFUNDABLE_PENDING);
+              returnAddress: matchingPayment.returnAddress,
+              status: ActiveSessionStatus.REFUNDABLE_PENDING
+            })]);
             return;
           }
 
@@ -121,12 +125,13 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
             // If already has a handle, refund.
             if (paidVal.some(e => e.handle === entry.handle)) {
-              ActiveSessions.updateStatusForSessions([new ActiveSession({
+              ActiveSessions.updateSessions([new ActiveSession({
                 ...entry,
                 emailAddress: '',
                 refundAmount: matchingPayment.amount,
-                returnAddress: matchingPayment.returnAddress
-              })], ActiveSessionStatus.REFUNDABLE_PENDING);
+                returnAddress: matchingPayment.returnAddress,
+                status: ActiveSessionStatus.REFUNDABLE_PENDING
+              })]);
               return;
             }
 
@@ -135,22 +140,24 @@ export const updateSessions = async (req: express.Request, res: express.Response
               const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(matchingPayment.returnAddress, entry.handle);
               if (!returnAddressOwnsStakePool) {
                 // if not, refund cost plus fee
-                ActiveSessions.updateStatusForSessions([new ActiveSession({
+                ActiveSessions.updateSessions([new ActiveSession({
                   ...entry,
                   emailAddress: '',
                   refundAmount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
-                  returnAddress: matchingPayment.returnAddress
-                })], ActiveSessionStatus.REFUNDABLE_PENDING);
+                  returnAddress: matchingPayment.returnAddress,
+                  status: ActiveSessionStatus.REFUNDABLE_PENDING
+                })]);
                 return;
               }
             }
 
             paidVal.push(entry);
-            ActiveSessions.updateStatusForSessions([new ActiveSession({
+            ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
-              returnAddress: matchingPayment.returnAddress
-            })], ActiveSessionStatus.PAID_PENDING);
+              returnAddress: matchingPayment.returnAddress,
+              status: ActiveSessionStatus.PAID_PENDING
+            })]);
           }
         }
       }

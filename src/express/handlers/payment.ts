@@ -68,6 +68,10 @@ const buildPaymentConfirmResponses = async (onChainPayments: WalletSimplifiedBal
   return Promise.all(responses);
 };
 
+const isEmptyResult = (onChainPayments: WalletSimplifiedBalance[]): boolean => {
+  return onChainPayments.length === 1 && onChainPayments[0].amount === 0 && onChainPayments[0].returnAddress === '';
+}
+
 export const paymentConfirmedHandler = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
   const getLogMessage = (startTime: number) => ({ message: `paymentConfirmedHandler processed in ${Date.now() - startTime}ms`, event: 'paymentConfirmedHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
@@ -82,7 +86,7 @@ export const paymentConfirmedHandler = async (req: express.Request, res: express
     const splitAddresses = (req.query.addresses as string).split(',');
     const onChainPayments = await checkPayments(splitAddresses);
 
-    if (onChainPayments.length === 0) {
+    if (onChainPayments.length === 0 || isEmptyResult(onChainPayments)) {
       return res.status(200).json({
         error: false,
         statusCode: ConfirmPaymentStatusCode.NO_PAYMENTS_FOUND_ON_CHAIN
