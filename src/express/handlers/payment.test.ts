@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Request, Response } from 'express';
-import { StakePools } from "../../models/firestore/collections/StakePools";
-import { CreatedBySystem } from "../../helpers/constants";
 import { paymentConfirmedHandler } from './payment';
 import * as graphql from '../../helpers/graphql';
-import { PaidSessions } from "../../models/firestore/collections/PaidSessions";
-import { PaidSession } from "../../models/PaidSession";
 import { toLovelace } from '../../helpers/utils';
+import { ActiveSessions } from '../../models/firestore/collections/ActiveSession';
+import { ActiveSession } from '../../models/ActiveSession';
+import { CreatedBySystem } from '../../helpers/constants';
 
 jest.mock('../../helpers/graphql');
 jest.mock('../../models/firestore/collections/StakePools');
-jest.mock('../../models/firestore/collections/PaidSessions');
+jest.mock('../../models/firestore/collections/ActiveSession');
 
 describe('Payment Tests', () => {
   let mockRequest: Partial<Request>;
@@ -50,7 +49,7 @@ describe('Payment Tests', () => {
     await paymentConfirmedHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Missing addresses query parameter." });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "statusCode": "MISSING_PARAM" });
   });
 
   it('should send a successful 200 response', async () => {
@@ -61,10 +60,20 @@ describe('Payment Tests', () => {
     }
 
     jest.spyOn(graphql, 'checkPayments').mockResolvedValue([WalletSimplifiedBalanceFixture]);
+    jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
+      emailAddress: '',
+      cost: toLovelace(amount),
+      handle: '',
+      paymentAddress: '',
+      start: 0,
+      createdBySystem: CreatedBySystem.UI,
+    }));
 
     await paymentConfirmedHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "addresses": [{ "address": "addr123", "amount": 20000000, "returnAddress": "returnAddr123" }], "error": false });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "items": [{ "address": "addr123", "statusCode": "CONFIRMED" }] });
   });
+
+  // TODO: Test other responses
 });

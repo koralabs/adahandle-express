@@ -2,8 +2,8 @@ import { CreatedBySystem, SPO_HANDLE_ADA_REFUND_FEE } from "../../../../helpers/
 import { lookupTransaction } from "../../../../helpers/graphql";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { toLovelace } from "../../../../helpers/utils";
-import { PaidSessions } from "../../../../models/firestore/collections/PaidSessions";
-import { RefundableSessions } from "../../../../models/firestore/collections/RefundableSessions";
+import { ActiveSessionStatus } from "../../../../models/ActiveSession";
+import { ActiveSessions } from "../../../../models/firestore/collections/ActiveSession";
 import { StakePools } from "../../../../models/firestore/collections/StakePools";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
 import { Refund } from "./processRefunds";
@@ -36,54 +36,33 @@ export const verifyRefund = async (address: string): Promise<VerifyRefundResults
         return { status: UsedAddressStatus.BAD_STATE };
     }
 
-    const [paymentSession, refundableSession] = await Promise.all([
-        PaidSessions.getPaidSessionByWalletAddress(address),
-        RefundableSessions.getRefundableSessionByWalletAddress(address)
-    ]);
+    const session = await ActiveSessions.getByWalletAddress(address);
 
-    if (!paymentSession && !refundableSession) {
-        // If there is no payment session or refundable session, 
-        // we can assume there was no payment or a refund so we can refund the entire amount
-        if (results.totalPayments > toLovelace(1)) {
-            return {
-                refund: {
-                    paymentAddress: address,
-                    returnAddress: results.returnAddress,
-                    amount: results.totalPayments,
-                }
-            }
-        }
-
-        return {
-            status: UsedAddressStatus.PROCESSED
-        };
-    }
-
-    if (paymentSession && refundableSession) {
-        // There should never be both a payment session and a refundable session... right?
-        Logger.log({ message: `${address} has a paid session and refundable sessions`, event: 'verifyRefunds.paidSessionAndRefundSession', category: LogCategory.NOTIFY });
+    if (!session) {
+        // There should never not be a session
+        Logger.log({ message: `${address} has a no active session`, event: 'verifyRefunds.noActiveSession', category: LogCategory.NOTIFY });
         return {
             status: UsedAddressStatus.BAD_STATE
         };
     }
 
-    const createdBySystem = (paymentSession?.createdBySystem ?? refundableSession?.createdBySystem) as CreatedBySystem;
-    const handle = (paymentSession?.handle ?? refundableSession?.handle) as string;
+    const { createdBySystem, handle, status, cost } = session;
+    const { totalPayments } = results;
 
     // Is it possible for a good payment to come in after a refund?
     let lovelaceBalance;
-    if (refundableSession) {
+    if (status === ActiveSessionStatus.REFUNDABLE_PENDING) {
         // If there is a refundable sessions, we need to refund the entire amount
-        lovelaceBalance = results.totalPayments;
+        lovelaceBalance = totalPayments;
     } else {
-        if (!paymentSession?.cost) {
-            Logger.log({ message: `${address} payment session has no cost`, event: 'verifyRefunds.paymentSessionNoCost', category: LogCategory.NOTIFY });
+        if (!cost) {
+            Logger.log({ message: `${address} session has no cost`, event: 'verifyRefunds.activeSessionNoCost', category: LogCategory.NOTIFY });
             return {
                 status: UsedAddressStatus.BAD_STATE
             };
         }
 
-        lovelaceBalance = results.totalPayments - toLovelace(paymentSession?.cost ?? 0)
+        lovelaceBalance = totalPayments > cost ? totalPayments - cost : cost - totalPayments;
     }
 
     if (createdBySystem === CreatedBySystem.SPO) {

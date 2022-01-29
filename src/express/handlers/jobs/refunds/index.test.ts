@@ -17,7 +17,6 @@ jest.mock('express');
 jest.mock('../../../../helpers/wallet/cardano');
 jest.mock('../../../../helpers/graphql');
 jest.mock('../../../../models/firestore/collections/UsedAddresses');
-jest.mock('../../../../models/firestore/collections/PaidSessions');
 jest.mock('../../../../models/firestore/collections/StateData');
 jest.mock('./verifyRefund');
 jest.mock('./checkWalletBalance');

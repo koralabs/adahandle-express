@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { awaitForEach, chunk, delay } from "../../../helpers/utils";
-import { ActiveSession, ActiveSessionInput } from "../../ActiveSession";
+import { ActiveSession, ActiveSessionInput, ActiveSessionStatus } from "../../ActiveSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
 export class ActiveSessions {
@@ -9,7 +9,7 @@ export class ActiveSessions {
   public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('activeSessionsDLQ');
 
   public static async getActiveSessions(): Promise<ActiveSession[]> {
-    const collection = await admin.firestore().collection(ActiveSessions.collectionName).get();
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', ActiveSessionStatus.PENDING).get();
     return collection.docs.map(doc => new ActiveSession({
       ...doc.data() as ActiveSessionInput
     }));
@@ -29,6 +29,89 @@ export class ActiveSessions {
     });
   }
 
+
+  public static async getByWalletAddress(address: string): Promise<ActiveSession | null> {
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('paymentAddress', '==', address).limit(1).get();
+    if (collection.empty) {
+      return null;
+    }
+
+    return collection.docs[0].data() as ActiveSession;
+  }
+
+  static async getByStatus({ statusType, limit, }: { statusType: ActiveSessionStatus; limit: number; }): Promise<ActiveSession[]> {
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', statusType).limit(limit).get();
+    return collection.docs.map(doc => new ActiveSession({
+      ...doc.data() as ActiveSessionInput
+    }));
+  }
+
+  static async getByHandle(handle: string): Promise<ActiveSession[]> {
+    const snapshot = await admin.firestore()
+      .collection(ActiveSessions.collectionName)
+      .where('handle', '==', handle)
+      .get();
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    return snapshot.docs.map(doc => doc.data() as ActiveSession);
+  }
+
+  static async updateStatusForSessions(sessions: ActiveSession[], status: ActiveSessionStatus): Promise<boolean[]> {
+    return Promise.all(sessions.map(async session => {
+      return admin.firestore().runTransaction(async t => {
+        const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
+        t.update(ref, { status });
+        return true;
+      }).catch(error => {
+        console.log(error);
+        Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'ActiveSessions.updateStatus.error', category: LogCategory.ERROR });
+        return false;
+      });
+    }));
+  }
+
+  static async updateStatusAndTxIdForSessions(txId: string, sanitizedSessions: ActiveSession[], statusType: ActiveSessionStatus): Promise<boolean[]> {
+    return Promise.all(sanitizedSessions.map(async session => {
+      return admin.firestore().runTransaction(async t => {
+        const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
+        t.update(ref, { status: statusType, txId });
+        return true;
+      }).catch(error => {
+        Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'updateSessionStatuses.error', category: LogCategory.ERROR });
+        return false;
+      });
+    }));
+  }
+
+  public static async updateSessionStatusesByTxId(txId: string, statusType: ActiveSessionStatus): Promise<void> {
+    return admin.firestore().runTransaction(async t => {
+      const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('txId', '==', txId));
+      if (snapshot.empty) {
+        return;
+      }
+
+      snapshot.docs.forEach(doc => {
+        if (statusType == ActiveSessionStatus.PAID_PENDING) {
+          const session = doc.data() as ActiveSession;
+          const { attempts = 0 } = session;
+          if (attempts >= 2) {
+            Logger.log({ message: `Removing paid session: ${doc.id} with ${txId} from queue and adding to DLQ`, event: 'updateSessionStatusesByTxId.pendingAttemptsLimitReached' });
+            t.update(doc.ref, { status: ActiveSessionStatus.DLQ });
+            return;
+          }
+
+          t.update(doc.ref, { status: statusType, txId: '', attempts: admin.firestore.FieldValue.increment(1) });
+          return;
+        }
+
+        t.update(doc.ref, { status: statusType });
+      });
+    });
+  }
+
   public static async addActiveSessions(activeSessions: ActiveSession[]): Promise<void> {
     const db = admin.firestore();
 
@@ -45,59 +128,5 @@ export class ActiveSessions {
       Logger.log(`Batch ${index + 1} of ${activeSessionChunks.length} completed`);
       await delay(1000);
     });
-  }
-
-  public static async removeActiveSession<T>(session: ActiveSession, otherOperation?: (otherOperationArgs: T, t?: admin.firestore.Transaction) => Promise<void>, otherOperationArgs?: T): Promise<void> {
-    if (!session.id) {
-      Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'removeActiveSession.noId', category: LogCategory.ERROR });
-      return;
-    }
-
-    return admin.firestore().runTransaction(async t => {
-      const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
-
-      if (otherOperation && otherOperationArgs) {
-        otherOperation(otherOperationArgs, t);
-      }
-
-      t.delete(docRef);
-    });
-  }
-
-  public static async removeActiveSessions(oldSessions: ActiveSession[]): Promise<void> {
-    await Promise.all(oldSessions.map(async session => {
-      if (!session.id) {
-        Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'removeActiveSessions.noId', category: LogCategory.ERROR });
-        return;
-      }
-
-      return admin.firestore().runTransaction(async t => {
-        const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
-        t.delete(docRef);
-      }).catch(error => {
-        Logger.log({ message: `error: ${JSON.stringify(error)} removing ${session.id}`, event: 'removeActiveSessions.error', category: LogCategory.ERROR });
-      });
-    }));
-  }
-
-  public static async removeAndAddToDLQ(activeSessions: ActiveSession[]): Promise<void> {
-    await Promise.all(activeSessions.map(async session => {
-      if (!session.id) {
-        Logger.log({ message: `No id found for session: ${JSON.stringify(session)}`, event: 'activeSessions.removeAndAddToDLQ.noId', category: LogCategory.ERROR });
-        return;
-      }
-
-      try {
-        return admin.firestore().runTransaction(async (t) => {
-          const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
-          t.delete(ref);
-
-          const dlqRef = admin.firestore().collection(ActiveSessions.collectionNameDLQ).doc();
-          t.create(dlqRef, new ActiveSession({ ...session, id: dlqRef.id }).toJSON());
-        });
-      } catch (error) {
-        Logger.log({ message: `error: ${JSON.stringify(error)} adding ${session.id} to DLQ`, event: 'activeSessions.removeAndAddToDLQ.error', category: LogCategory.ERROR });
-      }
-    }));
   }
 }

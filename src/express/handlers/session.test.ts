@@ -3,9 +3,8 @@
 import * as jwt from "jsonwebtoken";
 import { Request, Response } from 'express';
 import { sessionHandler } from "./session";
-import { getKey } from "../../helpers/jwt";
-import { mocked } from 'ts-jest/utils';
-import { getNewAddress } from "../../helpers/wallet";
+import * as jwtHelper from "../../helpers/jwt";
+import * as walletHelper from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { StakePools } from "../../models/firestore/collections/StakePools";
 import { StakePool } from "../../models/StakePool";
@@ -70,7 +69,7 @@ describe('Session Tests', () => {
       }
     }
 
-    mocked(getKey).mockResolvedValue(null);
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue(null);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -86,10 +85,10 @@ describe('Session Tests', () => {
       }
     }
 
-    mocked(getKey).mockResolvedValue('valid');
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    mocked(jwt.verify).mockReturnValueOnce(null);
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce(null);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -105,10 +104,10 @@ describe('Session Tests', () => {
       }
     }
 
-    mocked(getKey).mockResolvedValue('valid');
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    mocked(jwt.verify).mockReturnValueOnce('valid');
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid');
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -124,10 +123,10 @@ describe('Session Tests', () => {
       }
     }
 
-    mocked(getKey).mockResolvedValue('valid');
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: '!!NotValid!!' });
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: '!!NotValid!!' });
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -143,11 +142,11 @@ describe('Session Tests', () => {
       }
     }
 
-    mocked(getKey).mockResolvedValue('valid');
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
-    mocked(getNewAddress).mockResolvedValue(false);
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(false);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -163,12 +162,12 @@ describe('Session Tests', () => {
       }
     }
 
-    mocked(getKey).mockResolvedValue('valid');
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
-    mocked(getNewAddress).mockResolvedValue('validAddress');
-    mocked(ActiveSessions.addActiveSession).mockResolvedValue(false);
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue('validAddress');
+    jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(false);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -187,16 +186,16 @@ describe('Session Tests', () => {
     const validAddress = 'burrito_tacos123';
     const validHandle = 'taco';
 
-    mocked(getKey).mockResolvedValue('valid');
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
-    mocked(getNewAddress).mockResolvedValue(validAddress);
-    const mockedAddActiveSession = mocked(ActiveSessions.addActiveSession).mockResolvedValue(true);
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
+    jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
+    const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
-    expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 10, "start": expect.any(Number), createdBySystem: "UI" });
+    expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 10000000, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "UI", status: 'pending' });
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
   });
@@ -213,18 +212,18 @@ describe('Session Tests', () => {
       const validAddress = 'burrito_tacos123';
       const validHandle = 'taco';
 
-      mocked(getKey).mockResolvedValue('valid');
+      jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
       // @ts-ignore
-      mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
-      mocked(StakePools.getStakePoolsByTicker).mockResolvedValue([new StakePool('1', validHandle, 'stakeKey_1', ['owner1', 'owner2'])]);
-      mocked(getNewAddress).mockResolvedValue(validAddress);
-      const mockedAddActiveSession = mocked(ActiveSessions.addActiveSession).mockResolvedValue(true);
+      jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
+      jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('1', validHandle, 'stakeKey_1', ['owner1', 'owner2'])]);
+      const getNewAddressSpy = jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
+      const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
       await sessionHandler(mockRequest as Request, mockResponse as Response);
 
-      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250, "start": expect.any(Number), createdBySystem: "SPO" });
-      expect(getNewAddress).toHaveBeenCalledWith(CreatedBySystem.SPO);
+      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
+      expect(getNewAddressSpy).toHaveBeenCalledWith(CreatedBySystem.SPO);
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
     });
@@ -240,11 +239,11 @@ describe('Session Tests', () => {
       const validAddress = 'burrito_tacos123';
       const validHandle = 'taco';
 
-      mocked(getKey).mockResolvedValue('valid');
+      jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
       // @ts-ignore
-      mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
-      mocked(StakePools.getStakePoolsByTicker).mockResolvedValue([]);
+      jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
+      jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([]);
 
       await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -260,11 +259,11 @@ describe('Session Tests', () => {
         }
       }
 
-      mocked(getKey).mockResolvedValue('valid');
+      jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
       // @ts-ignore
-      mocked(jwt.verify).mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'burrito', emailAddress: '+1234567890', cost: 250, isSPO: true });
-      mocked(StakePools.getStakePoolsByTicker).mockResolvedValue([new StakePool('1', 'burrito', 'stakeKey_1', ['owner1', 'owner2']), new StakePool('2', 'burrito', 'stakeKey_2', ['owner3', 'owner4'])]);
+      jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'burrito', emailAddress: '+1234567890', cost: 250, isSPO: true });
+      jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('1', 'burrito', 'stakeKey_1', ['owner1', 'owner2']), new StakePool('2', 'burrito', 'stakeKey_2', ['owner3', 'owner4'])]);
 
       await sessionHandler(mockRequest as Request, mockResponse as Response);
 

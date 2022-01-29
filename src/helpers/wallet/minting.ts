@@ -2,14 +2,14 @@ import * as wallet from 'cardano-wallet-js';
 import { AddressWallet } from 'cardano-wallet-js';
 import { ReservedHandles } from '../../models/firestore/collections/ReservedHandles';
 
-import { PaidSession } from "../../models/PaidSession";
 import { getMintingWalletSeedPhrase, getPolicyId, getPolicyPrivateKey } from '../constants';
 import { GraphqlCardanoSenderAddress } from "../graphql";
 import { getIPFSImage, createNFTImages } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
-import { CronJobLockName, StateData } from "../../models/firestore/collections/StateData";
+import { StateData } from "../../models/firestore/collections/StateData";
+import { ActiveSession } from '../../models/ActiveSession';
 
 export const getAddressWalletsFromTransactions = async (txs: GraphqlCardanoSenderAddress[]): Promise<wallet.AddressWallet[]> => {
   return txs.map((tx, index) => {
@@ -52,42 +52,42 @@ export const getPolicyScript = () => {
   return script;
 }
 
-export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]): Promise<Record<string, unknown>> => {
+export const generateMetadataFromPaidSessions = async (sessions: ActiveSession[]): Promise<Record<string, unknown>> => {
   Logger.log({ message: `Generating metadata for ${sessions.length} Handles.`, event: 'mintHandlesAndSend' });
   const stateData = await StateData.getStateData();
-  
+
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
-  
+
   await createNFTImages(sessions);
 
   const handlesMetadata = await asyncForEach(sessions, async (session) => {
-      const og = twitterHandles.includes(session.handle);
-      let ipfs: string;
-      try {
-        ipfs = await getIPFSImage(session.handle);
-      } catch(e) {
-        Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
-        throw e;
-      }
+    const og = twitterHandles.includes(session.handle);
+    let ipfs: string;
+    try {
+      ipfs = await getIPFSImage(session.handle);
+    } catch (e) {
+      Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
+      throw e;
+    }
 
-      const metadata = {
-        name: `$${session.handle}`,
-        description: "The Handle Standard",
-        website: "https://adahandle.com",
-        image: `ipfs://${ipfs}`,
-        core: {
-          og: +og,
-          termsofuse: "https://adahandle.com/tou",
-          handleEncoding: "utf-8",
-          prefix: '$',
-          version: 0,
-        },
-        augmentations: [],
-      }
+    const metadata = {
+      name: `$${session.handle}`,
+      description: "The Handle Standard",
+      website: "https://adahandle.com",
+      image: `ipfs://${ipfs}`,
+      core: {
+        og: +og,
+        termsofuse: "https://adahandle.com/tou",
+        handleEncoding: "utf-8",
+        prefix: '$',
+        version: 0,
+      },
+      augmentations: [],
+    }
 
-      return metadata;
-    }, stateData.ipfsRateDelay); // <- 1 second delay between API calls
+    return metadata;
+  }, stateData.ipfsRateDelay); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {
@@ -142,7 +142,7 @@ export const consolidateChanges = (changes: wallet.ApiCoinSelectionChange[]): wa
   return newChange;
 }
 
-export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) => {
+export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]) => {
   const networkConfig = getNetworkConfig();
 
   // Wallets.
@@ -150,7 +150,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
   const ourWallet = await getMintWalletServer();
 
   // Purchase data.
-  const returnAddresses = sessions.map(session => session.returnAddress);
+  const returnAddresses = sessions.map(session => session.returnAddress).filter(Boolean) as string[];
   const returnWallets = returnAddresses.map(addr => new AddressWallet(addr));
 
   // Policy data.

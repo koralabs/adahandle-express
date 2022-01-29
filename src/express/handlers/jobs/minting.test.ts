@@ -1,5 +1,4 @@
-import { mocked } from "ts-jest/utils";
-import { getChainLoad } from "../../../helpers/cardano";
+import * as cardanoHelper from "../../../helpers/cardano";
 import { StateData } from "../../../models/firestore/collections/StateData";
 import { State } from "../../../models/State";
 import { mintPaidSessionsHandler } from "./minting";
@@ -36,7 +35,7 @@ describe('mintPaidSessionsHandler Tests', () => {
   it('should not proceed if chain load is too high', async () => {
     jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .90, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, mintPaidSessionsLock: false, totalHandles: 171 }));
     jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
-    mocked(getChainLoad).mockResolvedValue(.90);
+    jest.spyOn(cardanoHelper, 'getChainLoad').mockResolvedValue(.90);
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 

@@ -3,10 +3,10 @@ import {
 } from "../graphql";
 import { getWalletServer } from "./cardano";
 import { WalletAddresses } from "../../models/firestore/collections/WalletAddresses";
-import { PaidSession } from "../../models/PaidSession";
 import { Logger } from "../Logger";
 import { buildTransactionFromPaidSessions } from "./minting";
 import { CreatedBySystem } from "../constants";
+import { ActiveSession } from "../../models/ActiveSession";
 
 export const getNewAddress = async (createdBySystem?: CreatedBySystem): Promise<string | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress(createdBySystem);
@@ -31,7 +31,7 @@ export const getAmountsFromPaymentAddresses = (
   return totalBalances;
 };
 
-export const mintHandlesAndSend = async (sessions: PaidSession[]): Promise<string> => {
+export const mintHandlesAndSend = async (sessions: ActiveSession[]): Promise<string> => {
   const walletServer = getWalletServer();
   const signedTransaction = await buildTransactionFromPaidSessions(sessions);
   const txId = await walletServer.submitTx(signedTransaction);
