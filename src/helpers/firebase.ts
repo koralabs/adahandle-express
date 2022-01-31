@@ -3,10 +3,11 @@ import { AccessQueues } from "../models/firestore/collections/AccessQueues";
 import { getS3 } from "./aws";
 import { isTesting, isEmulating } from "./constants";
 import { LogCategory, Logger } from "../helpers/Logger";
+import { AccessQueue } from "../models/AccessQueue";
 
 export interface AccessEntry {
   email: string;
-  sid?: string;
+  authCode?: string;
   status?: 'pending' | 'complete';
   start?: number;
 }
@@ -75,6 +76,11 @@ export const verifyTwitterUser = async (token: string): Promise<number | false> 
 export const getAccessQueueCount = async (): Promise<number> => {
   const count = await AccessQueues.getAccessQueues()
   return count.length ?? 0;
+}
+
+export const getAccessQueueData = async (id: string): Promise<AccessQueue> => {
+  const access = await AccessQueues.getAccessQueueData(id)
+  return access;
 }
 
 export const removeAccessQueueData = async (email: string): Promise<boolean> => {

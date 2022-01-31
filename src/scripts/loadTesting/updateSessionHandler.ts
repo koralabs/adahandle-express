@@ -1,4 +1,5 @@
 import { updateSessionsHandler } from "../../express/handlers/jobs/sessions";
+import { CreatedBySystem } from "../../helpers/constants";
 import { Firebase } from "../../helpers/firebase";
 import { WalletSimplifiedBalance } from "../../helpers/graphql";
 import { delay, toLovelace } from "../../helpers/utils";
@@ -18,6 +19,7 @@ const createActiveSessions = async () => {
             handle: `test-${random}`,
             paymentAddress: `exp_test${random}`,
             start: new Date().setMinutes(new Date().getMinutes() - 11),
+            createdBySystem: CreatedBySystem.UI
         }
         return new ActiveSession({ ...activeSession });
     });
@@ -30,6 +32,7 @@ const createActiveSessions = async () => {
             handle: `test-${random}`,
             paymentAddress: `refund_test${random}`,
             start: Date.now(),
+            createdBySystem: CreatedBySystem.UI
         }
         return new ActiveSession({ ...activeSession });
     });
@@ -42,6 +45,7 @@ const createActiveSessions = async () => {
             handle: `test-${random}`,
             paymentAddress: `paid_test${random}`,
             start: Date.now(),
+            createdBySystem: CreatedBySystem.UI
         }
         return new ActiveSession({ ...activeSession });
     });
@@ -66,7 +70,8 @@ export const updateSessionHandlerTest = async () => {
 
             const simplifiedBalance: WalletSimplifiedBalance = {
                 address,
-                amount: toLovelace(amount)
+                amount: toLovelace(amount),
+                returnAddress: 'test'
             }
 
             return simplifiedBalance

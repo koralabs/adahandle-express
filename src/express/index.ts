@@ -1,7 +1,6 @@
 import * as express from "express";
 import * as compression from 'compression';
 import * as helmet from 'helmet';
-import * as sgMail from '@sendgrid/mail';
 import * as cookieParser from 'cookie-parser';
 import { urlencoded, json } from 'body-parser'
 import Router from 'express-promise-router';
@@ -23,7 +22,6 @@ import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
 import { refundsHandler } from "./handlers/jobs/refunds";
 
 export const startServer = async () => {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
   const app = express();
   const router = Router();
 

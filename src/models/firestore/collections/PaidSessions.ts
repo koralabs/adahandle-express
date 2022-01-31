@@ -18,7 +18,7 @@ export class PaidSessions {
         return collection.docs.map(doc => doc.data() as PaidSession);
     }
 
-    static async getPaidSessionByWalletAddress(id: string): Promise<PaidSession | null> {
+    static async getPaidSessionByWalletAddress(id: string): Promise< PaidSession | null> {
         const collection = await admin.firestore().collection(PaidSessions.collectionName).where('wallet.address', '==', id).limit(1).get();
         if (collection.empty) {
             return null;
@@ -37,7 +37,7 @@ export class PaidSessions {
         return snapshot.docs.map(doc => doc.data() as PaidSession);
     }
 
-    static async getByHandles(handle: string): Promise<PaidSession[]> {
+    static async getByHandle(handle: string): Promise<PaidSession[]> {
         const snapshot = await admin.firestore()
             .collection(PaidSessions.collectionName)
             .where('handle', '==', handle)

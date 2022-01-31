@@ -1,10 +1,8 @@
 import * as admin from "firebase-admin";
-import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
-import * as sgMail from "@sendgrid/mail";
 
 import { AUTH_CODE_EXPIRE } from "../../../helpers/constants";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { createTwilioVerification } from "../../../helpers/twilo";
+import { createVerificationEmail, VerificationInstance } from "../../../helpers/email";
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
@@ -17,6 +15,10 @@ export class AccessQueues {
   static async getAccessQueues(): Promise<AccessQueue[]> {
     const collection = await admin.firestore().collection(AccessQueues.collectionName).orderBy('dateAdded', "desc").get();
     return collection.docs.map(doc => doc.data() as AccessQueue);
+  }
+  static async getAccessQueueData(ref: string): Promise<AccessQueue> {
+    const doc = await admin.firestore().collection(AccessQueues.collectionName).doc(ref).get();
+    return doc?.data() as AccessQueue;
   }
 
   static async getAccessQueueCount(): Promise<number> {
@@ -54,7 +56,7 @@ export class AccessQueues {
 
       let data: VerificationInstance | null = null;
       try {
-        data = createVerificationFunction ? await createVerificationFunction(entry.email) : await createTwilioVerification(entry.email)
+        data = createVerificationFunction ? await createVerificationFunction(entry.email) : await createVerificationEmail(entry.email, doc.ref.id)
       } catch (e) {
         Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
         Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
@@ -86,16 +88,13 @@ export class AccessQueues {
           const document = await t.get(doc.ref);
           t.update(document.ref, {
             email: entry.email,
-            sid: data?.sid,
+            authCode: data?.authCode,
             status: data?.status,
             start: Date.now(),
           });
         });
       }
     }));
-
-    // Alert the upcoming batch.
-    await AccessQueues.alertBatchByEstimatedHours(2);
 
     stateData.lastAccessTimestamp = queuedSnapshot.docs[queuedSnapshot.size - 1].data().dateAdded;
     StateData.upsertStateData(stateData)
@@ -117,59 +116,6 @@ export class AccessQueues {
     }));
 
     return { count: queuedSnapshot.docs.length };
-  }
-
-  static async alertBatchByEstimatedHours(hours: number): Promise<void> {
-    const { accessQueueLimit: accessQueueLimit } = await StateData.getStateData();
-    // Estimate starting index in queue by amount of numbers let in every 5 minutes.
-    const batchesPerHour = 12;
-    const targetIndex = (accessQueueLimit * batchesPerHour) * hours;
-
-    const totalQueueCount = await AccessQueues.getAccessQueueCount();
-    if (totalQueueCount < targetIndex) {
-      Logger.log({ message: `Less numbers than the target index. Skipping alert message.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
-      return;
-    }
-
-    const targetBatch = await admin.firestore().collection(AccessQueues.collectionName)
-      .where('status', '==', 'queued')
-      .orderBy('dateAdded')
-      .offset(targetIndex)
-      .limit(accessQueueLimit ?? 20)
-      .get();
-
-    const batchEmailAddresses = targetBatch.docs.map((doc) => {
-      const data = doc.data();
-      return data.email;
-    });
-
-    try {
-      Logger.log({ message: `Attemping to alert messages to a batch of ${accessQueueLimit} numbers at queue index ${targetIndex}.`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
-      await Promise.all(
-        batchEmailAddresses.map(async (email: string) => {
-          if (isTesting()) {
-            return;
-          }
-          await sgMail
-            .send({
-              to: email,
-              from: 'ADA Handle <hello@adahandle.com>',
-              templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
-              dynamicTemplateData: {
-                title: 'Almost Your Turn!',
-                message: `Heads up! It's almost your turn to receive an access link to purchase your Handle. It may take around ${hours} hours to receive your access link, so we suggest turning on email notifications. Remember! Access links are only valid for 10 minutes upon receiving!`
-              },
-              hideWarnings: true
-            })
-            .catch((error) => {
-              Logger.log({ message: JSON.stringify(error), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
-            });
-        })
-      );
-      Logger.log({ message: `Done!`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.INFO });
-    } catch (e) {
-      Logger.log({ message: `Something went wrong: ${JSON.stringify(e)}`, event: 'AccessQueues.alertBatchByEstimatedHours', category: LogCategory.ERROR });
-    }
   }
 
   static async addToQueue({ email, clientAgentSha, clientIp }: { email: string; clientAgentSha: string; clientIp: string; }): Promise<{ updated: boolean; alreadyExists: boolean }> {

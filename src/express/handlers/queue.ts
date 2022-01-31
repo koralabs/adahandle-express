@@ -1,6 +1,5 @@
 import * as express from "express";
 import * as fs from 'fs';
-import * as sgMail from "@sendgrid/mail";
 
 import { HEADER_EMAIL, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
@@ -8,6 +7,7 @@ import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";
+import { createConfirmationEmail } from "../../helpers/email"
 
 interface VerifyClientAgentInfoResult {
   sha?: string,
@@ -85,23 +85,15 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     const { updated, alreadyExists } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
 
     if (updated) {
-      const total = await AccessQueues.getAccessQueueCount();
-      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Depending on your place in line, you should receive your access link anytime between now and around 3 hours. Make sure you turn on email notifications!';
-      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
-      await sgMail
-        .send({
-          to: email,
-          from: 'ADA Handle <hello@adahandle.com>',
-          templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
-          dynamicTemplateData: {
-            title: 'Confirmed!',
-            message: total > 300 ? longResponse : quickResponse
-          },
-          hideWarnings: true
-        })
-        .catch((e) => {
-          Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
-        });
+      
+      try {
+        const total = await AccessQueues.getAccessQueueCount();
+        // TODO: Insert access queue times here
+        await createConfirmationEmail(email);
+      }
+      catch (e) {
+        Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
+      };
     }
 
     Logger.log(getLogMessage(startTime))

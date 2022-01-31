@@ -16,7 +16,7 @@ interface RefundableSessionResult {
 const isHandleOnChain = async (handle: string): Promise<boolean> => {
     try {
         const doesHandleExists = await handleExists(handle);
-        const existingPaidSessions = await PaidSessions.getByHandles(handle);
+        const existingPaidSessions = await PaidSessions.getByHandle(handle);
         return doesHandleExists.exists || doesHandleExists.duplicate || existingPaidSessions.length > 1;
     } catch (error) {
         console.log('error', error);

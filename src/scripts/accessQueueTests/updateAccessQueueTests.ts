@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
+import { VerificationInstance } from "../../helpers/email";
 import { AUTH_CODE_EXPIRE } from "../../helpers/constants";
 import { Firebase } from "../../helpers/firebase";
 import { AccessQueue } from "../../models/AccessQueue";
@@ -19,17 +19,15 @@ const createFixturesInDatabase = async () => {
 
 const createVerificationFunction = async (email: string): Promise<VerificationInstance> => {
     if (email === '333-333-new1') {
-        // @ts-expect-error entire object is unnecessary
         return {
-            sid: `sid-${email}`,
+            authCode: `auth-${email}`,
             status: 'pending',
         }
     }
 
     if (email === '222-222-new2') {
-        // @ts-expect-error entire object is unnecessary
         return {
-            sid: `sid-${email}`,
+            authCode: `auth-${email}`,
             status: 'pending',
         }
     }

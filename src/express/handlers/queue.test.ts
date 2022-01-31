@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // disabling ban-ts-comment is only acceptable in tests. And it's recommend to use very little when you can.
 import * as fs from 'fs';
-import * as sgMail from "@sendgrid/mail";
 import { Request, Response } from 'express';
 import { mocked } from 'ts-jest/utils';
 import { postToQueueHandler } from "./queue";
 import { AccessQueues } from '../../models/firestore/collections/AccessQueues';
+import { createConfirmationEmail } from "../../helpers/email"
 
 jest.mock('fs');
 jest.mock('../../models/firestore/collections/AccessQueues');
-jest.mock('@sendgrid/mail');
+jest.mock('../../helpers/email');
 
 describe('Queue Tests', () => {
   let mockRequest: Partial<Request>;
@@ -165,8 +165,7 @@ describe('Queue Tests', () => {
       mocked(AccessQueues.addToQueue).mockResolvedValue({ updated: true, alreadyExists: false });
       mocked(AccessQueues.getAccessQueueCount).mockResolvedValue(1);
 
-      // @ts-expect-error no need to have a valid response
-      const sendMailMock = mocked(sgMail.send).mockResolvedValue([{}, {}]);
+      const sendMailMock = mocked(createConfirmationEmail).mockResolvedValue(true);
 
       await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 

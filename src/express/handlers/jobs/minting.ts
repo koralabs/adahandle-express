@@ -51,7 +51,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   await awaitForEach(paidSessions, async (session: PaidSession) => {
     // Make sure there isn't an existing handle on-chain.
     const { exists: existsOnChain } = await handleExists(session.handle);
-    const existingSessions = await PaidSessions.getByHandles(session.handle);
+    const existingSessions = await PaidSessions.getByHandle(session.handle);
     const inMintingCache = await MintingCache.addHandleToMintCache(session.handle) == false;
     if (existsOnChain || existingSessions.length > 1 || inMintingCache) {
       Logger.log({ message: `Handle ${session.handle} already exists on-chain or in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });

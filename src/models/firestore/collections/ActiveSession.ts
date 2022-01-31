@@ -15,6 +15,14 @@ export class ActiveSessions {
     }));
   }
 
+  public static async getActiveSessionByHandle(handle: string): Promise<ActiveSession | null> {
+    const session = await admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', handle).limit(1).get();
+    if (session.empty) {
+      return null;
+    }
+    return {...session.docs[0].data} as ActiveSession;
+  }
+
   public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
     return admin.firestore().runTransaction(async t => {
       const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).limit(1));
