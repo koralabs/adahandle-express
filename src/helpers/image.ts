@@ -6,13 +6,13 @@ const Pinata = require('@pinata/sdk');
 import { BlockFrostIPFS } from '@blockfrost/blockfrost-js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { ActiveSession } from '../models/ActiveSession';
 import { ReservedHandles } from '../models/firestore/collections/ReservedHandles';
-import { PaidSession } from '../models/PaidSession';
 import { LogCategory, Logger } from './Logger';
 import { getRaritySlug } from './nft';
 
-export const createNFTImages = async (sessions: PaidSession[]) => {
-  const rarities = {}; 
+export const createNFTImages = async (sessions: ActiveSession[]) => {
+  const rarities = {};
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
 
   sessions.forEach((session) => {
@@ -23,13 +23,13 @@ export const createNFTImages = async (sessions: PaidSession[]) => {
     if (og) {
       templateContent = {
         og,
-        ogNumber:twitterHandles.indexOf(session.handle),
-        ogTotal:twitterHandles.length
+        ogNumber: twitterHandles.indexOf(session.handle),
+        ogTotal: twitterHandles.length
       }
     }
     const slug = getRaritySlug(session.handle)
     if (!rarities[slug]) {
-      rarities[slug]=[];
+      rarities[slug] = [];
     }
     rarities[slug].push({
       handle: session.handle,
@@ -46,7 +46,7 @@ export const createNFTImages = async (sessions: PaidSession[]) => {
       html,
       quality: 100,
       type: 'jpeg',
-      pupeteerArgs: {executablePath: '/usr/bin/chromium-browser'},
+      pupeteerArgs: { executablePath: '/usr/bin/chromium-browser' },
       content: rarities[rarity]
     });
   }));
@@ -62,21 +62,21 @@ export const getIPFSImage = async (handle: string): Promise<string> => {
   const outputPath = resolve(__dirname, '../../bin');
   const outputSlug = `${outputPath}/${handle}.jpg`;
 
-    let res;
-    try {
-      res = await ipfs.add(outputSlug);
-    } catch (e) {
-      Logger.log({ message: `Blockfrost errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.ipfs.add', category: LogCategory.ERROR });
-      throw e;
-    }
+  let res;
+  try {
+    res = await ipfs.add(outputSlug);
+  } catch (e) {
+    Logger.log({ message: `Blockfrost errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.ipfs.add', category: LogCategory.ERROR });
+    throw e;
+  }
 
-    try {
-      const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
-      await pinataClient.pinByHash(res.ipfs_hash);
-    } catch (e) {
-      Logger.log({ message: `Pinata errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.pinByHash', category: LogCategory.ERROR });
-    }
+  try {
+    const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
+    await pinataClient.pinByHash(res.ipfs_hash);
+  } catch (e) {
+    Logger.log({ message: `Pinata errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.pinByHash', category: LogCategory.ERROR });
+  }
 
-    Logger.log({ message: `Finished IPFS image entry for $${handle} in ${Date.now() - logStart}ms. `, event: 'getIPFSImage', milliseconds: Date.now() - logStart, category: LogCategory.METRIC });
-    return res.ipfs_hash;
+  Logger.log({ message: `Finished IPFS image entry for $${handle} in ${Date.now() - logStart}ms. `, event: 'getIPFSImage', milliseconds: Date.now() - logStart, category: LogCategory.METRIC });
+  return res.ipfs_hash;
 }

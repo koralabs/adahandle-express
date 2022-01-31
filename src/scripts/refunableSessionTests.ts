@@ -7,15 +7,20 @@ import { RefundableSession } from "../models/RefundableSession";
 const run = async () => {
     await Firebase.init();
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     const paidSession = new RefundableSession({
         paymentAddress: `addr_test${new Date().getTime()}`,
         amount: 1234,
         handle: "handle_1"
     });
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     const paidSession2 = new RefundableSession({
         paymentAddress: `addr_test${new Date().getTime() + 1}`,
-        amount: 1234, handle: "handle_2"
+        amount: 1234,
+        handle: "handle_2"
     });
 
     await RefundableSessions.addRefundableSessions([paidSession, paidSession2]);

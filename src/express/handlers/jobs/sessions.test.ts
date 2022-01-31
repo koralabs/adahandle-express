@@ -1,30 +1,24 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Request, Response } from 'express';
-import { mocked } from 'ts-jest/utils';
-import { checkPayments } from '../../../helpers/graphql';
-import { ActiveSession } from '../../../models/ActiveSession';
-import { PaidSession } from '../../../models/PaidSession';
-import { RefundableSession } from '../../../models/RefundableSession';
+import * as graphql from '../../../helpers/graphql';
+import { ActiveSession, ActiveSessionStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
-import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
-import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
 import { updateSessionsHandler } from './sessions';
 import { StateData } from '../../../models/firestore/collections/StateData';
 import { State } from '../../../models/State';
 import { CreatedBySystem } from '../../../helpers/constants';
+import { toLovelace } from '../../../helpers/utils';
+import { StakePools } from '../../../models/firestore/collections/StakePools';
 
 
 jest.mock('express');
 jest.mock('../../../helpers/graphql');
 jest.mock('../../../models/firestore/collections/ActiveSession');
-jest.mock('../../../models/firestore/collections/PaidSessions');
-jest.mock('../../../models/firestore/collections/RefundableSessions');
 jest.mock('../../../models/firestore/collections/StateData');
+jest.mock('../../../models/firestore/collections/StakePools');
 
 describe('Job Sessions Tets', () => {
-    const refundSpy = jest.spyOn(RefundableSessions, 'addRefundableSession')
-    const paidSpy = jest.spyOn(PaidSessions, 'addPaidSession')
-    const activeRemoveSpy = jest.spyOn(ActiveSessions, 'removeActiveSession')
+    const updateStatusForSessionsSpy = jest.spyOn(ActiveSessions, 'updateSessions')
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
 
@@ -48,7 +42,7 @@ describe('Job Sessions Tets', () => {
             {
                 // expired not paid
                 emailAddress: '222-222-2222',
-                cost: 50,
+                cost: toLovelace(50),
                 handle: 'expired.unpaid',
                 start: expiredDate,
                 paymentAddress: 'addr_expired_unpaid',
@@ -61,7 +55,7 @@ describe('Job Sessions Tets', () => {
             {
                 // full payment
                 emailAddress: '222-222-2222',
-                cost: 50,
+                cost: toLovelace(50),
                 handle: 'paid',
                 start: unexpiredDate,
                 paymentAddress: 'addr_paid',
@@ -74,7 +68,7 @@ describe('Job Sessions Tets', () => {
             {
                 // not expired invalid payment
                 emailAddress: '222-222-2222',
-                cost: 50,
+                cost: toLovelace(50),
                 handle: 'invalid',
                 start: unexpiredDate,
                 paymentAddress: 'addr_invalid_payment',
@@ -85,7 +79,7 @@ describe('Job Sessions Tets', () => {
             {
                 // expired and paid
                 emailAddress: '222-222-2222',
-                cost: 50,
+                cost: toLovelace(50),
                 handle: 'expired.paid',
                 start: expiredDate,
                 paymentAddress: 'addr_expired_paid',
@@ -96,11 +90,22 @@ describe('Job Sessions Tets', () => {
             {
                 // handle unavailable
                 emailAddress: '222-222-2222',
-                cost: 50,
+                cost: toLovelace(50),
                 handle: 'paid',
                 start: unexpiredDate,
                 paymentAddress: 'addr_handle_unavailable',
                 createdBySystem: CreatedBySystem.UI
+            }
+        ),
+        new ActiveSession(
+            {
+                // handle unavailable
+                emailAddress: '222-222-2222',
+                cost: toLovelace(250),
+                handle: 'paid',
+                start: unexpiredDate,
+                paymentAddress: 'addr_spo_invalid_payment',
+                createdBySystem: CreatedBySystem.SPO
             }
         )
     ]
@@ -109,7 +114,7 @@ describe('Job Sessions Tets', () => {
             {
                 // zero payment
                 emailAddress: '222-222-2222',
-                cost: 50,
+                cost: toLovelace(50),
                 handle: 'zero.payment',
                 start: unexpiredDate,
                 paymentAddress: 'addr_zero_payment',
@@ -117,37 +122,52 @@ describe('Job Sessions Tets', () => {
             }
         )
     ]
+
+    const SPOSessionFixture = [
+        new ActiveSession(
+            {
+                // zero payment
+                emailAddress: '222-222-2222',
+                cost: toLovelace(250),
+                handle: 'spo.payment',
+                start: unexpiredDate,
+                paymentAddress: 'addr_spo_payment',
+                createdBySystem: CreatedBySystem.SPO
+            }
+        ),
+        new ActiveSession(
+            {
+                // zero payment
+                emailAddress: '222-222-2222',
+                cost: toLovelace(250),
+                handle: 'spo.not.owner',
+                start: unexpiredDate,
+                paymentAddress: 'addr_spo_not_owner',
+                createdBySystem: CreatedBySystem.SPO
+            }
+        )
+    ]
+
     const ActiveSessionsFixture = [
         ...UnpaidSessionFixture,
         ...PaidSessionFixture,
         ...RefundableSessionsFixture,
-        ...ZeroPaymentFixture
+        ...ZeroPaymentFixture,
+        ...SPOSessionFixture
     ]
+
     const CheckPaymentsFixture = [
         { address: 'expired_unpaid', amount: 0, returnAddress: '' },
-        { address: 'addr_paid', amount: 50 * 1000000, returnAddress: 'return_addr_paid' },
-        { address: 'addr_invalid_payment', amount: 40 * 1000000, returnAddress: 'return_addr_invalid' },
-        { address: 'addr_expired_paid', amount: 50 * 1000000, returnAddress: 'return_addr_expired' },
-        { address: 'addr_handle_unavailable', amount: 50 * 1000000, returnAddress: 'return_addr_unavail' },
-        { address: 'addr_zero_payment', amount: 0, returnAddress: '' }
+        { address: 'addr_paid', amount: toLovelace(50), returnAddress: 'return_addr_paid' },
+        { address: 'addr_invalid_payment', amount: toLovelace(40), returnAddress: 'return_addr_invalid' },
+        { address: 'addr_expired_paid', amount: toLovelace(50), returnAddress: 'return_addr_expired' },
+        { address: 'addr_handle_unavailable', amount: toLovelace(50), returnAddress: 'return_addr_unavail' },
+        { address: 'addr_spo_invalid_payment', amount: toLovelace(100), returnAddress: 'return_addr_spo_invalid_payment' },
+        { address: 'addr_zero_payment', amount: 0, returnAddress: '' },
+        { address: 'addr_spo_payment', amount: toLovelace(250), returnAddress: 'return_addr_spo' },
+        { address: 'addr_spo_not_owner', amount: toLovelace(250), returnAddress: 'return_addr_spo_not_owner' }
     ]
-    const RefundableWalletsFixture = [
-        new RefundableSession({ paymentAddress: 'addr_invalid_payment', returnAddress: 'return_addr_invalid', amount: 40 * 1000000, handle: 'invalid', createdBySystem: CreatedBySystem.UI }),
-        new RefundableSession({ paymentAddress: 'addr_expired_paid', returnAddress: 'return_addr_expired', amount: 50 * 1000000, handle: 'expired.paid', createdBySystem: CreatedBySystem.UI }),
-        new RefundableSession({ paymentAddress: 'addr_handle_unavailable', returnAddress: 'return_addr_unavail', amount: 50 * 1000000, handle: 'paid', createdBySystem: CreatedBySystem.UI }),
-    ]
-    const PaidWalletsFixture = [
-        new PaidSession({
-            // full payment
-            emailAddress: '222-222-2222',
-            cost: 50,
-            handle: 'paid',
-            paymentAddress: 'addr_paid',
-            returnAddress: 'addr_paid',
-            start: unexpiredDate,
-            createdBySystem: CreatedBySystem.UI
-        })
-    ]
+
     describe('updateSessionsHandler tests', () => {
         it('should return 200 if cron is locked', async () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture);
@@ -174,40 +194,32 @@ describe('Job Sessions Tets', () => {
          * Refund if not expired but invalid payment
          * Refund if expired and paid
          * Refund if paid sessions already has handle
+         * Refund SPO and charge fee
          * Move to paid if accurate payment and not expired
          * Leave alone if not expired and no payment
          */
 
-        mocked(checkPayments).mockResolvedValue(CheckPaymentsFixture)
+        jest.spyOn(graphql, 'checkPayments').mockResolvedValue(CheckPaymentsFixture)
 
         it('should process paid, refunds, and expired sessions correctly', async () => {
             jest.spyOn(ActiveSessions, 'getActiveSessions').mockResolvedValue(ActiveSessionsFixture);
             jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171 }));
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
+            jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(1, PaidSessionFixture[0], PaidSessions.addPaidSession, { ...PaidSessionFixture[0], attempts: 0, dateAdded: expect.any(Number), emailAddress: "", status: 'pending', returnAddress: expect.any(String), createdBySystem: "UI" });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(2, RefundableSessionsFixture[0], RefundableSessions.addRefundableSession, {
-                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.amount,
-                "handle": RefundableSessionsFixture[0].handle,
-                "paymentAddress": RefundableSessionsFixture[0].paymentAddress,
-                "createdBySystem": RefundableSessionsFixture[0].createdBySystem,
-                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[0].paymentAddress)?.returnAddress
-            });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(3, RefundableSessionsFixture[1], RefundableSessions.addRefundableSession, {
-                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.amount,
-                "handle": RefundableSessionsFixture[1].handle,
-                "paymentAddress": RefundableSessionsFixture[1].paymentAddress,
-                "createdBySystem": RefundableSessionsFixture[1].createdBySystem,
-                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[1].paymentAddress)?.returnAddress
-            });
-            expect(activeRemoveSpy).toHaveBeenNthCalledWith(4, RefundableSessionsFixture[2], RefundableSessions.addRefundableSession, {
-                "amount": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.amount,
-                "handle": RefundableSessionsFixture[2].handle,
-                "paymentAddress": RefundableSessionsFixture[2].paymentAddress,
-                "createdBySystem": RefundableSessionsFixture[2].createdBySystem,
-                "returnAddress": CheckPaymentsFixture.find(cp => cp.address === RefundableSessionsFixture[2].paymentAddress)?.returnAddress
-            });
+            expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(8);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(1, [{ ...UnpaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: 0, returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(2, [{ ...PaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), status: ActiveSessionStatus.PAID_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(3, [{ ...RefundableSessionsFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(40), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(4, [{ ...RefundableSessionsFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(5, [{ ...RefundableSessionsFixture[2], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(6, [{ ...RefundableSessionsFixture[3], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
+
+            // since the 7th item is a 0 payment session, it should skip and be left alone
+
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(7, [{ ...SPOSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), status: ActiveSessionStatus.PAID_PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(8, [{ ...SPOSessionFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(200), returnAddress: expect.any(String), status: ActiveSessionStatus.REFUNDABLE_PENDING }]);
             // If the above number of items were called correctly then
             // then the last use case should be true which is
             // The zero payment session is left alone
@@ -219,7 +231,7 @@ describe('Job Sessions Tets', () => {
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenCalledTimes(4);
+            expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(8);
         });
 
         it('leave unexpired zero payment sessions alone', async () => {
@@ -227,7 +239,7 @@ describe('Job Sessions Tets', () => {
                 {
                     // zero payment
                     emailAddress: '222-222-2222',
-                    cost: 50,
+                    cost: toLovelace(50),
                     handle: 'zero.payment',
                     start: unexpiredDate,
                     paymentAddress: 'addr_zero_payment',
@@ -238,7 +250,7 @@ describe('Job Sessions Tets', () => {
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(activeRemoveSpy).toHaveBeenCalledTimes(0);
+            expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(0);
         });
     });
 });

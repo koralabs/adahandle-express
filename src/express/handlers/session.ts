@@ -4,15 +4,18 @@ import * as jwt from "jsonwebtoken";
 import {
   HEADER_JWT_ACCESS_TOKEN,
   HEADER_JWT_SESSION_TOKEN,
-  CreatedBySystem
+  CreatedBySystem,
+  SPO_HANDLE_ADA_COST
 } from "../../helpers/constants";
 
 import { isValid, normalizeNFTHandle } from "../../helpers/nft";
 import { getKey } from "../../helpers/jwt";
 import { getNewAddress } from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
-import { ActiveSession } from "../../models/ActiveSession";
+import { ActiveSession, ActiveSessionStatus } from "../../models/ActiveSession";
 import { LogCategory, Logger } from "../../helpers/Logger";
+import { StakePools } from "../../models/firestore/collections/StakePools";
+import { toLovelace } from "../../helpers/utils";
 
 interface SessionResponseBody {
   error: boolean,
@@ -23,6 +26,7 @@ interface SessionJWTPayload extends jwt.JwtPayload {
   emailAddress: string;
   cost: number;
   handle: string;
+  isSPO?: boolean;
 }
 
 export const sessionHandler = async (req: express.Request, res: express.Response) => {
@@ -78,7 +82,54 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     } as SessionResponseBody);
   }
 
-  const walletAddress = await getNewAddress();
+  // Save session.
+  const { emailAddress, cost, iat = Date.now(), isSPO = false } = sessionData;
+  const newSession = new ActiveSession({
+    emailAddress,
+    handle,
+    paymentAddress: '',
+    cost: toLovelace(cost),
+    start: iat,
+    createdBySystem: CreatedBySystem.UI,
+    status: ActiveSessionStatus.PENDING
+  });
+
+  if (isSPO) {
+    // Set the session as SPO
+    newSession.createdBySystem = CreatedBySystem.SPO;
+
+    // Set the cost to the SPO cost
+    newSession.cost = SPO_HANDLE_ADA_COST;
+
+    // if SPO don't allow 1 letter handle?
+    if (handle.length <= 1) {
+      return res.status(403).json({
+        error: true,
+        message: 'Handle must be at least 3 characters long.'
+      } as SessionResponseBody);
+    }
+
+    // check in most recent snapshot and verify SPO exists. If not, don't allow purchase.
+    const uppercaseHandle = handle.toUpperCase();
+    const stakePools = await StakePools.getStakePoolsByTicker(uppercaseHandle);
+
+    if (stakePools.length === 0) {
+      return res.status(403).json({
+        error: true,
+        message: 'Stake pool not found. Please contact support.'
+      } as SessionResponseBody);
+    }
+
+    // Also determine if the ticker has more than 1 result. If so, don't allow purchase.
+    if (stakePools.length > 1) {
+      return res.status(403).json({
+        error: true,
+        message: 'Ticker belongs to multiple stake pools. Please contact support.'
+      } as SessionResponseBody);
+    }
+  }
+
+  const walletAddress = await getNewAddress(newSession.createdBySystem);
 
   if (false === walletAddress) {
     return res.status(500).json({
@@ -87,17 +138,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     } as SessionResponseBody);
   }
 
-  // Save session.
-  const { emailAddress, cost, iat = Date.now() } = sessionData;
-  const newSession = new ActiveSession({
-    emailAddress,
-    handle,
-    paymentAddress: walletAddress,
-    cost,
-    start: iat,
-    createdBySystem: CreatedBySystem.UI
-  });
-
+  newSession.paymentAddress = walletAddress;
   const added = await ActiveSessions.addActiveSession(newSession);
 
   if (!added) {

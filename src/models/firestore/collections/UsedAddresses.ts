@@ -1,7 +1,13 @@
 import * as admin from "firebase-admin";
+import { CreatedBySystem } from "../../../helpers/constants";
 import { UsedAddress, UsedAddressStatus } from "../../UsedAddress";
 
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
+
+export interface UsedAddressUpdates {
+    address: string;
+    props: Partial<UsedAddress>
+}
 
 export class UsedAddresses {
     public static readonly collectionName = buildCollectionNameWithSuffix('usedAddresses');
@@ -21,8 +27,8 @@ export class UsedAddresses {
         return snapshot.docs.map(doc => doc.data() as UsedAddress);
     }
 
-    public static async addUsedAddress(address: string, dateAdded?: number): Promise<boolean> {
-        await admin.firestore().collection(UsedAddresses.collectionName).doc(address).set(new UsedAddress(address, dateAdded).toJSON());
+    public static async addUsedAddress({ address, dateAdded, createdBySystem }: { address: string, dateAdded?: number, createdBySystem?: CreatedBySystem }): Promise<boolean> {
+        await admin.firestore().collection(UsedAddresses.collectionName).doc(address).set(new UsedAddress({ id: address, dateAdded, createdBySystem }).toJSON());
         return true;
     }
 
@@ -32,17 +38,17 @@ export class UsedAddresses {
     }
 
     /**
-     * @param {string[]} paymentAddresses 
-     * @param {Partial<UsedAddress>} partialUsedAddress Can be status, dateAdded, txId
+     * @param {UsedAddressUpdates[]} updates `props` Can be status, dateAdded, txId
      */
-    public static async batchUpdateUsedAddresses(paymentAddresses: string[], partialUsedAddress: Partial<UsedAddress>) {
-        if (partialUsedAddress.id) {
+    public static async batchUpdateUsedAddresses(updates: UsedAddressUpdates[]): Promise<void> {
+        if (updates.some(update => update.props.id)) {
             throw new Error('Cannot update id');
         }
 
         const db = admin.firestore();
         const batch = db.batch();
-        paymentAddresses.forEach(address => {
+        updates.forEach(update => {
+            const { address, props: partialUsedAddress } = update;
             const docRef = db.collection(UsedAddresses.collectionName).doc(address);
             batch.update(docRef, partialUsedAddress);
         });

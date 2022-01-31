@@ -3,14 +3,12 @@ import * as express from "express";
 import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
 import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
-import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { MintingCache } from '../../../models/firestore/collections/MintingCache';
-import { PaidSession } from '../../../models/PaidSession';
-import { RefundableSessions } from "../../../models/firestore/collections/RefundableSessions";
-import { RefundableSession } from "../../../models/RefundableSession";
 import { awaitForEach, toLovelace } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { StateData } from "../../../models/firestore/collections/StateData";
+import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
+import { ActiveSession, ActiveSessionStatus } from "../../../models/ActiveSession";
 
 const mintPaidSessions = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
@@ -26,7 +24,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   }
 
   const paidSessionsLimit = state.paidSessionsLimit;
-  const paidSessions: PaidSession[] = await PaidSessions.getByStatus({ statusType: 'pending', limit: paidSessionsLimit });
+  const paidSessions: ActiveSession[] = await ActiveSessions.getByStatus({ statusType: ActiveSessionStatus.PAID_PENDING, limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
     return res.status(200).json({
       error: false,
@@ -34,7 +32,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   }
 
-  const results = await PaidSessions.updateSessionStatuses('', paidSessions, 'processing');
+  const results = await ActiveSessions.updateStatusAndTxIdForSessions('', paidSessions, ActiveSessionStatus.PAID_PROCESSING);
   if (results.some(result => !result)) {
     Logger.log({ message: 'Error setting "processing" status', event: 'mintPaidSessionsHandler.updateSessionStatuses.processing', category: LogCategory.NOTIFY });
     return res.status(400).json({
@@ -44,14 +42,14 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   }
 
   // Filter out any possibly duplicated sessions.
-  const sanitizedSessions: PaidSession[] = [];
-  const refundableSessions: PaidSession[] = [];
+  const sanitizedSessions: ActiveSession[] = [];
+  const refundableSessions: ActiveSession[] = [];
 
   // check for duplicates
-  await awaitForEach(paidSessions, async (session: PaidSession) => {
+  await awaitForEach(paidSessions, async (session: ActiveSession) => {
     // Make sure there isn't an existing handle on-chain.
     const { exists: existsOnChain } = await handleExists(session.handle);
-    const existingSessions = await PaidSessions.getByHandles(session.handle);
+    const existingSessions = await ActiveSessions.getByHandle(session.handle);
     const inMintingCache = await MintingCache.addHandleToMintCache(session.handle) == false;
     if (existsOnChain || existingSessions.length > 1 || inMintingCache) {
       Logger.log({ message: `Handle ${session.handle} already exists on-chain or in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
@@ -65,26 +63,22 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 
   // Move to refunds if necessary.
   if (refundableSessions.length > 0) {
-    await RefundableSessions.addRefundableSessions(
-      refundableSessions.map(s => new RefundableSession({
-        amount: toLovelace(s.cost),
-        handle: s.handle,
-        paymentAddress: s.paymentAddress,
-        returnAddress: s.returnAddress,
-        createdBySystem: s.createdBySystem
-      }))
-    );
-
-    // Remove from paid.
-    await PaidSessions.removeAndAddToDLQ(refundableSessions);
+    const items = refundableSessions.map(s => new ActiveSession({
+      ...s,
+      refundAmount: s.cost,
+      status: ActiveSessionStatus.REFUNDABLE_PENDING,
+    }));
+    await ActiveSessions.updateSessions(items);
   }
 
   // If no handles to mint, abort.
   if (sanitizedSessions.length < 1) {
-    Logger.log({ message: `There were no Handles to mint after sanitizing. Job details: ${JSON.stringify({
-      refundableSessions,
-      sanitizedSessions
-    })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', category: LogCategory.INFO });
+    Logger.log({
+      message: `There were no Handles to mint after sanitizing. Job details: ${JSON.stringify({
+        refundableSessions,
+        sanitizedSessions
+      })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', category: LogCategory.INFO
+    });
     return res.status(200).json({
       error: false,
       message: 'No Handles to mint!'
@@ -96,11 +90,14 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     const txId = await mintHandlesAndSend(sanitizedSessions);
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
-    await PaidSessions.updateSessionStatuses(txId, sanitizedSessions, 'submitted');
+    await ActiveSessions.updateStatusAndTxIdForSessions(txId, sanitizedSessions, ActiveSessionStatus.PAID_SUBMITTED);
 
-    state.lastMintingTimestamp = paidSessions[paidSessions.length - 1].dateAdded;
-    StateData.upsertStateData(state)
-    
+    const lastSessionDateAdded = sanitizedSessions[sanitizedSessions.length - 1].dateAdded;
+    if (lastSessionDateAdded) {
+      state.lastMintingTimestamp = lastSessionDateAdded;
+      StateData.upsertStateData(state)
+    }
+
     Logger.log(getLogMessage(startTime, paidSessions.length));
     return res.status(200).json({
       error: false,
@@ -108,11 +105,13 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   } catch (e) {
     // Log the failed transaction submission (will try again on next round).
-    Logger.log({ message: `Failed to mint batch: ${JSON.stringify(e)}, re-trying next time. Job details: ${JSON.stringify({
-      refundableSessions,
-      sanitizedSessions
-    })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR });
-    await PaidSessions.updateSessionStatuses('', sanitizedSessions, 'pending');
+    Logger.log({
+      message: `Failed to mint batch: ${JSON.stringify(e)}, re-trying next time. Job details: ${JSON.stringify({
+        refundableSessions,
+        sanitizedSessions
+      })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR
+    });
+    await ActiveSessions.updateStatusAndTxIdForSessions('', sanitizedSessions, ActiveSessionStatus.PAID_PENDING);
     return res.status(500).json({
       error: true,
       message: 'Transaction submission failed.'
@@ -123,12 +122,12 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   try {
 
-    if (!await StateData.checkAndLockCron('mintPaidSessionsLock')){
+    if (!await StateData.checkAndLockCron('mintPaidSessionsLock')) {
       return res.status(200).json({
         error: false,
         message: 'Mint Paid Sessions cron is locked. Try again later.'
       });
-    }  
+    }
 
     const result = await mintPaidSessions(req, res);
 

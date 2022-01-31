@@ -4,6 +4,7 @@ import { WalletAddress } from "../../WalletAddress";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { UsedAddresses } from "./UsedAddresses";
+import { CreatedBySystem } from "../../../helpers/constants";
 
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
@@ -13,7 +14,7 @@ export class WalletAddresses {
         return collection.docs.map(doc => doc.data() as WalletAddress);
     }
 
-    static async getFirstAvailableWalletAddress(): Promise<WalletAddress | null> {
+    static async getFirstAvailableWalletAddress(createdBySystem?: CreatedBySystem): Promise<WalletAddress | null> {
         // Since we can't have more than one user at a time use an address
         // we need to get the first one then delete it
         try {
@@ -24,7 +25,7 @@ export class WalletAddresses {
                     const walletAddress = doc.data();
                     if (walletAddress) {
                         t.delete(doc.ref, { exists: true });
-                        UsedAddresses.addUsedAddress(walletAddress.id);
+                        UsedAddresses.addUsedAddress({ address: walletAddress.id, createdBySystem });
                         return walletAddress as WalletAddress;
                     }
                 }
