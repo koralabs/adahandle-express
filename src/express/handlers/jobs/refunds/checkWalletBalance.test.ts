@@ -21,7 +21,7 @@ describe('getRefundsWallet tests', () => {
 
     it('Should lock the cron and send notification if there is not enough data', async () => {
         const mockShellyWallet = {
-            getTotalBalance: jest.fn(() => 10),
+            getAvailableBalance: jest.fn(() => 10),
         } as unknown as wallet.ShelleyWallet;
         expect(checkWalletBalance(refundsFixture, mockShellyWallet)).rejects.toThrowError('Balance of 10 is not enough to refund 40!');
     });

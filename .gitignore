@@ -14,3 +14,5 @@ Private
 src/scripts/fixtures/current-wallet-addresses.json
 src/scripts/fixtures/left-over-wallet-addresses.txt
 src/scripts/fixtures/wallet-addresses.json
+src/scripts/fixtures/stakePools/mainnet-stake-pools.json
+src/scripts/fixtures/stakePools/testnet-stake-pools.json

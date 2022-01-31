@@ -1,9 +1,9 @@
-import * as admin from "firebase-admin"
-import { mocked } from 'ts-jest/utils';
+import * as admin from "firebase-admin";
 import { getNewAddress } from '.';
 import { WalletAddresses } from '../../models/firestore/collections/WalletAddresses';
 import { WalletAddress } from '../../models/WalletAddress';
-import { LogCategory, Logger } from "../../helpers/Logger";
+import { Logger } from "../../helpers/Logger";
+import { CreatedBySystem } from "../constants";
 
 jest.mock('firebase-admin');
 jest.mock('../../models/firestore/collections/WalletAddresses');
@@ -29,16 +29,25 @@ describe('Wallet Index Tests', () => {
             /**
              * the mocked function is used to mock the return value of the function.
              */
-            mocked(WalletAddresses.getFirstAvailableWalletAddress).mockResolvedValue(WalletAddressesFixture);
+            jest.spyOn(WalletAddresses, 'getFirstAvailableWalletAddress').mockResolvedValue(WalletAddressesFixture);
             const newAddress = await getNewAddress();
             expect(newAddress).toEqual(WalletAddressesFixture.id);
         });
 
         it('should return false and log if an wallet address is not found', async () => {
-            mocked(WalletAddresses.getFirstAvailableWalletAddress).mockResolvedValue(null);
+            jest.spyOn(WalletAddresses, 'getFirstAvailableWalletAddress').mockResolvedValue(null);
             const newAddress = await getNewAddress();
             expect(newAddress).toBeFalsy();
             expect(consoleLogSpy).toHaveBeenCalledWith("Not able to get new address.");
+        });
+
+        it('should allow createdBySystem as an input', async () => {
+            /**
+             * the mocked function is used to mock the return value of the function.
+             */
+            jest.spyOn(WalletAddresses, 'getFirstAvailableWalletAddress').mockResolvedValue(WalletAddressesFixture);
+            const newAddress = await getNewAddress(CreatedBySystem.UI);
+            expect(newAddress).toEqual(WalletAddressesFixture.id);
         });
     });
 });

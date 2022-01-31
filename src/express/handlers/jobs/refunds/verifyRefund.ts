@@ -1,12 +1,19 @@
+import { CreatedBySystem, SPO_HANDLE_ADA_REFUND_FEE } from "../../../../helpers/constants";
 import { lookupTransaction } from "../../../../helpers/graphql";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { toLovelace } from "../../../../helpers/utils";
-import { PaidSessions } from "../../../../models/firestore/collections/PaidSessions";
-import { UsedAddresses } from "../../../../models/firestore/collections/UsedAddresses";
+import { ActiveSessionStatus } from "../../../../models/ActiveSession";
+import { ActiveSessions } from "../../../../models/firestore/collections/ActiveSession";
+import { StakePools } from "../../../../models/firestore/collections/StakePools";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
 import { Refund } from "./processRefunds";
 
-export const verifyRefund = async (address: string): Promise<Refund | null> => {
+interface VerifyRefundResults {
+    refund?: Refund;
+    status?: UsedAddressStatus;
+}
+
+export const verifyRefund = async (address: string): Promise<VerifyRefundResults | null> => {
     let results;
     try {
         results = await lookupTransaction(address);
@@ -19,28 +26,65 @@ export const verifyRefund = async (address: string): Promise<Refund | null> => {
     }
 
     if (results.totalPayments === 0) {
-        await UsedAddresses.updateUsedAddressStatus(address, UsedAddressStatus.PROCESSED);
-        return null;
+        return {
+            status: UsedAddressStatus.PROCESSED
+        };
     }
 
     if (!results.returnAddress) {
         Logger.log({ message: `${address} has no return address`, event: 'verifyRefunds.noReturnAddress', category: LogCategory.NOTIFY });
-        await UsedAddresses.updateUsedAddressStatus(address, UsedAddressStatus.BAD_STATE);
-        return null;
+        return { status: UsedAddressStatus.BAD_STATE };
     }
 
-    const paymentSession = await PaidSessions.getPaidSessionByWalletAddress(address);
-    const lovelaceBalance = results.totalPayments - toLovelace(paymentSession?.cost ?? 0);
+    const session = await ActiveSessions.getByWalletAddress(address);
+
+    if (!session) {
+        // There should never not be a session
+        Logger.log({ message: `${address} has a no active session`, event: 'verifyRefunds.noActiveSession', category: LogCategory.NOTIFY });
+        return {
+            status: UsedAddressStatus.BAD_STATE
+        };
+    }
+
+    const { createdBySystem, handle, status, cost } = session;
+    const { totalPayments } = results;
+
+    // Is it possible for a good payment to come in after a refund?
+    let lovelaceBalance;
+    if (status === ActiveSessionStatus.REFUNDABLE_PENDING) {
+        // If there is a refundable sessions, we need to refund the entire amount
+        lovelaceBalance = totalPayments;
+    } else {
+        if (!cost) {
+            Logger.log({ message: `${address} session has no cost`, event: 'verifyRefunds.activeSessionNoCost', category: LogCategory.NOTIFY });
+            return {
+                status: UsedAddressStatus.BAD_STATE
+            };
+        }
+
+        lovelaceBalance = totalPayments > cost ? totalPayments - cost : cost - totalPayments;
+    }
+
+    if (createdBySystem === CreatedBySystem.SPO) {
+        const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(results.returnAddress, handle);
+        if (!returnAddressOwnsStakePool) {
+            // return address does not own stake pool. Refund and deduct a fee
+            lovelaceBalance = Math.max(0, lovelaceBalance - toLovelace(SPO_HANDLE_ADA_REFUND_FEE))
+        }
+    }
 
     // only refund if balance is greater than 2 lovelace (we aren't refunding payments that are less than 2 lovelace)
     if (lovelaceBalance > toLovelace(1)) {
         return {
-            paymentAddress: address,
-            returnAddress: results.returnAddress,
-            amount: lovelaceBalance,
+            refund: {
+                paymentAddress: address,
+                returnAddress: results.returnAddress,
+                amount: lovelaceBalance,
+            }
         }
     }
 
-    await UsedAddresses.updateUsedAddressStatus(address, UsedAddressStatus.PROCESSED);
-    return null;
+    return {
+        status: UsedAddressStatus.PROCESSED
+    };
 }

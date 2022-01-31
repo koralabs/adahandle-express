@@ -2,10 +2,9 @@
 // disabling ban-ts-comment is only acceptable in tests. And it's recommend to use very little when you can.
 import * as fs from 'fs';
 import { Request, Response } from 'express';
-import { mocked } from 'ts-jest/utils';
 import { postToQueueHandler } from "./queue";
 import { AccessQueues } from '../../models/firestore/collections/AccessQueues';
-import { createConfirmationEmail } from "../../helpers/email"
+import * as email from "../../helpers/email"
 
 jest.mock('fs');
 jest.mock('../../models/firestore/collections/AccessQueues');
@@ -95,24 +94,24 @@ describe('Queue Tests', () => {
     if (!fs.existsSync(fileName)) {
       console.warn("SKIPPED");
     } else {
-    mockRequest = {
-      headers: {
-        'x-email': 'burrito@burritos.com'
-      },
-      body: {
-        clientIp: 'test-ip',
-        clientAgent: 'test-agent',
+      mockRequest = {
+        headers: {
+          'x-email': 'burrito@burritos.com'
+        },
+        body: {
+          clientIp: 'test-ip',
+          clientAgent: 'test-agent',
+        }
       }
-    }
 
-    const errorCode = 'some-error-code';
-    mocked(fs.existsSync).mockReturnValue(true);
-    jest.mock(`${fileName}`, () => ({ verifyClientAgentInfo: () => ({ errorCode }) }));
+      const errorCode = 'some-error-code';
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+      jest.mock(`${fileName}`, () => ({ verifyClientAgentInfo: () => ({ errorCode }) }));
 
-    await postToQueueHandler(mockRequest as Request, mockResponse as Response);
+      await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": `Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: ${errorCode}` });
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": `Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: ${errorCode}` });
     }
   });
 
@@ -122,25 +121,25 @@ describe('Queue Tests', () => {
     if (!fs.existsSync(fileName)) {
       console.warn("SKIPPED");
     } else {
-    mockRequest = {
-      headers: {
-        'x-email': 'no-an-email-address'
-      },
-      body: {
-        clientIp: 'test-ip',
-        clientAgent: 'test-agent',
+      mockRequest = {
+        headers: {
+          'x-email': 'no-an-email-address'
+        },
+        body: {
+          clientIp: 'test-ip',
+          clientAgent: 'test-agent',
+        }
       }
-    }
 
-    mocked(fs.existsSync).mockReturnValue(true);
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest.mock(`${fileName}`, () => ({ verifyClientAgentInfo: () => ({ sha: '123' }) }));
-    mocked(AccessQueues.addToQueue).mockResolvedValue({ updated: true, alreadyExists: false });
-    mocked(AccessQueues.getAccessQueueCount).mockResolvedValue(1);
+      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false });
+      jest.spyOn(AccessQueues, 'getAccessQueueCount').mockResolvedValue(1);
 
-    await postToQueueHandler(mockRequest as Request, mockResponse as Response);
+      await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(400);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Invalid email." });
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Invalid email." });
     }
   });
 
@@ -160,12 +159,12 @@ describe('Queue Tests', () => {
         }
       }
 
-      mocked(fs.existsSync).mockReturnValue(true);
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest.mock(`${fileName}`, () => { return { verifyClientAgentInfo: () => { return { sha: '123' }; } } });
-      mocked(AccessQueues.addToQueue).mockResolvedValue({ updated: true, alreadyExists: false });
-      mocked(AccessQueues.getAccessQueueCount).mockResolvedValue(1);
+      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false });
+      jest.spyOn(AccessQueues, 'getAccessQueueCount').mockResolvedValue(1);
 
-      const sendMailMock = mocked(createConfirmationEmail).mockResolvedValue(true);
+      const sendMailMock = jest.spyOn(email, 'createConfirmationEmail').mockResolvedValue(true);
 
       await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 

@@ -122,6 +122,19 @@ interface GraphqlPaymentAddressResponse {
   }
 }
 
+export interface StakePoolDetails {
+  url: string;
+  id: string;
+  rewardAddress: string;
+  owners: { hash: string }[];
+}
+
+interface GraphqlStakePoolsResult {
+  data: {
+    stakePools: StakePoolDetails[]
+  }
+}
+
 export interface GraphqlHandleExistsResponse {
   policyID?: string;
   assetName?: string;
@@ -506,4 +519,44 @@ export const getCurrentSlotNumberFromTip = async (): Promise<number> => {
   } = res.data;
 
   return slotNo;
+}
+
+export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolDetails[]> => {
+  const url = getGraphqlEndpoint();
+  const res: GraphqlStakePoolsResult = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      variables: {
+        addresses,
+      },
+      query: `
+      query ($addresses: [String!]!) {
+        stakePools(where: { 
+            id: { 
+              _in: $addresses 
+            } 
+          }) {
+          url
+          id
+          rewardAddress
+          owners {
+            hash
+          }
+        }
+      `,
+    })
+  }).then(res => res.json())
+
+  if (!res?.data) {
+    throw new Error('Unable to query stake pools.');
+  }
+
+  const {
+    stakePools
+  } = res.data;
+
+  return stakePools;
 }

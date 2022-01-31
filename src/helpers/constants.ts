@@ -13,6 +13,8 @@ export const AUTH_CODE_EXPIRE = 600000; // 10 minutes
 export const PAYMENT_ADDRESS_THRESHOLD = 10;
 export const WALLET_BALANCE_THRESHOLD = 1000 * 1000000;
 export const MAX_CHAIN_LOAD = 0.8;
+export const SPO_HANDLE_ADA_COST = 250;
+export const SPO_HANDLE_ADA_REFUND_FEE = 50;
 export const HEADER_EMAIL_AUTH = 'x-email-authcode';
 export const HEADER_EMAIL = 'x-email';
 export const HEADER_HANDLE = 'x-handle';
@@ -23,9 +25,9 @@ export const HEADER_JWT_ACCESS_TOKEN = 'x-access-token';
 export const HEADER_JWT_SESSION_TOKEN = 'x-session-token';
 
 export enum CreatedBySystem {
-    UI = 'UI',
-    CLI = 'CLI',
-    SPO = 'SPO'
+  UI = 'UI',
+  CLI = 'CLI',
+  SPO = 'SPO'
 }
 
 /**

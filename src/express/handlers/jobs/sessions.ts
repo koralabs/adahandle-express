@@ -1,17 +1,14 @@
 import * as express from "express";
 
-import { MAX_SESSION_LENGTH_UI, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO } from '../../../helpers/constants';
+import { MAX_SESSION_LENGTH_UI, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
 import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
-import { ActiveSession } from '../../../models/ActiveSession';
+import { ActiveSession, ActiveSessionStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
-import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
-import { RefundableSessions } from '../../../models/firestore/collections/RefundableSessions';
 import { StateData } from "../../../models/firestore/collections/StateData";
-import { PaidSession } from "../../../models/PaidSession";
-import { RefundableSession } from '../../../models/RefundableSession';
-import { CreatedBySystem }  from '../../../helpers/constants';
+import { StakePools } from "../../../models/firestore/collections/StakePools";
+import { CreatedBySystem } from '../../../helpers/constants';
 
 /**
  * Filters out old sessions from the /activeSessions document.
@@ -34,7 +31,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
       acc.set(session.paymentAddress, session);
       return acc;
     }, new Map());
-    
+
     const dedupeActiveSessions: ActiveSession[] = [...dedupeActiveSessionsMap.values()];
     if (dedupeActiveSessions.length == 0) {
       return res.status(200).json({
@@ -44,7 +41,6 @@ export const updateSessions = async (req: express.Request, res: express.Response
     }
 
     const removableActiveVal: ActiveSession[] = [];
-    const refundableVal: RefundableSession[] = [];
     const paidVal: ActiveSession[] = [];
     const walletAddresses = dedupeActiveSessions.map(s => s.paymentAddress)
 
@@ -53,7 +49,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
     Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
     dedupeActiveSessions.forEach(
-      (entry, index) => {
+      async (entry, index) => {
         const sessionAge = Date.now() - entry?.start;
         const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ? MAX_SESSION_LENGTH_CLI : (entry.createdBySystem == CreatedBySystem.SPO ? MAX_SESSION_LENGTH_SPO : MAX_SESSION_LENGTH_UI)
         const matchingPayment = sessionPaymentStatuses[index];
@@ -67,6 +63,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
          * Refund if not expired but invalid payment
          * Refund if expired and paid
          * Refund if paid sessions already has handle
+         * Refund SPO and charge fee
          * Move to paid if accurate payment and not expired
          * Leave alone if not expired and no payment
          */
@@ -74,18 +71,24 @@ export const updateSessions = async (req: express.Request, res: express.Response
         // Handle expired.
         if (sessionAge >= maxSessionLength) {
           if (matchingPayment && matchingPayment.amount !== 0) {
-            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              paymentAddress: entry.paymentAddress,
-              amount: matchingPayment.amount,
-              handle: entry.handle,
+            ActiveSessions.updateSessions([new ActiveSession({
+              ...entry,
+              emailAddress: '',
+              refundAmount: matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
-              createdBySystem: entry.createdBySystem
-            }));
-
+              status: ActiveSessionStatus.REFUNDABLE_PENDING
+            })]);
             return;
           }
 
-          ActiveSessions.removeAndAddToDLQ([entry]);
+          // If there is no amount, it's possible that a payment was made after the session expired.
+          ActiveSessions.updateSessions([new ActiveSession({
+            ...entry,
+            emailAddress: '',
+            refundAmount: matchingPayment.amount,
+            returnAddress: matchingPayment.returnAddress,
+            status: ActiveSessionStatus.REFUNDABLE_PENDING
+          })]);
           return;
         }
 
@@ -94,51 +97,67 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
           // If no return address, refund.
           if (!matchingPayment.returnAddress) {
-            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              paymentAddress: entry.paymentAddress,
-              amount: matchingPayment.amount,
-              handle: entry.handle,
+            ActiveSessions.updateSessions([new ActiveSession({
+              ...entry,
+              emailAddress: '',
+              refundAmount: matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
-              createdBySystem: entry.createdBySystem
-            }));
+              status: ActiveSessionStatus.REFUNDABLE_PENDING
+            })]);
             // This should never happen:
             Logger.log({ category: LogCategory.NOTIFY, message: `Refund has no returnAddress! PaymentAddress is ${entry.paymentAddress}`, event: 'updateSessionsHandler.run' });
             return;
           }
 
-          if (matchingPayment.amount !== toLovelace(entry.cost)) {
-            ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-              paymentAddress: entry.paymentAddress,
-              amount: matchingPayment.amount,
-              handle: entry.handle,
+          if (matchingPayment.amount !== entry.cost) {
+            ActiveSessions.updateSessions([new ActiveSession({
+              ...entry,
+              emailAddress: '',
+              refundAmount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
-              createdBySystem: entry.createdBySystem
-            }));
+              status: ActiveSessionStatus.REFUNDABLE_PENDING
+            })]);
             return;
           }
 
           // Move valid paid sessions to minting queue.
-          if (matchingPayment.amount === toLovelace(entry.cost)) {
+          if (matchingPayment.amount === entry.cost) {
 
             // If already has a handle, refund.
             if (paidVal.some(e => e.handle === entry.handle)) {
-              ActiveSessions.removeActiveSession(entry, RefundableSessions.addRefundableSession, new RefundableSession({
-                paymentAddress: entry.paymentAddress,
-                amount: matchingPayment.amount,
-                handle: entry.handle,
+              ActiveSessions.updateSessions([new ActiveSession({
+                ...entry,
+                emailAddress: '',
+                refundAmount: matchingPayment.amount,
                 returnAddress: matchingPayment.returnAddress,
-                createdBySystem: entry.createdBySystem
-              }));
+                status: ActiveSessionStatus.REFUNDABLE_PENDING
+              })]);
               return;
             }
 
+            // verify SPO can purchase the ticker
+            if (entry.createdBySystem === CreatedBySystem.SPO) {
+              const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(matchingPayment.returnAddress, entry.handle);
+              if (!returnAddressOwnsStakePool) {
+                // if not, refund cost plus fee
+                ActiveSessions.updateSessions([new ActiveSession({
+                  ...entry,
+                  emailAddress: '',
+                  refundAmount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
+                  returnAddress: matchingPayment.returnAddress,
+                  status: ActiveSessionStatus.REFUNDABLE_PENDING
+                })]);
+                return;
+              }
+            }
+
             paidVal.push(entry);
-            ActiveSessions.removeActiveSession(entry, PaidSessions.addPaidSession, new PaidSession({
+            ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
+              emailAddress: '',
               returnAddress: matchingPayment.returnAddress,
-              emailAddress: '', // email address intentionally scrubbed for privacy
-              status: 'pending',
-            }));
+              status: ActiveSessionStatus.PAID_PENDING
+            })]);
           }
         }
       }
@@ -149,7 +168,6 @@ export const updateSessions = async (req: express.Request, res: express.Response
     res.status(200).json({
       error: false,
       jobs: {
-        refund: refundableVal.length,
         paid: paidVal.length,
         removed: removableActiveVal.length
       }
@@ -164,12 +182,12 @@ export const updateSessions = async (req: express.Request, res: express.Response
 }
 
 export const updateSessionsHandler = async (req: express.Request, res: express.Response) => {
-  if (!await StateData.checkAndLockCron('updateActiveSessionsLock')){
+  if (!await StateData.checkAndLockCron('updateActiveSessionsLock')) {
     return res.status(200).json({
       error: false,
       message: 'Update Sessions cron is locked. Try again later.'
     });
   }
-  const result = await updateSessions(req, res);
+  await updateSessions(req, res);
   await StateData.unlockCron('updateActiveSessionsLock');
 }

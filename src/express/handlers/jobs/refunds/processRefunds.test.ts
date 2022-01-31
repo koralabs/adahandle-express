@@ -33,8 +33,8 @@ describe('processRefund tests', () => {
 
         await processRefunds(paymentAddressFixture, mockWallet as unknown as wallet.ShelleyWallet);
 
-        expect(batchUpdateUsedAddressesSpy).toHaveBeenNthCalledWith(1, ["p1", "p2"], { status: UsedAddressStatus.PROCESSING });
-        expect(batchUpdateUsedAddressesSpy).toHaveBeenNthCalledWith(2, ["p1", "p2"], { status: UsedAddressStatus.PROCESSED, txId: id });
+        expect(batchUpdateUsedAddressesSpy).toHaveBeenNthCalledWith(1, [{ "address": "p1", "props": { "status": "processing" } }, { "address": "p2", "props": { "status": "processing" } }]);
+        expect(batchUpdateUsedAddressesSpy).toHaveBeenNthCalledWith(2, [{ "address": "p1", "props": { "status": "processed", "txId": "txId" } }, { "address": "p2", "props": { "status": "processed", "txId": "txId" } }]);
         expect(mockSendPayment).toHaveBeenCalledWith(undefined, [{ "id": "r1", "state": "unused" }, { "id": "r2", "state": "unused" }], [500, 10]);
     });
 
