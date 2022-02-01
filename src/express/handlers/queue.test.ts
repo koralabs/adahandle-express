@@ -133,7 +133,7 @@ describe('Queue Tests', () => {
 
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest.mock(`${fileName}`, () => ({ verifyClientAgentInfo: () => ({ sha: '123' }) }));
-      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false });
+      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false, dateAdded: Date.now() });
       jest.spyOn(AccessQueues, 'getAccessQueueCount').mockResolvedValue(1);
 
       await postToQueueHandler(mockRequest as Request, mockResponse as Response);
@@ -161,7 +161,7 @@ describe('Queue Tests', () => {
 
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest.mock(`${fileName}`, () => { return { verifyClientAgentInfo: () => { return { sha: '123' }; } } });
-      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false });
+      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false, dateAdded: Date.now() });
       jest.spyOn(AccessQueues, 'getAccessQueueCount').mockResolvedValue(1);
 
       const sendMailMock = jest.spyOn(email, 'createConfirmationEmail').mockResolvedValue(true);
