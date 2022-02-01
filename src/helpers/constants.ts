@@ -23,6 +23,7 @@ export const HEADER_TWITTER_ACCESS_TOKEN = 'x-twitter-token';
 export const TWITTER_UNLOCK_HEADER = 'x-twitter-credentials';
 export const HEADER_JWT_ACCESS_TOKEN = 'x-access-token';
 export const HEADER_JWT_SESSION_TOKEN = 'x-session-token';
+export const AUTH_CODE_TIMEOUT_MINUTES = 60;
 
 export enum CreatedBySystem {
   UI = 'UI',

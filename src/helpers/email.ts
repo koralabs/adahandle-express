@@ -1,5 +1,5 @@
 import { sendEmail } from '../helpers/aws';
-import { isProduction } from "./constants";
+import { isProduction, AUTH_CODE_TIMEOUT_MINUTES} from "./constants";
 import * as fs from 'fs';
 
 export class VerificationInstance {
@@ -17,7 +17,7 @@ export const createVerificationEmail = async (
 ): Promise<VerificationInstance> => {
   const template = fs.readFileSync('../htmlTemplates/main.html', 'utf8');
   const preheader = 'Your activation code is here. Let\'s get started.';
-  const content   = 'It\'s time to get your Handles. <br/>Hurry up though, this link is only valid for 10 minutes.<br/> Once expired, you\'ll need to re-enter the queue.';
+  const content   = `It\'s time to get your Handles. <br/>Hurry up though, this link is only valid for ${AUTH_CODE_TIMEOUT_MINUTES} minutes.<br/> Once expired, you\'ll need to re-enter the queue.`;
   const fromAddress = 'ADA Handle <hello@adahandle.com>';
   const domain = isProduction() ? 'adahandle.com' : 'testnet.adahandle.com'
   const authCode = Buffer.from(`${docRef}|${email}`).toString('base64');

@@ -70,10 +70,12 @@ export class ReservedHandles {
     static cacheResetTime: number;
 
     static async getReservedHandles(): Promise<HandleOptions> {
-        const protectedWords = await admin.firestore().collection(ReservedHandles.collectionProtectedWords).get();
-        const reservedHandlesPrivate = await admin.firestore().collection(ReservedHandles.collectionPrivateHandles).get();
-        const reservedHandlesSPOs = await admin.firestore().collection(ReservedHandles.collectionSPOs).get();
-        const reservedHandlesTwitter = await admin.firestore().collection(ReservedHandles.collectionTwitter).get();
+        const [ protectedWords, reservedHandlesPrivate, reservedHandlesSPOs, reservedHandlesTwitter ] = await Promise.all([
+            admin.firestore().collection(ReservedHandles.collectionProtectedWords).get(),
+            admin.firestore().collection(ReservedHandles.collectionPrivateHandles).get(),
+            admin.firestore().collection(ReservedHandles.collectionSPOs).get(),
+            admin.firestore().collection(ReservedHandles.collectionTwitter).get()
+        ]);
         return {
             protected: protectedWords.docs.map(doc => doc.data() as ProtectedWord),
             private: reservedHandlesPrivate.docs.map(doc => doc.id.toLowerCase()),
