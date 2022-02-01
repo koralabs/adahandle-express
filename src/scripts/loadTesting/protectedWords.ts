@@ -15,7 +15,7 @@ const run = async () => {
     await asyncForEach(listToCheck, async (handle) => {  
         const avail = await ReservedHandles.checkAvailability(handle);
         durations.push(avail.duration || 0);
-        let color = avail.available ? Color.FgGreen : Color.FgRed
+        const color = avail.available ? Color.FgGreen : Color.FgRed
         !avail.available ? badWordsCount++ : null;
         console.log(`${avail.duration?.toString().padEnd(6)} processing "${color}${(handle + "\"").padEnd(16)}${reset} - AVAILABLE: ${color}${avail.available}${reset} REASON: ${avail.reason} MESSAGE: ${avail.debug ?? avail.message}`);
     }, 25)

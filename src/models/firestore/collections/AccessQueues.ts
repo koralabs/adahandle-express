@@ -118,21 +118,25 @@ export class AccessQueues {
     return { count: queuedSnapshot.docs.length };
   }
 
-  static async addToQueue({ email, clientAgentSha, clientIp }: { email: string; clientAgentSha: string; clientIp: string; }): Promise<{ updated: boolean; alreadyExists: boolean }> {
+  static async addToQueue({ email, clientAgentSha, clientIp }: { email: string; clientAgentSha: string; clientIp: string; }): Promise<{ updated: boolean; alreadyExists: boolean, dateAdded: number }> {
     try {
       return admin.firestore().runTransaction(async t => {
         const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email).limit(1));
         if (!snapshot.empty) {
           return {
             updated: false,
-            alreadyExists: true
+            alreadyExists: true,
+            dateAdded: (snapshot.docs[0].data() as AccessQueue).dateAdded
           };
         }
 
-        t.create(admin.firestore().collection(AccessQueues.collectionName).doc(), new AccessQueue({ email, clientAgentSha, clientIp }).toJSON());
+        const accessQ = new AccessQueue({ email, clientAgentSha, clientIp });
+
+        t.create(admin.firestore().collection(AccessQueues.collectionName).doc(), accessQ.toJSON());
         return {
           updated: true,
-          alreadyExists: false
+          alreadyExists: false,
+          dateAdded: accessQ.dateAdded
         };
       });
     } catch (error) {

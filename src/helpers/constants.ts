@@ -37,7 +37,7 @@ export enum CreatedBySystem {
  * -
  * .
  */
-export const ALLOWED_CHAR = new RegExp(/^[a-zA-Z0-9\-\_\.]{1,15}$/);
+export const ALLOWED_CHAR = new RegExp(/^[a-zA-Z0-9\-_.]{1,15}$/);
 
 /**
  * Must match all:

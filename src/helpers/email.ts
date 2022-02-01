@@ -30,7 +30,7 @@ export const createVerificationEmail = async (
     .replace('{{content}}', content)
     .replace('{{actionbutton}}', actionButton);
     
-    var params = {
+    const params = {
       Destination: {
         ToAddresses: [email]
       },
@@ -73,7 +73,7 @@ export const createConfirmationEmail = async (
   const html = template.replace('{{preheader}}', preheader)
     .replace('{{content}}', content.replace('{{accessposition}}', accessPosition.toString()).replace('{{accesscount}}', accessCount.toString()).replace('{{minutes}}', minutes.toString()));
     
-    var params = {
+    const params = {
       Destination: {
         ToAddresses: [email]
       },

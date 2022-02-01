@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
-import { PaidSessions } from "../collections/PaidSessions"
 import { ActiveSessions } from "../collections/ActiveSession"
+import { ActiveSessionStatus } from "../../ActiveSession"
 import { isValid } from "../../../helpers/nft"
 import * as pluralize from "pluralize";
 import { delay } from "../../../helpers/utils"
@@ -14,9 +14,9 @@ const RESPONSE_ACTIVE_SESSION_UNAVAILABLE = 'Pending purchase. Try a different v
 const RESPONSE_SPO_HANDLE_UNAVAILABLE = 'Reserved for the stake pool. Head to https://adahandle.com/spo';
 const RESPONSE_RESERVED_HANDLE_UNAVAILABLE = 'This Handle has a private reservation. Private reservations will be contacted separately';
 const RESPONSE_NOT_ALLOWED = 'Sorry, that handle is not allowed.'
-const REGEX_SPLIT_ON_CHARS = /([0-9a-z]+)[\.\-\_]*/g
+const REGEX_SPLIT_ON_CHARS = /([0-9a-z]+)[.\-_]*/g
 const REGEX_SPLIT_ON_NUMS = /([a-z]+)[0-9]*/g
-const BETA_PHASE_MATCH: RegExp = new RegExp(/.{2,}/g);
+const BETA_PHASE_MATCH = new RegExp(/.{2,}/g);
 
 declare global {
     interface String {
@@ -109,9 +109,9 @@ export class ReservedHandles {
         }
 
         // //Now we can start hitting the db
-        const activeSession = await ActiveSessions.getActiveSessionByHandle(handle);
+        const activeSessions = await ActiveSessions.getByHandle(handle);
 
-        if (activeSession) {
+        if (activeSessions.some(session => session.status == ActiveSessionStatus.PENDING)) {
             return {
                 available: false,
                 message: RESPONSE_ACTIVE_SESSION_UNAVAILABLE,
@@ -120,9 +120,7 @@ export class ReservedHandles {
             };
         }
 
-        const paidSession = await PaidSessions.getByHandle(handle);
-
-        if (paidSession.length > 0) {
+        if (activeSessions.some(session => session.status && [ActiveSessionStatus.PAID_PENDING, ActiveSessionStatus.PAID_CONFIRMED, ActiveSessionStatus.PAID_PROCESSING, ActiveSessionStatus.PAID_SUBMITTED].includes(session.status))) {
             return {
                 available: false,
                 message: RESPONSE_UNAVAILABLE_PAID,
@@ -184,7 +182,7 @@ export class ReservedHandles {
         };
 
         // if it is all numbers or non-alphas, we don't care
-        if (handle.match(/^[0-9\.\-\_]{1,15}$/)) {
+        if (handle.match(/^[0-9.\-_]{1,15}$/)) {
             allowedResponse.duration = getDuration(startTime, waitTime);
             return allowedResponse;
         }
@@ -230,8 +228,8 @@ export class ReservedHandles {
             }
         }
         // This will get `.s.h.i.7.`, sh.1_7s`, `5.h-1-t__z`, and `sh1.t5`
-        handle = handle.replace(/[\.\-\_]/g, '');
-        let listed = this.isNumberReplacementsProtected(handle);
+        handle = handle.replace(/[.\-_]/g, '');
+        const listed = this.isNumberReplacementsProtected(handle);
         if (listed.protected) {
             notAllowedResponse.debug = `Protected word match (with stripped characters) on '${listed.words?.join(',')}'`;
             notAllowedResponse.duration = getDuration(startTime, waitTime);
@@ -243,7 +241,7 @@ export class ReservedHandles {
             for (let i = 0; i < handleMatches?.length; i++) {
                 const match = handleMatches[i];
                 // This will get `my1shit1stinks`, `0my1shits2stink`, `my3shitz4stink`, and `5my1shit5stink-`
-                let listed = this.isProtected(match);
+                const listed = this.isProtected(match);
                 if (listed.protected) {
                     notAllowedResponse.debug = `Split on numbers match for '${listed.words?.join(',')}'`;
                     notAllowedResponse.duration = getDuration(startTime, waitTime);
@@ -318,7 +316,7 @@ export class ReservedHandles {
         // 'pp' can make some pretty bad phrases, but can't be dealt with normally since it is in so many "good" words
         // just combine with modifiers for now
         const specialCaseVulnWords = ["pp"];
-        const modifiers = ReservedHandles.reservedHandles.protected.filter(entry => entry.modType?.includes('modifier'));;
+        const modifiers = ReservedHandles.reservedHandles.protected.filter(entry => entry.modType?.includes('modifier'));
 
         // suggestive & vulnerable lookups - 'lickmyd1ck`, `s3xmyp3n1s`
         const suggestiveWords = ReservedHandles.reservedHandles.protected.filter(entry => entry.modType?.includes('suggestive'));
@@ -405,10 +403,10 @@ export class ReservedHandles {
             // possible impprovement needed here to catch more words
             // letting it slide for now since number replacements are less obvious
             // and this is the slowest part of the algorithm
-            for (let one in ['i', 'l']) {
-                for (let eight in ['ate', 'ait']) {
+            for (const one in ['i', 'l']) {
+                for (const eight in ['ate', 'ait']) {
                     const handleReplaced = handleReplacedTemp.replaceAll('1', one).replaceAll('8', eight)
-                    let listed = this.isProtected(handleReplaced);
+                    const listed = this.isProtected(handleReplaced);
                     if (listed.protected) return { protected: true, words: listed.words };
                     if (checkIfMatches) {
                         const matches = checkIfMatches(handleReplaced);
@@ -442,7 +440,7 @@ export class ReservedHandles {
     static isBadWord(handle: string): { badword: boolean, words?: string[] } {
         const protectedWords = ReservedHandles.reservedHandles.protected;
         const modifiers = ReservedHandles.reservedHandles.protected.filter(entry => entry.modType?.includes('modifier'));
-        let found = protectedWords.find(x => x.word == handle && x.algorithms.includes('badword'));
+        const found = protectedWords.find(x => x.word == handle && x.algorithms.includes('badword'));
         if (found) return { badword: true, words: [found.word] };
         let foundWords = '';
         if (modifiers.some(m => protectedWords.some(entry => {
@@ -458,7 +456,7 @@ export class ReservedHandles {
                     || (m.word.length > 3 && handle.includes(entry.word) && handle.replaceSingularOrPlural(entry.word, ' ').includes(m.word))
                 )
         }))) {
-            return { badword: true, words: foundWords.split(',') };;
+            return { badword: true, words: foundWords.split(',') };
         }
         return { badword: false };
     }

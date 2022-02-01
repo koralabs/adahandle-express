@@ -17,6 +17,7 @@ export interface AppendAccessQueueInput { email: string; clientAgentSha: string;
 interface AppendAccessResponse {
   updated: boolean;
   alreadyExists: boolean;
+  dateAdded: number;
 }
 export class Firebase {
   public static async init() {
@@ -89,12 +90,5 @@ export const removeAccessQueueData = async (email: string): Promise<boolean> => 
 }
 
 export const appendAccessQueueData = async (input: AppendAccessQueueInput): Promise<AppendAccessResponse> => {
-  const { updated, alreadyExists } = await AccessQueues.addToQueue(input);
-
-  const response = {
-    updated,
-    alreadyExists
-  };
-
-  return response;
+  return await AccessQueues.addToQueue(input);
 }

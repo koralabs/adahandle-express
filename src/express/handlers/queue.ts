@@ -82,18 +82,20 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       } as QueueResponseBody);
     }
 
-    const { updated, alreadyExists } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
+    const { updated, alreadyExists, dateAdded } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
 
     if (updated) {
-      
       try {
-        const total = await AccessQueues.getAccessQueueCount();
+
+      const {accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
+    
+      const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
         // TODO: Insert access queue times here
-        await createConfirmationEmail(email);
+        await createConfirmationEmail(email, accessQueuePosition.position, accessQueueSize, accessQueuePosition.minutes);
       }
       catch (e) {
         Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
-      };
+      }
     }
 
     Logger.log(getLogMessage(startTime))

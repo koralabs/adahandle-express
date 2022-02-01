@@ -20,6 +20,6 @@ export const sendEmail = (params: AWS.SES.SendEmailRequest): AWS.Request<AWS.SES
     credentials: credentials
   })
 
-  return ses.sendEmail(params);;
+  return ses.sendEmail(params);
 
 }
