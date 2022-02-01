@@ -4,7 +4,7 @@ import { MAX_SESSION_LENGTH_UI, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, 
 import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
-import { ActiveSession, ActiveSessionStatus } from '../../../models/ActiveSession';
+import { ActiveSession, Status, WorkflowStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { StateData } from "../../../models/firestore/collections/StateData";
 import { StakePools } from "../../../models/firestore/collections/StakePools";
@@ -21,7 +21,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
   try {
     // TODO: Should we also be checking for duplicate handles here?
-    const activeSessions: ActiveSession[] = await ActiveSessions.getActiveSessions();
+    const activeSessions: ActiveSession[] = await ActiveSessions.getPendingActiveSessions();
     const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
       if (acc.has(session.paymentAddress)) {
         Logger.log({ message: `Duplicate session found for ${session.paymentAddress}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
@@ -76,7 +76,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               emailAddress: '',
               refundAmount: matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
-              status: ActiveSessionStatus.REFUNDABLE_PENDING
+              status: Status.REFUNDABLE,
+              workflowStatus: WorkflowStatus.PENDING
             })]);
             return;
           }
@@ -87,7 +88,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
             emailAddress: '',
             refundAmount: matchingPayment.amount,
             returnAddress: matchingPayment.returnAddress,
-            status: ActiveSessionStatus.REFUNDABLE_PENDING
+            status: Status.REFUNDABLE,
+            workflowStatus: WorkflowStatus.PENDING
           })]);
           return;
         }
@@ -102,7 +104,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               emailAddress: '',
               refundAmount: matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
-              status: ActiveSessionStatus.REFUNDABLE_PENDING
+              status: Status.REFUNDABLE,
+              workflowStatus: WorkflowStatus.PENDING
             })]);
             // This should never happen:
             Logger.log({ category: LogCategory.NOTIFY, message: `Refund has no returnAddress! PaymentAddress is ${entry.paymentAddress}`, event: 'updateSessionsHandler.run' });
@@ -115,7 +118,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               emailAddress: '',
               refundAmount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
-              status: ActiveSessionStatus.REFUNDABLE_PENDING
+              status: Status.REFUNDABLE,
+              workflowStatus: WorkflowStatus.PENDING
             })]);
             return;
           }
@@ -130,7 +134,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
                 emailAddress: '',
                 refundAmount: matchingPayment.amount,
                 returnAddress: matchingPayment.returnAddress,
-                status: ActiveSessionStatus.REFUNDABLE_PENDING
+                status: Status.REFUNDABLE,
+                workflowStatus: WorkflowStatus.PENDING
               })]);
               return;
             }
@@ -145,7 +150,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
                   emailAddress: '',
                   refundAmount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
                   returnAddress: matchingPayment.returnAddress,
-                  status: ActiveSessionStatus.REFUNDABLE_PENDING
+                  status: Status.REFUNDABLE,
+                  workflowStatus: WorkflowStatus.PENDING
                 })]);
                 return;
               }
@@ -156,7 +162,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               ...entry,
               emailAddress: '',
               returnAddress: matchingPayment.returnAddress,
-              status: ActiveSessionStatus.PAID_PENDING
+              status: Status.PAID,
+              workflowStatus: WorkflowStatus.PENDING
             })]);
           }
         }

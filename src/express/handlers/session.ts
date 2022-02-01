@@ -12,7 +12,7 @@ import { isValid, normalizeNFTHandle } from "../../helpers/nft";
 import { getKey } from "../../helpers/jwt";
 import { getNewAddress } from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
-import { ActiveSession, ActiveSessionStatus } from "../../models/ActiveSession";
+import { ActiveSession, Status } from "../../models/ActiveSession";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { StakePools } from "../../models/firestore/collections/StakePools";
 import { toLovelace } from "../../helpers/utils";
@@ -91,7 +91,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     cost: toLovelace(cost),
     start: iat,
     createdBySystem: CreatedBySystem.UI,
-    status: ActiveSessionStatus.PENDING
+    status: Status.PENDING
   });
 
   if (isSPO) {
