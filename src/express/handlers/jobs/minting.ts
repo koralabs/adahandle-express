@@ -4,11 +4,11 @@ import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
 import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
 import { MintingCache } from '../../../models/firestore/collections/MintingCache';
-import { awaitForEach, toLovelace } from "../../../helpers/utils";
+import { awaitForEach } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { StateData } from "../../../models/firestore/collections/StateData";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
-import { ActiveSession, ActiveSessionStatus } from "../../../models/ActiveSession";
+import { ActiveSession, Status, WorkflowStatus } from "../../../models/ActiveSession";
 
 const mintPaidSessions = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
@@ -24,7 +24,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   }
 
   const paidSessionsLimit = state.paidSessionsLimit;
-  const paidSessions: ActiveSession[] = await ActiveSessions.getByStatus({ statusType: ActiveSessionStatus.PAID_PENDING, limit: paidSessionsLimit });
+  const paidSessions: ActiveSession[] = await ActiveSessions.getPaidPendingSessions({ limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
     return res.status(200).json({
       error: false,
@@ -32,7 +32,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     });
   }
 
-  const results = await ActiveSessions.updateStatusAndTxIdForSessions('', paidSessions, ActiveSessionStatus.PAID_PROCESSING);
+  const results = await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', paidSessions, WorkflowStatus.PROCESSING);
   if (results.some(result => !result)) {
     Logger.log({ message: 'Error setting "processing" status', event: 'mintPaidSessionsHandler.updateSessionStatuses.processing', category: LogCategory.NOTIFY });
     return res.status(400).json({
@@ -66,7 +66,8 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     const items = refundableSessions.map(s => new ActiveSession({
       ...s,
       refundAmount: s.cost,
-      status: ActiveSessionStatus.REFUNDABLE_PENDING,
+      status: Status.REFUNDABLE,
+      workflowStatus: WorkflowStatus.PENDING,
     }));
     await ActiveSessions.updateSessions(items);
   }
@@ -90,7 +91,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     const txId = await mintHandlesAndSend(sanitizedSessions);
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
-    await ActiveSessions.updateStatusAndTxIdForSessions(txId, sanitizedSessions, ActiveSessionStatus.PAID_SUBMITTED);
+    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, sanitizedSessions, WorkflowStatus.SUBMITTED);
 
     const lastSessionDateAdded = sanitizedSessions[sanitizedSessions.length - 1].dateAdded;
     if (lastSessionDateAdded) {
@@ -111,7 +112,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
         sanitizedSessions
       })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR
     });
-    await ActiveSessions.updateStatusAndTxIdForSessions('', sanitizedSessions, ActiveSessionStatus.PAID_PENDING);
+    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', sanitizedSessions, WorkflowStatus.PENDING);
     return res.status(500).json({
       error: true,
       message: 'Transaction submission failed.'

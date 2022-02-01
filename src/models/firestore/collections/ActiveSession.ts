@@ -1,15 +1,22 @@
 import * as admin from "firebase-admin";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { awaitForEach, chunk, delay } from "../../../helpers/utils";
-import { ActiveSession, ActiveSessionInput, ActiveSessionStatus } from "../../ActiveSession";
+import { ActiveSession, ActiveSessionInput, Status, WorkflowStatus } from "../../ActiveSession";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 
 export class ActiveSessions {
   public static readonly collectionName = buildCollectionNameWithSuffix('activeSessions');
   public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('activeSessionsDLQ');
 
-  public static async getActiveSessions(): Promise<ActiveSession[]> {
-    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', ActiveSessionStatus.PENDING).get();
+  public static async getPendingActiveSessions(): Promise<ActiveSession[]> {
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PENDING).get();
+    return collection.docs.map(doc => new ActiveSession({
+      ...doc.data() as ActiveSessionInput
+    }));
+  }
+
+  static async getPaidPendingSessions({ limit }: { limit: number; }): Promise<ActiveSession[]> {
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PENDING).where('workflowStatus', '==', WorkflowStatus.PENDING).limit(limit).get();
     return collection.docs.map(doc => new ActiveSession({
       ...doc.data() as ActiveSessionInput
     }));
@@ -39,7 +46,7 @@ export class ActiveSessions {
     return collection.docs[0].data() as ActiveSession;
   }
 
-  static async getByStatus({ statusType, limit, }: { statusType: ActiveSessionStatus; limit: number; }): Promise<ActiveSession[]> {
+  static async getByStatus({ statusType, limit, }: { statusType: Status; limit: number; }): Promise<ActiveSession[]> {
     const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', statusType).limit(limit).get();
     return collection.docs.map(doc => new ActiveSession({
       ...doc.data() as ActiveSessionInput
@@ -73,11 +80,11 @@ export class ActiveSessions {
     }));
   }
 
-  static async updateStatusAndTxIdForSessions(txId: string, sanitizedSessions: ActiveSession[], statusType: ActiveSessionStatus): Promise<boolean[]> {
-    return Promise.all(sanitizedSessions.map(async session => {
+  static updateWorkflowStatusAndTxIdForSessions(txId: string, sessions: ActiveSession[], workflowStatus: WorkflowStatus): Promise<boolean[]> {
+    return Promise.all(sessions.map(async session => {
       return admin.firestore().runTransaction(async t => {
         const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
-        t.update(ref, { status: statusType, txId });
+        t.update(ref, { status: workflowStatus, txId });
         return true;
       }).catch(error => {
         Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'updateSessionStatuses.error', category: LogCategory.ERROR });
@@ -86,7 +93,7 @@ export class ActiveSessions {
     }));
   }
 
-  public static async updateSessionStatusesByTxId(txId: string, statusType: ActiveSessionStatus): Promise<void> {
+  public static async updatePaidSessionsWorkflowStatusesByTxId(txId: string, statusType: WorkflowStatus): Promise<void> {
     return admin.firestore().runTransaction(async t => {
       const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('txId', '==', txId));
       if (snapshot.empty) {
@@ -94,20 +101,20 @@ export class ActiveSessions {
       }
 
       snapshot.docs.forEach(doc => {
-        if (statusType == ActiveSessionStatus.PAID_PENDING) {
-          const session = doc.data() as ActiveSession;
-          const { attempts = 0 } = session;
-          if (attempts >= 2) {
-            Logger.log({ message: `Removing paid session: ${doc.id} with ${txId} from queue and adding to DLQ`, event: 'updateSessionStatusesByTxId.pendingAttemptsLimitReached' });
-            t.update(doc.ref, { status: ActiveSessionStatus.DLQ });
-            return;
-          }
-
-          t.update(doc.ref, { status: statusType, txId: '', attempts: admin.firestore.FieldValue.increment(1) });
+        const session = doc.data() as ActiveSession;
+        const { attempts = 0, status, workflowStatus } = session;
+        if (status !== Status.PAID) {
           return;
         }
 
-        t.update(doc.ref, { status: statusType });
+        if (attempts >= 2 && workflowStatus == WorkflowStatus.PENDING) {
+          Logger.log({ message: `Removing paid session: ${doc.id} with ${txId} from queue and adding to DLQ`, event: 'updateSessionStatusesByTxId.pendingAttemptsLimitReached' });
+          t.update(doc.ref, { status: Status.DLQ });
+          return;
+        }
+
+        t.update(doc.ref, { status: statusType, txId: '', attempts: admin.firestore.FieldValue.increment(1) });
+        return;
       });
     });
   }

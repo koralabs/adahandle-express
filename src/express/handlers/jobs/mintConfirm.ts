@@ -7,7 +7,7 @@ import { awaitForEach } from "../../../helpers/utils";
 import { ApiTransactionStatusEnum } from "cardano-wallet-js";
 import { getMintingWalletId, getWalletEndpoint } from "../../../helpers/constants";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
-import { ActiveSession, ActiveSessionStatus } from "../../../models/ActiveSession";
+import { ActiveSession, WorkflowStatus } from "../../../models/ActiveSession";
 
 export const mintConfirmHandler = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
@@ -24,7 +24,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
 
   const limit = state.mintConfirmPaidSessionsLimit;
   // get paid sessions with status 'submitted'
-  const paidSessions = await ActiveSessions.getByStatus({ statusType: ActiveSessionStatus.PAID_PENDING, limit });
+  const paidSessions = await ActiveSessions.getPaidPendingSessions({ limit });
   const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, ActiveSession[]>>((acc, session) => {
     if (session.txId) {
       const sessions = acc.get(session.txId) ?? [];
@@ -60,14 +60,14 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     Logger.log({ message: `status: ${status} & depth: ${depth} for txId: ${txId}`, event: 'mintConfirmHandler.getTransaction.details' });
     // check the wallet for block depth (Assurance level) is >= 5 set to 'confirmed'
     if (status === ApiTransactionStatusEnum.InLedger && depth >= 5) {
-      await ActiveSessions.updateSessionStatusesByTxId(txId, ActiveSessionStatus.PAID_CONFIRMED);
+      await ActiveSessions.updatePaidSessionsWorkflowStatusesByTxId(txId, WorkflowStatus.CONFIRMED);
       return;
     }
 
     // if transaction is "expired", revert back to 'pending'
     if (status === ApiTransactionStatusEnum.Expired) {
       // if transaction attempts is > 3, move to DLQ and notify team
-      await ActiveSessions.updateSessionStatusesByTxId(txId, ActiveSessionStatus.PAID_EXPIRED);
+      await ActiveSessions.updatePaidSessionsWorkflowStatusesByTxId(txId, WorkflowStatus.EXPIRED);
     }
   });
 

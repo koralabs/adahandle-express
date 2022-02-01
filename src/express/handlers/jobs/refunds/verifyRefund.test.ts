@@ -1,7 +1,7 @@
 import { CreatedBySystem } from "../../../../helpers/constants";
 import * as graphql from "../../../../helpers/graphql";
 import { toLovelace } from "../../../../helpers/utils";
-import { ActiveSession, ActiveSessionStatus } from "../../../../models/ActiveSession";
+import { ActiveSession, Status, WorkflowStatus } from "../../../../models/ActiveSession";
 import { ActiveSessions } from "../../../../models/firestore/collections/ActiveSession";
 import { StakePools } from "../../../../models/firestore/collections/StakePools";
 
@@ -105,7 +105,8 @@ describe('verifyRefund tests', () => {
                 paymentAddress: 'addr_123',
                 returnAddress: 'return_123',
                 createdBySystem: CreatedBySystem.SPO,
-                status: ActiveSessionStatus.REFUNDABLE_PENDING
+                status: Status.REFUNDABLE,
+                workflowStatus: WorkflowStatus.PENDING
             }));
             jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValue(false);
 
@@ -129,7 +130,8 @@ describe('verifyRefund tests', () => {
                 paymentAddress: 'addr_123',
                 returnAddress: 'return_123',
                 createdBySystem: CreatedBySystem.SPO,
-                status: ActiveSessionStatus.REFUNDABLE_PENDING // this is at this point, the session would be marked as refunded
+                status: Status.REFUNDABLE,
+                workflowStatus: WorkflowStatus.PENDING
             }));
             jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValue(false);
 
@@ -154,7 +156,8 @@ describe('verifyRefund tests', () => {
                 paymentAddress: 'addr_123',
                 returnAddress: 'return_123',
                 createdBySystem: CreatedBySystem.SPO,
-                status: ActiveSessionStatus.REFUNDABLE_PENDING
+                status: Status.REFUNDABLE,
+                workflowStatus: WorkflowStatus.PENDING
             }));
             jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValue(false);
 

@@ -2,7 +2,7 @@ import { CreatedBySystem, SPO_HANDLE_ADA_REFUND_FEE } from "../../../../helpers/
 import { lookupTransaction } from "../../../../helpers/graphql";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { toLovelace } from "../../../../helpers/utils";
-import { ActiveSessionStatus } from "../../../../models/ActiveSession";
+import { Status } from "../../../../models/ActiveSession";
 import { ActiveSessions } from "../../../../models/firestore/collections/ActiveSession";
 import { StakePools } from "../../../../models/firestore/collections/StakePools";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
@@ -51,7 +51,7 @@ export const verifyRefund = async (address: string): Promise<VerifyRefundResults
 
     // Is it possible for a good payment to come in after a refund?
     let lovelaceBalance;
-    if (status === ActiveSessionStatus.REFUNDABLE_PENDING) {
+    if (status === Status.REFUNDABLE) {
         // If there is a refundable sessions, we need to refund the entire amount
         lovelaceBalance = totalPayments;
     } else {
