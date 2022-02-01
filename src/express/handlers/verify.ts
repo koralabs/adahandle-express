@@ -52,10 +52,6 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       } as VerifyResponseBody)
     }
 
-    // put expiry into state
-    // send confirmation email
-    // put time/position in queue into email
-
     if (access.start ?? 0 < Date.now() - AUTH_CODE_TIMEOUT_MINUTES) {
       await removeAccessQueueData(email);
       return res.status(403).json({

@@ -95,7 +95,7 @@ export class AccessQueues {
       }
     }));
 
-    stateData.lastAccessTimestamp = queuedSnapshot.docs[queuedSnapshot.size - 1].data().dateAdded;
+    stateData.lastAccessTimestamp = Math.max(...queuedSnapshot.docs.map(doc => doc.data().dateAdded || 0));
     StateData.upsertStateData(stateData)
 
     // delete expired entries
