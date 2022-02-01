@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
+import { VerificationInstance } from "../../../helpers/email";
 import { delay } from "../../../helpers/utils";
 import { State } from "../../State";
 import { AccessQueues } from "./AccessQueues";
@@ -60,19 +60,15 @@ describe('AccessQueues Tests', () => {
   describe('updateAccessQueue', () => {
     const createVerificationFunction = async (email: string): Promise<VerificationInstance> => {
       if (email === '333-333-3333') {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
         return {
-          sid: `sid-${email}`,
+          authCode: `auth-${email}`,
           status: 'pending',
         }
       }
 
       if (email === '222-222-2222') {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
         return {
-          sid: `sid-${email}`,
+          authCode: `auth-${email}`,
           status: 'pending',
         }
       }
@@ -97,10 +93,10 @@ describe('AccessQueues Tests', () => {
       expect(queued).toEqual({ "dateAdded": expect.any(Number), "email": "111-111-1111", "attempts": 2, "status": "queued" });
 
       const pending222 = accessQueuesUpdated.find(q => q.email === '222-222-2222');
-      expect(pending222).toEqual({ "dateAdded": expect.any(Number), "email": "222-222-2222", "attempts": 0, "sid": "sid-222-222-2222", "start": expect.any(Number), "status": "pending" });
+      expect(pending222).toEqual({ "dateAdded": expect.any(Number), "email": "222-222-2222", "attempts": 0, "authCode": "auth-222-222-2222", "start": expect.any(Number), "status": "pending" });
 
       const pending333 = accessQueuesUpdated.find(q => q.email === '333-333-3333');
-      expect(pending333).toEqual({ "dateAdded": expect.any(Number), "email": "333-333-3333", "attempts": 0, "sid": "sid-333-333-3333", "start": expect.any(Number), "status": "pending" });
+      expect(pending333).toEqual({ "dateAdded": expect.any(Number), "email": "333-333-3333", "attempts": 0, "authCode": "auth-333-333-3333", "start": expect.any(Number), "status": "pending" });
     }, 20000);
   });
 });

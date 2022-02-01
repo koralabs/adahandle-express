@@ -1,10 +1,9 @@
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
 
-import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH } from "../../helpers/constants";
-import { removeAccessQueueData } from "../../helpers/firebase";
+import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH, AUTH_CODE_TIMEOUT_MINUTES } from "../../helpers/constants";
+import { removeAccessQueueData, getAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
-import { getTwilioClient, getTwilioVerify } from "../../helpers/twilo";
 import { LogCategory, Logger } from "../../helpers/Logger";
 
 interface VerifyResponseBody {
@@ -25,36 +24,36 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
     } as VerifyResponseBody)
   }
 
-  if (!req.headers[HEADER_EMAIL_AUTH]) {
+  const authCode = req.headers[HEADER_EMAIL_AUTH];
+
+  if (!authCode) {
     return res.status(400).json({
       error: true,
       message: 'Missing email authentication code.'
     } as VerifyResponseBody)
   }
-
+  
   let token: string | null;
   try {
-    const email = req.headers[HEADER_EMAIL] as string;
-    const client = getTwilioClient();
-    const service = await getTwilioVerify();
 
-    const status = await client
-      .verify
-      .services(service.sid)
-      .verificationChecks
-      .create({
-        to: email,
-        code: req.headers[HEADER_EMAIL_AUTH] as string,
-      })
-      .then(res => res.status)
-      .catch(e => Logger.log(JSON.stringify({
-        email,
-        auth: req.headers[HEADER_EMAIL_AUTH],
-        sid: service.sid,
-        e
-      })));
+    const decodedAuth = Buffer.from(authCode as string, 'base64').toString('utf8');
+  
+    const ref = decodedAuth.split('|')[0];
+    const email = decodedAuth.split('|')[1];
 
-    if ('approved' !== status) {
+    const access = await getAccessQueueData(ref);
+
+    if (!access || email != access.email) {
+      await removeAccessQueueData(email);
+      return res.status(403).json({
+        verified: false,
+        error: true,
+        message: 'Invalid acccess code.'
+      } as VerifyResponseBody)
+    }
+
+    if (access.start ?? 0 < Date.now() - AUTH_CODE_TIMEOUT_MINUTES) {
+      await removeAccessQueueData(email);
       return res.status(403).json({
         verified: false,
         error: true,

@@ -93,7 +93,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, sanitizedSessions, WorkflowStatus.SUBMITTED);
 
-    const lastSessionDateAdded = sanitizedSessions[sanitizedSessions.length - 1].dateAdded;
+    const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
     if (lastSessionDateAdded) {
       state.lastMintingTimestamp = lastSessionDateAdded;
       StateData.upsertStateData(state)

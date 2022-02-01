@@ -1,4 +1,3 @@
-import * as admin from "firebase-admin";
 import { getNewAddress } from '.';
 import { WalletAddresses } from '../../models/firestore/collections/WalletAddresses';
 import { WalletAddress } from '../../models/WalletAddress';

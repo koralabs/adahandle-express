@@ -38,7 +38,7 @@ export class WalletAddresses {
         }
     }
 
-    static async batchAddWalletAddresses(walletAddresses: WalletAddress[], startAtBatch = 0): Promise<any> {
+    static async batchAddWalletAddresses(walletAddresses: WalletAddress[], startAtBatch = 0): Promise<void> {
         const start = new Date().getTime();
         const db = admin.firestore();
 

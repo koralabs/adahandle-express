@@ -22,6 +22,14 @@ export class ActiveSessions {
     }));
   }
 
+  public static async getActiveSessionByHandle(handle: string): Promise<ActiveSession | null> {
+    const session = await admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', handle).limit(1).get();
+    if (session.empty) {
+      return null;
+    }
+    return {...session.docs[0].data} as ActiveSession;
+  }
+
   public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
     return admin.firestore().runTransaction(async t => {
       const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).limit(1));
@@ -46,8 +54,13 @@ export class ActiveSessions {
     return collection.docs[0].data() as ActiveSession;
   }
 
-  static async getByStatus({ statusType, limit, }: { statusType: Status; limit: number; }): Promise<ActiveSession[]> {
-    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', statusType).limit(limit).get();
+  static async getByStatus({ statusType, limit, }: { statusType: Status; limit?: number; }): Promise<ActiveSession[]> {
+    let query = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', statusType);
+    if (limit)
+    {
+      query = query.limit(limit);
+    }
+    const collection = await query.get();
     return collection.docs.map(doc => new ActiveSession({
       ...doc.data() as ActiveSessionInput
     }));

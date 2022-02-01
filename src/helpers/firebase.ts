@@ -3,10 +3,11 @@ import { AccessQueues } from "../models/firestore/collections/AccessQueues";
 import { getS3 } from "./aws";
 import { isTesting, isEmulating } from "./constants";
 import { LogCategory, Logger } from "../helpers/Logger";
+import { AccessQueue } from "../models/AccessQueue";
 
 export interface AccessEntry {
   email: string;
-  sid?: string;
+  authCode?: string;
   status?: 'pending' | 'complete';
   start?: number;
 }
@@ -16,6 +17,7 @@ export interface AppendAccessQueueInput { email: string; clientAgentSha: string;
 interface AppendAccessResponse {
   updated: boolean;
   alreadyExists: boolean;
+  dateAdded: number;
 }
 export class Firebase {
   public static async init() {
@@ -77,18 +79,16 @@ export const getAccessQueueCount = async (): Promise<number> => {
   return count.length ?? 0;
 }
 
+export const getAccessQueueData = async (id: string): Promise<AccessQueue> => {
+  const access = await AccessQueues.getAccessQueueData(id)
+  return access;
+}
+
 export const removeAccessQueueData = async (email: string): Promise<boolean> => {
   const updated: boolean = await AccessQueues.removeAccessQueueByEmail(email);
   return updated;
 }
 
 export const appendAccessQueueData = async (input: AppendAccessQueueInput): Promise<AppendAccessResponse> => {
-  const { updated, alreadyExists } = await AccessQueues.addToQueue(input);
-
-  const response = {
-    updated,
-    alreadyExists
-  };
-
-  return response;
+  return await AccessQueues.addToQueue(input);
 }
