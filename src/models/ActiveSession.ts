@@ -1,17 +1,19 @@
 import { BaseModel } from "./BaseModel";
 import { CreatedBySystem } from '../helpers/constants';
 
-export enum ActiveSessionStatus {
-    REFUNDABLE_PENDING = 'refundable_pending',
-    REFUNDABLE_SUBMITTED = 'refundable_submitted',
-    REFUNDABLE_CONFIRMED = 'refundable_confirmed',
-    PAID_PENDING = 'paid_pending',
-    PAID_PROCESSING = 'paid_processing',
-    PAID_SUBMITTED = 'paid_submitted',
-    PAID_CONFIRMED = 'paid_confirmed',
-    PAID_EXPIRED = 'paid_expired',
+export enum Status {
+    REFUNDABLE = 'refundable',
+    PAID = 'paid',
     PENDING = 'pending',
     DLQ = 'dlq'
+}
+
+export enum WorkflowStatus {
+    PENDING = 'pending',
+    PROCESSING = 'processing',
+    SUBMITTED = 'submitted',
+    CONFIRMED = 'confirmed',
+    EXPIRED = 'expired',
 }
 
 export interface ActiveSessionInput {
@@ -25,7 +27,8 @@ export interface ActiveSessionInput {
     id?: string,
     txId?: string,
     createdBySystem: CreatedBySystem,
-    status?: ActiveSessionStatus
+    status?: Status,
+    workflowStatus?: WorkflowStatus,
     attempts?: number;
     dateAdded?: number;
 }
@@ -41,11 +44,12 @@ export class ActiveSession extends BaseModel {
     public id?: string;
     public txId?: string;
     public createdBySystem: CreatedBySystem
-    public status?: ActiveSessionStatus
+    public status?: Status
+    public workflowStatus?: WorkflowStatus;
     public attempts?: number;
     public dateAdded?: number;
 
-    constructor({ id, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, status = ActiveSessionStatus.PENDING, attempts = 0, dateAdded = Date.now() }: ActiveSessionInput) {
+    constructor({ id, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, workflowStatus, status = Status.PENDING, attempts = 0, dateAdded = Date.now() }: ActiveSessionInput) {
         super();
         this.id = id;
         this.emailAddress = emailAddress;
@@ -58,6 +62,7 @@ export class ActiveSession extends BaseModel {
         this.txId = txId;
         this.createdBySystem = createdBySystem;
         this.status = status;
+        this.workflowStatus = workflowStatus;
         this.attempts = attempts;
         this.dateAdded = dateAdded;
     }

@@ -1,6 +1,5 @@
 import * as express from "express";
 import { getChainLoad, getTotalHandles } from "../../../helpers/cardano";
-import { ActiveSessionStatus } from "../../../models/ActiveSession";
 import { AccessQueues } from "../../../models/firestore/collections/AccessQueues";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { StateData } from "../../../models/firestore/collections/StateData";
@@ -18,7 +17,7 @@ interface StateResponseBody {
 export const stateHandler = async (req: express.Request, res: express.Response) => {
   try {
     const accessQueueSize = await AccessQueues.getAccessQueueCount();
-    const mintingQueueSize = await (await ActiveSessions.getByStatus({ statusType: ActiveSessionStatus.PAID_PENDING, limit: 20000 })).length;
+    const mintingQueueSize = await (await ActiveSessions.getPaidPendingSessions({ limit: 20000 })).length;
     const chainLoad = await getChainLoad() ?? 0;
     const totalHandles = await getTotalHandles() || 0;
 
