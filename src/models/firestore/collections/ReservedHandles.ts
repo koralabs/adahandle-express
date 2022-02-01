@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 import { ActiveSessions } from "../collections/ActiveSession"
-import { ActiveSessionStatus } from "../../ActiveSession"
+import { Status } from "../../ActiveSession"
 import { isValid } from "../../../helpers/nft"
 import * as pluralize from "pluralize";
 import { delay } from "../../../helpers/utils"
@@ -111,7 +111,7 @@ export class ReservedHandles {
         // //Now we can start hitting the db
         const activeSessions = await ActiveSessions.getByHandle(handle);
 
-        if (activeSessions.some(session => session.status == ActiveSessionStatus.PENDING)) {
+        if (activeSessions.some(session => session.status == Status.PENDING)) {
             return {
                 available: false,
                 message: RESPONSE_ACTIVE_SESSION_UNAVAILABLE,
@@ -120,7 +120,7 @@ export class ReservedHandles {
             };
         }
 
-        if (activeSessions.some(session => session.status && [ActiveSessionStatus.PAID_PENDING, ActiveSessionStatus.PAID_CONFIRMED, ActiveSessionStatus.PAID_PROCESSING, ActiveSessionStatus.PAID_SUBMITTED].includes(session.status))) {
+        if (activeSessions.some(session => session.status == Status.PAID)) {
             return {
                 available: false,
                 message: RESPONSE_UNAVAILABLE_PAID,
