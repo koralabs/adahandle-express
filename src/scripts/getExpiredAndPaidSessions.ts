@@ -3,13 +3,11 @@ import { readFileSync, writeFile } from 'fs';
 import { Firebase } from "../helpers/firebase";
 import { lookupTransaction } from '../helpers/graphql';
 import { getRarityFromLength } from '../helpers/nft';
-import { toADA, toLovelace } from '../helpers/utils';
-import { PaidSessions } from '../models/firestore/collections/PaidSessions';
-import { RefundableSessions } from '../models/firestore/collections/RefundableSessions';
+import { toLovelace } from '../helpers/utils';
+import { ActiveSession, Status } from '../models/ActiveSession';
+import { ActiveSessions } from '../models/firestore/collections/ActiveSession';
 import { UsedAddresses } from '../models/firestore/collections/UsedAddresses';
 import { WalletAddresses } from '../models/firestore/collections/WalletAddresses';
-import { PaidSession } from '../models/PaidSession';
-import { RefundableSession } from '../models/RefundableSession';
 import { UsedAddress, UsedAddressStatus } from '../models/UsedAddress';
 
 /**
@@ -69,13 +67,13 @@ const getUsedAddresses = async (): Promise<string[]> => {
     return usedWalletAddresses;
 }
 
-const getExistingSessions = async (): Promise<(PaidSession | RefundableSession)[]> => {
+const getExistingSessions = async (): Promise<(ActiveSession)[]> => {
     // get the current list of paid sessions
-    const paidSessions = await PaidSessions.getPaidSessionsUnsafe();
-    const paidSessionsDLQ = await PaidSessions.getDLQPaidSessionsUnsafe();
+    const paidSessions = await ActiveSessions.getByStatus({statusType: Status.PAID });
+    const paidSessionsDLQ = await ActiveSessions.getByStatus({statusType: Status.DLQ });
 
     // get the current list of refundable sessions
-    const refundableSessions = await RefundableSessions.getRefundableSessions();
+    const refundableSessions = await ActiveSessions.getByStatus({statusType: Status.REFUNDABLE });
 
     const allExistingSessions = [...paidSessions, ...paidSessionsDLQ, ...refundableSessions];
     console.log(`allExistingSessions length ${allExistingSessions.length}`);
@@ -83,10 +81,9 @@ const getExistingSessions = async (): Promise<(PaidSession | RefundableSession)[
 }
 
 const updateExistingRefundableSessions = async () => {
-    const refundableSessions = await RefundableSessions.getRefundableSessions();
+    const refundableSessions = await ActiveSessions.getByStatus({statusType: Status.REFUNDABLE });
 
-    // @ts-expect-error
-    const updatePromises = refundableSessions.map(session => UsedAddresses.updateUsedAddressStatus(session.wallet.address, UsedAddressStatus.PROCESSED).then(() => `completed: ${session.wallet.address}`).catch(e => console.log(e)));
+    const updatePromises = refundableSessions.map(session => UsedAddresses.updateUsedAddressStatus(session.paymentAddress, UsedAddressStatus.PROCESSED).then(() => `completed: ${session.paymentAddress}`).catch(e => console.log(e)));
     await Promise.all(updatePromises);
 }
 
@@ -110,11 +107,11 @@ const getBalances = async (usedAddress: UsedAddress, index: number): Promise<num
         console.log(`${usedAddress.id} has no payments`);
         //await UsedAddresses.updateUsedAddressStatus(usedAddress.id, UsedAddressStatus.PROCESSED);
     } else {
-        const paymentSession = await PaidSessions.getPaidSessionByWalletAddress(usedAddress.id);
+        const paymentSession = await ActiveSessions.getByWalletAddress(usedAddress.id);
         const balance = results.totalPayments - toLovelace(paymentSession?.cost ?? 0);
         if (balance > 0) {
             // need to refund balance
-            console.log(`${usedAddress.id} with returnAddress ${results.returnAddress} has balance of ${toADA(balance)} for transaction ${paymentSession?.txId ?? 'unknown'}`);
+            console.log(`${usedAddress.id} with returnAddress ${results.returnAddress} has balance of ${balance} for transaction ${paymentSession?.txId ?? 'unknown'}`);
             return balance;
         } else {
             console.log(`${usedAddress.id} has zero balance`);
@@ -128,7 +125,7 @@ const getBalances = async (usedAddress: UsedAddress, index: number): Promise<num
 const run = async () => {
     await Firebase.init();
 
-    const paidSessions = await PaidSessions.getPaidSessionsUnsafe();
+    const paidSessions = await ActiveSessions.getByStatus({statusType: Status.PAID });
     console.log(`paidSessions length ${paidSessions.length}`);
 
     // get rarity
