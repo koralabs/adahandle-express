@@ -8,21 +8,21 @@ export interface WalletSimplifiedBalance {
   returnAddress: string;
 }
 
-interface GraphqlGenesisSettings {
-  genesis: {
-    shelley: {
-      protocolParams: {
-        maxTxSize: number;
-        minUTxOValue: number;
-        minFeeA: number;
-        minFeeB: number;
-        poolDeposit: number;
-        keyDeposit: number;
-        maxValSize: number;
-      }
-    }
-  }
-}
+// interface GraphqlGenesisSettings {
+//   genesis: {
+//     shelley: {
+//       protocolParams: {
+//         maxTxSize: number;
+//         minUTxOValue: number;
+//         minFeeA: number;
+//         minFeeB: number;
+//         poolDeposit: number;
+//         keyDeposit: number;
+//         maxValSize: number;
+//       }
+//     }
+//   }
+// }
 
 export interface GraphqlCardanoPaymentAddress {
   address: string;
@@ -84,43 +84,43 @@ interface GraphqlCardanoAssetExistsResult {
   }
 }
 
-interface GraphqlCardanoReturnAddress {
-  address: string;
-}
+// interface GraphqlCardanoReturnAddress {
+//   address: string;
+// }
 
-interface GraphqlCardanoSpecifications {
-  tip: {
-    slotNo: number;
-  }
-  currentEpoch: {
-    protocolParams: {
-      maxBlockBodySize: number;
-      maxTxSize: number;
-    }
-  }
-}
+// interface GraphqlCardanoSpecifications {
+//   tip: {
+//     slotNo: number;
+//   }
+//   currentEpoch: {
+//     protocolParams: {
+//       maxBlockBodySize: number;
+//       maxTxSize: number;
+//     }
+//   }
+// }
 
-interface GraphqlResponse {
-  data: {
-    cardano: GraphqlCardanoSpecifications;
-    paymentAddresses: GraphqlCardanoPaymentAddress[];
-    genesis: GraphqlGenesisSettings;
-  }
-}
+// interface GraphqlResponse {
+//   data: {
+//     cardano: GraphqlCardanoSpecifications;
+//     paymentAddresses: GraphqlCardanoPaymentAddress[];
+//     genesis: GraphqlGenesisSettings;
+//   }
+// }
 
-interface GraphqlPaymentAddressResponse {
-  data: {
-    address: string;
-    summary: {
-      assetBalances: {
-        quantity: string;
-        asset: {
-          assetName: string;
-        }
-      }[]
-    }
-  }
-}
+// interface GraphqlPaymentAddressResponse {
+//   data: {
+//     address: string;
+//     summary: {
+//       assetBalances: {
+//         quantity: string;
+//         asset: {
+//           assetName: string;
+//         }
+//       }[]
+//     }
+//   }
+// }
 
 export interface StakePoolDetails {
   url: string;
@@ -232,7 +232,7 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
   const addressesWithPayments = checkedAddresses.filter(address => address.amount > 0)
   const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address));
   if (returnAddresses) {
-    addressesWithPayments.forEach((address, index, arr) => {
+    addressesWithPayments.forEach((address, index) => {
       address.returnAddress = returnAddresses[index];
     });
   }

@@ -3,7 +3,6 @@ import * as fs from 'fs';
 
 import { HEADER_EMAIL, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
-import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";

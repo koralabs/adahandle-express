@@ -26,7 +26,7 @@ export enum LogCategory {
 }
 
 export class Logger {
-    public static log(args: { message: string, category?: LogCategory, event?: string, milliseconds?: number, count?: number, dimensions?: any } | string): void {
+    public static log(args: { message: string, category?: LogCategory, event?: string, milliseconds?: number, count?: number, dimensions?: string[] } | string): void {
         if (typeof args === 'string') {
             this.log_entry(LogCategory.INFO, args);
             return;
@@ -35,7 +35,7 @@ export class Logger {
         this.log_entry(category ?? LogCategory.INFO, message, event, milliseconds, count, dimensions);
     }
 
-    private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: any): void {
+    private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: string[]): void {
         const now = (new Date()).toISOString();
         const log_event = event ? `, "event": "${event}"` : "";
         const log_milliseconds = (milliseconds != undefined && milliseconds != null) ? `, "milliseconds": ${milliseconds}` : "";

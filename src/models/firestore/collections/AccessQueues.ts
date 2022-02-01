@@ -6,7 +6,6 @@ import { createVerificationEmail, VerificationInstance } from "../../../helpers/
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
-import { isTesting } from "../../../helpers/constants";
 
 export class AccessQueues {
   public static readonly collectionName = buildCollectionNameWithSuffix('accessQueues');

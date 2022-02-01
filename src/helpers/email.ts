@@ -53,7 +53,8 @@ export const createVerificationEmail = async (
       Source: fromAddress,
       ReplyToAddresses: [fromAddress],
     };
-    const sentEmail = sendEmail(params);
+    
+    sendEmail(params).send();
 
     return {authCode: authCode, status};
 };
@@ -96,7 +97,8 @@ export const createConfirmationEmail = async (
       Source: fromAddress,
       ReplyToAddresses: [fromAddress],
     };
-    const sentEmail = sendEmail(params);
+
+    sendEmail(params).send();
 
     return true;
 };

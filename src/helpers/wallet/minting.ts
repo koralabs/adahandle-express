@@ -192,7 +192,7 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
     .filter((token) => token.scriptKeyPairs)
     .forEach((token) =>
       signingKeys.push(
-        ...token.scriptKeyPairs!.map((k) => k.privateKey.to_raw_key())
+        ...token.scriptKeyPairs!.map((k) => k.privateKey.to_raw_key()) // eslint-disable-line
       )
     );
 

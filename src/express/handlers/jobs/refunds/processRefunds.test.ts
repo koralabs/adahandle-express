@@ -2,7 +2,6 @@
 import * as wallet from 'cardano-wallet-js';
 
 import { UsedAddresses } from '../../../../models/firestore/collections/UsedAddresses';
-import { UsedAddressStatus } from '../../../../models/UsedAddress';
 import { processRefunds, Refund } from "./processRefunds";
 
 jest.mock('../../../../models/firestore/collections/UsedAddresses');

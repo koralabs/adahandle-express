@@ -236,7 +236,7 @@ describe('Session Tests', () => {
         }
       }
 
-      const validAddress = 'burrito_tacos123';
+      //const validAddress = 'burrito_tacos123';
       const validHandle = 'taco';
 
       jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
