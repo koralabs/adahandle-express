@@ -66,7 +66,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     }
 
     clientAgentSha = verifiedInfo.sha;
-  } else if (!isLocal() || !isTesting()) {
+  } else if (!isLocal() && !isTesting()) {
     Logger.log({ message: 'Missing adahandle-client-agent-info', event: 'adahandleClientAgentInfo.notFound', category: LogCategory.NOTIFY });
     throw new Error('Missing adahandle-client-agent-info');
   }
@@ -85,15 +85,14 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
 
     if (updated) {
       try {
+        const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
 
-      const {accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
-    
-      const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
-        // TODO: Insert access queue times here
+        const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
+
         await createConfirmationEmail(email, accessQueuePosition.position, accessQueueSize, accessQueuePosition.minutes);
       }
       catch (e) {
-        Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
+        Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.ERROR });
       }
     }
 
@@ -107,7 +106,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
         : null,
     } as QueueResponseBody);
   } catch (e) {
-    Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.appendAccessQueueData', category: LogCategory.INFO });
+    Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.appendAccessQueueData', category: LogCategory.ERROR });
     return res.status(404).json({
       error: true,
       message: JSON.stringify(e),
@@ -126,7 +125,7 @@ export const queuePositionHandler = async (req: express.Request, res: express.Re
     lastMintingTimestamp } = await StateData.getStateData();
   const userTimestamp = req.cookies?.sessionTimestamp;
 
-  if (!userTimestamp){
+  if (!userTimestamp) {
     return res.status(404).statusMessage = 'sessionTimestamp not found';
   }
 
@@ -134,10 +133,10 @@ export const queuePositionHandler = async (req: express.Request, res: express.Re
   const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, userTimestamp, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
 
   return res.status(200).json({
-    error:false,
+    error: false,
     accessQueuePosition: accessQueuePosition.position,
     mintingQueuePosition: mintingQueuePosition.position,
     minutes: accessQueuePosition.minutes + mintingQueuePosition.minutes
   } as QueuePositionResponseBody);
-  
+
 }
