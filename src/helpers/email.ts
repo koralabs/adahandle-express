@@ -1,5 +1,5 @@
 import { sendEmail } from '../helpers/aws';
-import { isProduction, AUTH_CODE_TIMEOUT_MINUTES} from "./constants";
+import { getAdaHandleDomain, AUTH_CODE_TIMEOUT_MINUTES} from "./constants";
 import * as fs from 'fs';
 import * as path from 'path';
 import { LogCategory, Logger } from './Logger';
@@ -21,11 +21,11 @@ export const createVerificationEmail = async (
   const preheader = 'Your activation code is here. Let\'s get started.';
   const content   = `It's time to get your Handles. <br/>Hurry up though, this link is only valid for ${AUTH_CODE_TIMEOUT_MINUTES} minutes.<br/> Once expired, you'll need to re-enter the queue.`;
   const fromAddress = 'ADA Handle <hello@adahandle.com>';
-  const domain = isProduction() ? 'adahandle.com' : 'testnet.adahandle.com'
+  const domain = getAdaHandleDomain();
   const authCode = Buffer.from(`${docRef}|${email}`).toString('base64');
   const status = 'pending';
   const subject = 'ADA Handle: Your Access Link';
-  const authCodeLink = `https://${domain}/mint/?activeAuthCode=${authCode}`;
+  const authCodeLink = `${domain}/mint/?activeAuthCode=${authCode}&activeEmail=${email}`;
   const actionButton = `<a href="${authCodeLink}" class="action-button" target="_blank">Get Access Now</a>`;
   
   const html = template.replace('{{preheader}}', preheader)

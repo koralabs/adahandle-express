@@ -105,3 +105,9 @@ export const isEmulating = (): boolean => {
 export const isLocal = (): boolean => {
   return process.env.NODE_ENV?.trim() === 'local';
 }
+
+export const getAdaHandleDomain =(): string => {
+  if (isLocal() || isTesting()) return 'http://localhost:8888';
+  if (isProduction()) return 'https://adahandle.com';
+  return 'https://testing.adahandle.com';
+}
