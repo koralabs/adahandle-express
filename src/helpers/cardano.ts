@@ -1,5 +1,5 @@
 import { fetch } from 'cross-fetch';
-import { getGraphqlEndpoint, getPolicyId, getPolicyPrivateKey } from "./constants";
+import { getGraphqlEndpoint, getPolicyId } from "./constants";
 import { LogCategory, Logger } from "../helpers/Logger";
 
 export const getTotalHandles = async (): Promise<null | number> => {

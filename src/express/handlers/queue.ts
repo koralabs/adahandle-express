@@ -1,13 +1,12 @@
 import * as express from "express";
 import * as fs from 'fs';
-import * as sgMail from "@sendgrid/mail";
 
 import { HEADER_EMAIL, isLocal, isTesting } from "../../helpers/constants";
 import { appendAccessQueueData } from "../../helpers/firebase";
-import { AccessQueues } from "../../models/firestore/collections/AccessQueues";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";
+import { createConfirmationEmail } from "../../helpers/email"
 
 interface VerifyClientAgentInfoResult {
   sha?: string,
@@ -67,7 +66,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     }
 
     clientAgentSha = verifiedInfo.sha;
-  } else if (!isLocal() || !isTesting()) {
+  } else if (!isLocal() && !isTesting()) {
     Logger.log({ message: 'Missing adahandle-client-agent-info', event: 'adahandleClientAgentInfo.notFound', category: LogCategory.NOTIFY });
     throw new Error('Missing adahandle-client-agent-info');
   }
@@ -82,26 +81,19 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       } as QueueResponseBody);
     }
 
-    const { updated, alreadyExists } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
+    const { updated, alreadyExists, dateAdded } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
 
     if (updated) {
-      const total = await AccessQueues.getAccessQueueCount();
-      const quickResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Depending on your place in line, you should receive your access link anytime between now and around 3 hours. Make sure you turn on email notifications!';
-      const longResponse = 'We have saved your place in line! When it\'s your turn, we will send you a special access link (only valid for 10 minutes, so be ready). Your current wait is longer than 3 hours, so we\'ll email you a reminder when it\'s close to your turn. Make sure you turn on email notifications!';
-      await sgMail
-        .send({
-          to: email,
-          from: 'ADA Handle <hello@adahandle.com>',
-          templateId: 'd-79d22808fad74353b4ffc1083f1ea03c',
-          dynamicTemplateData: {
-            title: 'Confirmed!',
-            message: total > 300 ? longResponse : quickResponse
-          },
-          hideWarnings: true
-        })
-        .catch((e) => {
-          Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.INFO });
-        });
+      try {
+        const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
+
+        const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
+
+        await createConfirmationEmail(email, accessQueuePosition.position, accessQueueSize, accessQueuePosition.minutes);
+      }
+      catch (e) {
+        Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.sendEmailConfirmation', category: LogCategory.ERROR });
+      }
     }
 
     Logger.log(getLogMessage(startTime))
@@ -114,7 +106,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
         : null,
     } as QueueResponseBody);
   } catch (e) {
-    Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.appendAccessQueueData', category: LogCategory.INFO });
+    Logger.log({ message: JSON.stringify(e), event: 'postToQueueHandler.appendAccessQueueData', category: LogCategory.ERROR });
     return res.status(404).json({
       error: true,
       message: JSON.stringify(e),
@@ -133,7 +125,7 @@ export const queuePositionHandler = async (req: express.Request, res: express.Re
     lastMintingTimestamp } = await StateData.getStateData();
   const userTimestamp = req.cookies?.sessionTimestamp;
 
-  if (!userTimestamp){
+  if (!userTimestamp) {
     return res.status(404).statusMessage = 'sessionTimestamp not found';
   }
 
@@ -141,10 +133,10 @@ export const queuePositionHandler = async (req: express.Request, res: express.Re
   const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, userTimestamp, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
 
   return res.status(200).json({
-    error:false,
+    error: false,
     accessQueuePosition: accessQueuePosition.position,
     mintingQueuePosition: mintingQueuePosition.position,
     minutes: accessQueuePosition.minutes + mintingQueuePosition.minutes
   } as QueuePositionResponseBody);
-  
+
 }

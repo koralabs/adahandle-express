@@ -1,12 +1,12 @@
 import { Firebase } from "../helpers/firebase";
-import { PaidSessions } from "../models/firestore/collections/PaidSessions";
+import { ActiveSessions } from "../models/firestore/collections/ActiveSession";
 
 
 const run = async () => {
     await Firebase.init();
 
     // const paidSessions = await PaidSessions.getByStatus({ statusType: "submitted", limit: 15000 });
-    const paidSessions = await PaidSessions.getPaidSessionsUnsafe();
+    const paidSessions = await ActiveSessions.getPaidPendingSessions({limit:10000});
 
     console.log('paidSessions size', paidSessions.length);
 

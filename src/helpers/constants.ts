@@ -23,6 +23,7 @@ export const HEADER_TWITTER_ACCESS_TOKEN = 'x-twitter-token';
 export const TWITTER_UNLOCK_HEADER = 'x-twitter-credentials';
 export const HEADER_JWT_ACCESS_TOKEN = 'x-access-token';
 export const HEADER_JWT_SESSION_TOKEN = 'x-session-token';
+export const AUTH_CODE_TIMEOUT_MINUTES = 60;
 
 export enum CreatedBySystem {
   UI = 'UI',
@@ -37,7 +38,7 @@ export enum CreatedBySystem {
  * -
  * .
  */
-export const ALLOWED_CHAR = new RegExp(/^[a-zA-Z|0-9|\-|_|.]*$/g);
+export const ALLOWED_CHAR = new RegExp(/^[a-zA-Z0-9\-_.]{1,15}$/);
 
 /**
  * Must match all:
@@ -103,4 +104,10 @@ export const isEmulating = (): boolean => {
 
 export const isLocal = (): boolean => {
   return process.env.NODE_ENV?.trim() === 'local';
+}
+
+export const getAdaHandleDomain =(): string => {
+  if (isLocal() || isTesting()) return 'http://localhost:8888';
+  if (isProduction()) return 'https://adahandle.com';
+  return 'https://testing.adahandle.com';
 }

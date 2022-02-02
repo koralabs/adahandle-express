@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // disabling ban-ts-comment is only acceptable in tests. And it's recommend to use very little when you can.
 import * as fs from 'fs';
-import * as sgMail from "@sendgrid/mail";
 import { Request, Response } from 'express';
 import { postToQueueHandler } from "./queue";
 import { AccessQueues } from '../../models/firestore/collections/AccessQueues';
+import * as email from "../../helpers/email"
 
 jest.mock('fs');
 jest.mock('../../models/firestore/collections/AccessQueues');
-jest.mock('@sendgrid/mail');
+jest.mock('../../helpers/email');
 
 describe('Queue Tests', () => {
   let mockRequest: Partial<Request>;
@@ -133,7 +133,7 @@ describe('Queue Tests', () => {
 
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest.mock(`${fileName}`, () => ({ verifyClientAgentInfo: () => ({ sha: '123' }) }));
-      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false });
+      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false, dateAdded: Date.now() });
       jest.spyOn(AccessQueues, 'getAccessQueueCount').mockResolvedValue(1);
 
       await postToQueueHandler(mockRequest as Request, mockResponse as Response);
@@ -161,11 +161,10 @@ describe('Queue Tests', () => {
 
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest.mock(`${fileName}`, () => { return { verifyClientAgentInfo: () => { return { sha: '123' }; } } });
-      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false });
+      jest.spyOn(AccessQueues, 'addToQueue').mockResolvedValue({ updated: true, alreadyExists: false, dateAdded: Date.now() });
       jest.spyOn(AccessQueues, 'getAccessQueueCount').mockResolvedValue(1);
 
-      // @ts-expect-error no need to have a valid response
-      const sendMailMock = jest.spyOn(sgMail, 'send').mockResolvedValue([{}, {}]);
+      const sendMailMock = jest.spyOn(email, 'createConfirmationEmail').mockResolvedValue(true);
 
       await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 

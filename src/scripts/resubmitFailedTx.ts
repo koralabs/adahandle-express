@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import { Firebase } from "../helpers/firebase";
-import { PaidSessions } from "../models/firestore/collections/PaidSessions";
-import { PaidSession } from "../models/PaidSession";
+import { ActiveSessions } from "../models/firestore/collections/ActiveSession";
+import { ActiveSession } from "../models/ActiveSession";
 import { fetch } from 'cross-fetch';
 import { config } from 'dotenv';
 config();
@@ -37,12 +37,12 @@ const run = async () => {
     const threshold = Date.now() - TIMETHRESHOLD
 
     const collection = await admin.firestore()
-      .collection(PaidSessions.collectionName)
+      .collection(ActiveSessions.collectionName)
       .where('status', '==', 'submitted')
       .where('dateAdded', '<=', threshold)
       .orderBy('dateAdded')
       .get()
-    const sessions = collection.docs.map(doc => doc.data() as PaidSession );
+    const sessions = collection.docs.map(doc => doc.data() as ActiveSession );
     console.log(`Total submitted sessions: ${sessions.length} older than ${threshold}`);
     await Promise.all(sessions.map(async (session) => {
       const data = await fetchNodeApp('/exists', {
@@ -57,7 +57,7 @@ const run = async () => {
       }
 
       await admin.firestore().runTransaction(async t => {
-          const ref = admin.firestore().collection(PaidSessions.collectionName).doc(session.id as string);
+          const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
           t.update(ref, { status: 'pending', txId: '' });
           console.log('moved to pending');
           return true;
