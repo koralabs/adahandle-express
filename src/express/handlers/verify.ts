@@ -52,7 +52,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       } as VerifyResponseBody)
     }
 
-    if (access.start ?? 0 < Date.now() - AUTH_CODE_TIMEOUT_MINUTES) {
+    if ((access.start ?? 0) < (Date.now() - (AUTH_CODE_TIMEOUT_MINUTES * 1000 * 60))) {
       await removeAccessQueueData(email);
       return res.status(403).json({
         verified: false,
