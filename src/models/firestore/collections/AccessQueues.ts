@@ -1,6 +1,5 @@
 import * as admin from "firebase-admin";
 
-import { AUTH_CODE_EXPIRE } from "../../../helpers/constants";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { createVerificationEmail, VerificationInstance } from "../../../helpers/email";
 import { AccessQueue } from "../../AccessQueue";
@@ -100,7 +99,7 @@ export class AccessQueues {
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)
-      .where('start', '<', Date.now() - AUTH_CODE_EXPIRE)
+      .where('start', '<', Date.now() - stateData.accessCodeTimeoutMinutes)
       .orderBy('start')
       .get();
 

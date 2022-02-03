@@ -1,10 +1,11 @@
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
 
-import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH, AUTH_CODE_TIMEOUT_MINUTES } from "../../helpers/constants";
+import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH } from "../../helpers/constants";
 import { removeAccessQueueData, getAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
 import { LogCategory, Logger } from "../../helpers/Logger";
+import { StateData } from "../../models/firestore/collections/StateData";
 
 interface VerifyResponseBody {
   error: boolean;
@@ -52,7 +53,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       } as VerifyResponseBody)
     }
 
-    if ((access.start ?? 0) < (Date.now() - (AUTH_CODE_TIMEOUT_MINUTES * 1000 * 60))) {
+    if ((access.start ?? 0) < (Date.now() - ((await StateData.getStateData()).accessCodeTimeoutMinutes * 1000 * 60))) {
       await removeAccessQueueData(email);
       return res.status(403).json({
         verified: false,

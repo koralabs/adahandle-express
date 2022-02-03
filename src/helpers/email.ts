@@ -1,8 +1,9 @@
 import { sendEmail } from '../helpers/aws';
-import { getAdaHandleDomain, AUTH_CODE_TIMEOUT_MINUTES} from "./constants";
+import { getAdaHandleDomain } from "./constants";
 import * as fs from 'fs';
 import * as path from 'path';
 import { LogCategory, Logger } from './Logger';
+import { StateData } from "../models/firestore/collections/StateData";
 
 export class VerificationInstance {
   public authCode: string;
@@ -19,7 +20,7 @@ export const createVerificationEmail = async (
 ): Promise<VerificationInstance> => {
   const template = fs.readFileSync(path.resolve(__dirname, '../htmlTemplates/main.html'), 'utf8');
   const preheader = 'Your activation code is here. Let\'s get started.';
-  const content   = `It's time to get your Handles. <br/>Hurry up though, this link is only valid for ${AUTH_CODE_TIMEOUT_MINUTES} minutes.<br/> Once expired, you'll need to re-enter the queue.`;
+  const content   = `It's time to get your Handles. <br/>Hurry up though, this link is only valid for ${(await StateData.getStateData()).accessCodeTimeoutMinutes} minutes.<br/> Once expired, you'll need to re-enter the queue.`;
   const fromAddress = 'ADA Handle <hello@adahandle.com>';
   const domain = getAdaHandleDomain();
   const authCode = Buffer.from(`${docRef}|${email}`).toString('base64');
@@ -101,7 +102,7 @@ export const createConfirmationEmail = async (
       ReplyToAddresses: [fromAddress],
     };
 
-    sendEmail(params).send((err, data) => {if (err) Logger.log({message: JSON.stringify(err), category:LogCategory.ERROR, event: 'createConfirmationEmail.send'})});
+    sendEmail(params).send((err) => {if (err) Logger.log({message: JSON.stringify(err), category:LogCategory.ERROR, event: 'createConfirmationEmail.send'})});
 
     return true;
 };
