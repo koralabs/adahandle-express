@@ -268,6 +268,8 @@ export const lookupReturnAddresses = async (
                 index:asc
               }
             ){
+              index
+              txHash
               address
             }
 
@@ -287,6 +289,7 @@ export const lookupReturnAddresses = async (
   }
 
   // TODO: check includedAt to make sure valid transaction
+  // TODO: include txHash and index into receiver address object (for manual refunding)
 
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
@@ -480,10 +483,10 @@ export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolD
       },
       query: `
       query ($addresses: [String!]!) {
-        stakePools(where: { 
-            id: { 
-              _in: $addresses 
-            } 
+        stakePools(where: {
+            id: {
+              _in: $addresses
+            }
           }) {
           url
           id
