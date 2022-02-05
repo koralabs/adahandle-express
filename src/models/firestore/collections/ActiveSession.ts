@@ -27,7 +27,14 @@ export class ActiveSessions {
     if (session.empty) {
       return null;
     }
-    return {...session.docs[0].data} as ActiveSession;
+    return { ...session.docs[0].data } as ActiveSession;
+  }
+
+  public static async getActiveSessionsByEmail(emailAddress: string): Promise<ActiveSession[]> {
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('emailAddress', '==', emailAddress).get();
+    return collection.docs.map(doc => new ActiveSession({
+      ...doc.data() as ActiveSessionInput
+    }));
   }
 
   public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
@@ -44,7 +51,6 @@ export class ActiveSessions {
     });
   }
 
-
   public static async getByWalletAddress(address: string): Promise<ActiveSession | null> {
     const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('paymentAddress', '==', address).limit(1).get();
     if (collection.empty) {
@@ -56,8 +62,7 @@ export class ActiveSessions {
 
   static async getByStatus({ statusType, limit, }: { statusType: Status; limit?: number; }): Promise<ActiveSession[]> {
     let query = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', statusType);
-    if (limit)
-    {
+    if (limit) {
       query = query.limit(limit);
     }
     const collection = await query.get();

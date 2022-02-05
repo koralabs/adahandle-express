@@ -147,6 +147,7 @@ describe('Session Tests', () => {
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(false);
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -168,11 +169,35 @@ describe('Session Tests', () => {
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue('validAddress');
     jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(false);
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Sorry, this handle is being purchased! Try another handle." });
+  });
+
+
+  it('should send an 403 response if user has too many active sessions', async () => {
+    mockRequest = {
+      headers: {
+        'x-access-token': 'test-access-token',
+        'x-session-token': 'test-session-token'
+      }
+    }
+
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+
+    // @ts-ignore
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    const activeSessions = [{ handle: 'validHandle' }, { handle: 'validHandle' }, { handle: 'validHandle' }];
+    // @ts-ignore
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue(activeSessions);
+
+    await sessionHandler(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(403);
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Too many sessions open! Try again after one expires." });
   });
 
   it('should send a successful 200 response', async () => {
@@ -191,6 +216,7 @@ describe('Session Tests', () => {
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
     const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
@@ -236,7 +262,6 @@ describe('Session Tests', () => {
         }
       }
 
-      //const validAddress = 'burrito_tacos123';
       const validHandle = 'taco';
 
       jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');

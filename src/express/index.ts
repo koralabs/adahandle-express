@@ -20,6 +20,7 @@ import { mintPaidSessionsHandler } from './handlers/jobs/minting';
 import { updateSessionsHandler } from './handlers/jobs/sessions';
 import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
 import { refundsHandler } from "./handlers/jobs/refunds";
+import { searchHandler } from "./handlers/search";
 
 export const startServer = async () => {
   const app = express();
@@ -50,6 +51,7 @@ export const startServer = async () => {
   app.get("/verify", verifyHandler);
   app.get("/session", sessionHandler);
   app.get("/location", locationHandler);
+  app.get('/search', searchHandler);
 
   // Jobs
   app.post("/state", stateHandler);
