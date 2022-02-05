@@ -15,6 +15,9 @@ interface StateConstructor {
     paidSessionsLimit?: number;
     mintConfirmPaidSessionsLimit?: number;
     usedAddressesLimit?: number;
+    accessCodeTimeoutMinutes?: number;
+    accessWindowTimeoutMinutes?: number;
+    chainLoadThresholdPercent?: number;
     ipfsRateDelay?: number;
     lastMintingTimestamp?: number;
     lastAccessTimestamp?: number;
@@ -36,6 +39,9 @@ export class State extends BaseModel {
     public paidSessionsLimit: number;
     public mintConfirmPaidSessionsLimit: number;
     public usedAddressesLimit: number;
+    public accessCodeTimeoutMinutes: number;
+    public accessWindowTimeoutMinutes: number;
+    public chainLoadThresholdPercent: number;
     public ipfsRateDelay: number;
     public lastMintingTimestamp: number;
     public lastAccessTimestamp: number;
@@ -56,6 +62,9 @@ export class State extends BaseModel {
         paidSessionsLimit = 10,
         mintConfirmPaidSessionsLimit = 500,
         usedAddressesLimit = 50,
+        accessCodeTimeoutMinutes = 60,
+        accessWindowTimeoutMinutes = 60,
+        chainLoadThresholdPercent = 85,
         ipfsRateDelay = 1000, // <- Blockfrost is 10/sec, Pinata is 3/sec. 2 servers at 1/sec = 2/sec
         lastMintingTimestamp = Date.now(),
         lastAccessTimestamp = Date.now(),
@@ -76,6 +85,9 @@ export class State extends BaseModel {
         this.paidSessionsLimit = paidSessionsLimit;
         this.mintConfirmPaidSessionsLimit = mintConfirmPaidSessionsLimit;
         this.usedAddressesLimit = usedAddressesLimit;
+        this.accessCodeTimeoutMinutes = accessCodeTimeoutMinutes;
+        this.accessWindowTimeoutMinutes = accessWindowTimeoutMinutes;
+        this.chainLoadThresholdPercent = chainLoadThresholdPercent;
         this.ipfsRateDelay = ipfsRateDelay;
         this.lastMintingTimestamp = lastMintingTimestamp;
         this.lastAccessTimestamp = lastAccessTimestamp;

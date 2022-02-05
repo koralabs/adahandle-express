@@ -1,6 +1,5 @@
 import * as express from "express";
 
-import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
 import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
 import { MintingCache } from '../../../models/firestore/collections/MintingCache';
@@ -15,7 +14,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintPaidSessions processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintPaidSessions.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   const state = await StateData.getStateData();
-  if (state.chainLoad > MAX_CHAIN_LOAD) {
+  if (state.chainLoad > state.chainLoadThresholdPercent) {
 
     return res.status(200).json({
       error: false,

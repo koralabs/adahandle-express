@@ -1,6 +1,6 @@
 import * as express from "express";
 
-import { MAX_SESSION_LENGTH_UI, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
+import { MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
 import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
@@ -18,7 +18,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
-
+  const stateData = await StateData.getStateData();
   try {
     // TODO: Should we also be checking for duplicate handles here?
     const activeSessions: ActiveSession[] = await ActiveSessions.getPendingActiveSessions();
@@ -51,7 +51,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
     dedupeActiveSessions.forEach(
       async (entry, index) => {
         const sessionAge = Date.now() - entry?.start;
-        const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ? MAX_SESSION_LENGTH_CLI : (entry.createdBySystem == CreatedBySystem.SPO ? MAX_SESSION_LENGTH_SPO : MAX_SESSION_LENGTH_UI)
+        const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ? MAX_SESSION_LENGTH_CLI : (entry.createdBySystem == CreatedBySystem.SPO ? MAX_SESSION_LENGTH_SPO : stateData.accessWindowTimeoutMinutes)
         const matchingPayment = sessionPaymentStatuses[index];
 
         if (!matchingPayment) {

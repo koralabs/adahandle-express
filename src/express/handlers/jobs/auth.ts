@@ -1,6 +1,5 @@
 import * as express from "express";
 
-import { MAX_CHAIN_LOAD } from "../../../helpers/constants";
 import { AccessQueues } from '../../../models/firestore/collections/AccessQueues';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { StateData } from "../../../models/firestore/collections/StateData";
@@ -16,7 +15,7 @@ export const sendAuthCodesHandler = async (req: express.Request, res: express.Re
 
   // Don't send auth codes if chain load is too high.
   Logger.log({ message: `Current Chain Load: ${state.chainLoad}`, event: "sendAuthCodesHandler.getChainLoad" });
-  if (state.chainLoad > MAX_CHAIN_LOAD) {
+  if (state.chainLoad > state.chainLoadThresholdPercent) {
     return res.status(200).json({
       error: false,
       message: 'Chain load is too high.'
