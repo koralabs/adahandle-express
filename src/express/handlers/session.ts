@@ -128,7 +128,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     }
   } else {
     const activeSessions = await ActiveSessions.getActiveSessionsByEmail(emailAddress);
-    if (activeSessions.length > MAX_SESSION_COUNT) {
+    if (activeSessions.length >= MAX_SESSION_COUNT) {
       return res.status(403).json({
         error: true,
         message: 'Too many sessions open! Try again after one expires.'
