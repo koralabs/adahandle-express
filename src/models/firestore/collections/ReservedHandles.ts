@@ -54,9 +54,9 @@ export interface HandleOptions {
 export interface HandleAvailabilityResponse {
     available: boolean;
     message?: string;
-    reason?: 'twitter' | 'spo' | 'private' | 'pending' | 'notallowed' | 'invalid';
+    type?: 'twitter' | 'spo' | 'private' | 'pending' | 'notallowed' | 'invalid';
     link?: string; //`https://${process.env.CARDANOSCAN_DOMAIN}/token/${policyID}.${assetName}`
-    debug?: string;
+    reason?: string;
     duration?: number;
 }
 
@@ -70,7 +70,7 @@ export class ReservedHandles {
     static cacheResetTime: number;
 
     static async getReservedHandles(): Promise<HandleOptions> {
-        const [ protectedWords, reservedHandlesPrivate, reservedHandlesSPOs, reservedHandlesTwitter ] = await Promise.all([
+        const [protectedWords, reservedHandlesPrivate, reservedHandlesSPOs, reservedHandlesTwitter] = await Promise.all([
             admin.firestore().collection(ReservedHandles.collectionProtectedWords).get(),
             admin.firestore().collection(ReservedHandles.collectionPrivateHandles).get(),
             admin.firestore().collection(ReservedHandles.collectionSPOs).get(),
@@ -96,7 +96,7 @@ export class ReservedHandles {
             return {
                 available: false,
                 message: RESPONSE_BETA_PHASE_UNAVAILABLE,
-                reason: 'invalid',
+                type: 'invalid',
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -105,7 +105,7 @@ export class ReservedHandles {
             return {
                 available: false,
                 message: RESPONSE_INVALID_HANDLE_FORMAT,
-                reason: 'invalid',
+                type: 'invalid',
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -117,7 +117,7 @@ export class ReservedHandles {
             return {
                 available: false,
                 message: RESPONSE_ACTIVE_SESSION_UNAVAILABLE,
-                reason: 'pending',
+                type: 'pending',
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -126,7 +126,7 @@ export class ReservedHandles {
             return {
                 available: false,
                 message: RESPONSE_UNAVAILABLE_PAID,
-                reason: 'pending',
+                type: 'pending',
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -149,7 +149,7 @@ export class ReservedHandles {
             return {
                 available: false,
                 message: RESPONSE_RESERVED_HANDLE_UNAVAILABLE,
-                reason: 'private',
+                type: 'private',
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -158,7 +158,7 @@ export class ReservedHandles {
             return {
                 available: false,
                 message: RESPONSE_SPO_HANDLE_UNAVAILABLE,
-                reason: 'spo',
+                type: 'spo',
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -167,7 +167,7 @@ export class ReservedHandles {
             return {
                 available: false,
                 message: RESPONSE_UNAVAILABLE_TWITTER,
-                reason: 'twitter',
+                type: 'twitter',
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -175,7 +175,7 @@ export class ReservedHandles {
         const notAllowedResponse: HandleAvailabilityResponse = {
             available: false,
             message: RESPONSE_NOT_ALLOWED,
-            reason: 'notallowed'
+            type: 'notallowed'
         };
 
         const allowedResponse: HandleAvailabilityResponse = {
@@ -197,7 +197,7 @@ export class ReservedHandles {
                 let listed = this.isProtected(match);
                 // This will get `my.shit.stinks`, `_my-shits_stink`, `my.shitz.stink`, and `-my_shit5_stink-`
                 if (listed.protected) {
-                    notAllowedResponse.debug = `Protected word match on '${listed.words?.join(',')}'`;
+                    notAllowedResponse.reason = `Protected word match on '${listed.words?.join(',')}'`;
                     notAllowedResponse.duration = getDuration(startTime, waitTime);
                     return notAllowedResponse;
                 }
@@ -205,7 +205,7 @@ export class ReservedHandles {
                 // This will get `my.5h1t.stinks`, `_my-shi7s_stink`, `my_sh1tz.stink`, and `-my_5hit5_stink`
                 listed = this.isNumberReplacementsProtected(match);
                 if (listed.protected) {
-                    notAllowedResponse.debug = `Number replacement match on '${listed.words?.join(',')}'`;
+                    notAllowedResponse.reason = `Number replacement match on '${listed.words?.join(',')}'`;
                     notAllowedResponse.duration = getDuration(startTime, waitTime);
                     return notAllowedResponse;
                 }
@@ -214,7 +214,7 @@ export class ReservedHandles {
                 let handleTrimmed = this.trimChars(match, '0123456789');
                 listed = this.isProtected(handleTrimmed);
                 if (listed.protected) {
-                    notAllowedResponse.debug = `Number trim match on '${listed.words?.join(',')}'`;
+                    notAllowedResponse.reason = `Number trim match on '${listed.words?.join(',')}'`;
                     notAllowedResponse.duration = getDuration(startTime, waitTime);
                     return notAllowedResponse;
                 }
@@ -223,7 +223,7 @@ export class ReservedHandles {
                 handleTrimmed = this.trimChars(match, 'x0123456789');
                 listed = this.isProtected(handleTrimmed);
                 if (listed.protected) {
-                    notAllowedResponse.debug = `Number and 'x' trim match on '${listed.words?.join(',')}'`;
+                    notAllowedResponse.reason = `Number and 'x' trim match on '${listed.words?.join(',')}'`;
                     notAllowedResponse.duration = getDuration(startTime, waitTime);
                     return notAllowedResponse;
                 }
@@ -233,7 +233,7 @@ export class ReservedHandles {
         handle = handle.replace(/[.\-_]/g, '');
         const listed = this.isNumberReplacementsProtected(handle);
         if (listed.protected) {
-            notAllowedResponse.debug = `Protected word match (with stripped characters) on '${listed.words?.join(',')}'`;
+            notAllowedResponse.reason = `Protected word match (with stripped characters) on '${listed.words?.join(',')}'`;
             notAllowedResponse.duration = getDuration(startTime, waitTime);
             return notAllowedResponse;
         }
@@ -245,7 +245,7 @@ export class ReservedHandles {
                 // This will get `my1shit1stinks`, `0my1shits2stink`, `my3shitz4stink`, and `5my1shit5stink-`
                 const listed = this.isProtected(match);
                 if (listed.protected) {
-                    notAllowedResponse.debug = `Split on numbers match for '${listed.words?.join(',')}'`;
+                    notAllowedResponse.reason = `Split on numbers match for '${listed.words?.join(',')}'`;
                     notAllowedResponse.duration = getDuration(startTime, waitTime);
                     return notAllowedResponse;
                 }
@@ -280,7 +280,7 @@ export class ReservedHandles {
             return { protected: false };
         })
         if (matchResult.protected) {
-            notAllowedResponse.debug = `In string match found for '${matchResult.words?.join(',')}'`;
+            notAllowedResponse.reason = `In string match found for '${matchResult.words?.join(',')}'`;
             notAllowedResponse.duration = getDuration(startTime, waitTime);
             return notAllowedResponse;
         }
@@ -310,7 +310,7 @@ export class ReservedHandles {
             return { protected: false };
         })
         if (matchResult.protected) {
-            notAllowedResponse.debug = `Hatespeech match found for ${matchResult.words?.join(',')}`;
+            notAllowedResponse.reason = `Hatespeech match found for ${matchResult.words?.join(',')}`;
             notAllowedResponse.duration = getDuration(startTime, waitTime);
             return notAllowedResponse;
         }
@@ -355,7 +355,7 @@ export class ReservedHandles {
             return { protected: false };
         })
         if (matchResult.protected) {
-            notAllowedResponse.debug = `Suggestive language match found for ${matchResult.words?.join(',')}`;
+            notAllowedResponse.reason = `Suggestive language match found for ${matchResult.words?.join(',')}`;
             notAllowedResponse.duration = getDuration(startTime, waitTime);
             return notAllowedResponse;
         }

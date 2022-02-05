@@ -24,6 +24,7 @@ export const TWITTER_UNLOCK_HEADER = 'x-twitter-credentials';
 export const HEADER_JWT_ACCESS_TOKEN = 'x-access-token';
 export const HEADER_JWT_SESSION_TOKEN = 'x-session-token';
 export const AUTH_CODE_TIMEOUT_MINUTES = 60;
+export const MAX_SESSION_COUNT = 3;
 
 export enum CreatedBySystem {
   UI = 'UI',
@@ -106,7 +107,7 @@ export const isLocal = (): boolean => {
   return process.env.NODE_ENV?.trim() === 'local';
 }
 
-export const getAdaHandleDomain =(): string => {
+export const getAdaHandleDomain = (): string => {
   if (isLocal() || isTesting()) return 'http://localhost:8888';
   if (isProduction()) return 'https://adahandle.com';
   return 'https://testing.adahandle.com';

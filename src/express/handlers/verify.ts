@@ -32,12 +32,12 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       message: 'Missing email authentication code.'
     } as VerifyResponseBody)
   }
-  
+
   let token: string | null;
   try {
 
     const decodedAuth = Buffer.from(authCode as string, 'base64').toString('utf8');
-  
+
     const ref = decodedAuth.split('|')[0];
     const email = decodedAuth.split('|')[1];
 
@@ -73,7 +73,8 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
            * of the session lifecycle, and set a corresponding
            * expirey on the local cookie.
            */
-          emailAddress: email
+          emailAddress: email,
+          isSPO: false
         },
         secretKey,
         {
