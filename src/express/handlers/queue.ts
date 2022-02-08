@@ -21,14 +21,6 @@ interface QueueResponseBody {
   queue?: number;
 }
 
-interface QueuePositionResponseBody {
-  error: boolean;
-  accessQueuePosition: number;
-  mintingQueuePosition: number;
-  minutes: number;
-  message?: string;
-}
-
 const validateEmail = (email: string): boolean => {
   const res = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return res.test(String(email).toLowerCase());
@@ -112,31 +104,4 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       message: JSON.stringify(e),
     } as QueueResponseBody);
   }
-}
-
-export const queuePositionHandler = async (req: express.Request, res: express.Response) => {
-  const {
-    accessQueueSize,
-    mintingQueueSize,
-    accessQueueLimit,
-    paidSessionsLimit,
-    availableMintingServers,
-    lastAccessTimestamp,
-    lastMintingTimestamp } = await StateData.getStateData();
-  const userTimestamp = req.cookies?.sessionTimestamp;
-
-  if (!userTimestamp) {
-    return res.status(404).statusMessage = 'sessionTimestamp not found';
-  }
-
-  const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, userTimestamp, accessQueueLimit);
-  const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, userTimestamp, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
-
-  return res.status(200).json({
-    error: false,
-    accessQueuePosition: accessQueuePosition.position,
-    mintingQueuePosition: mintingQueuePosition.position,
-    minutes: accessQueuePosition.minutes + mintingQueuePosition.minutes
-  } as QueuePositionResponseBody);
-
 }
