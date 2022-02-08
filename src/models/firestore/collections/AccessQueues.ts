@@ -20,7 +20,7 @@ export class AccessQueues {
   }
 
   static async getAccessQueueCount(): Promise<number> {
-    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'pending').get(); // Need to account for the people that haven't clicked their links yet
+    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').get(); // Need to account for the people that haven't clicked their links yet
     return snapshot.size;
   }
 
@@ -99,7 +99,7 @@ export class AccessQueues {
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)
-      .where('start', '<', Date.now() - stateData.accessCodeTimeoutMinutes)
+      .where('start', '<', Date.now() - (stateData.accessCodeTimeoutMinutes * 1000 * 60))
       .orderBy('start')
       .get();
 

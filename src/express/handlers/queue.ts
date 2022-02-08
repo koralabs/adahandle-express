@@ -17,15 +17,11 @@ interface QueueResponseBody {
   error: boolean;
   updated?: boolean;
   alreadyExists?: boolean;
-  message?: string;
-  queue?: number;
-}
-
-interface QueuePositionResponseBody {
-  error: boolean;
-  accessQueuePosition: number;
-  mintingQueuePosition: number;
-  minutes: number;
+  accessQueuePosition?: {
+    position: number;
+    minutes: number;
+  },
+  accessQueueSize?: number;
   message?: string;
 }
 
@@ -82,13 +78,11 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     }
 
     const { updated, alreadyExists, dateAdded } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
+    const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
+    const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
 
     if (updated) {
       try {
-        const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
-
-        const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
-
         await createConfirmationEmail(email, accessQueuePosition.position, accessQueueSize, accessQueuePosition.minutes);
       }
       catch (e) {
@@ -101,6 +95,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       error: false,
       updated,
       alreadyExists,
+      accessQueuePosition,
+      accessQueueSize,
       message: alreadyExists
         ? `Whoops! Looks like you're already in line. You'll receive your access link via the email address you entered when it's your turn!`
         : null,
@@ -112,31 +108,4 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       message: JSON.stringify(e),
     } as QueueResponseBody);
   }
-}
-
-export const queuePositionHandler = async (req: express.Request, res: express.Response) => {
-  const {
-    accessQueueSize,
-    mintingQueueSize,
-    accessQueueLimit,
-    paidSessionsLimit,
-    availableMintingServers,
-    lastAccessTimestamp,
-    lastMintingTimestamp } = await StateData.getStateData();
-  const userTimestamp = req.cookies?.sessionTimestamp;
-
-  if (!userTimestamp) {
-    return res.status(404).statusMessage = 'sessionTimestamp not found';
-  }
-
-  const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, userTimestamp, accessQueueLimit);
-  const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, userTimestamp, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
-
-  return res.status(200).json({
-    error: false,
-    accessQueuePosition: accessQueuePosition.position,
-    mintingQueuePosition: mintingQueuePosition.position,
-    minutes: accessQueuePosition.minutes + mintingQueuePosition.minutes
-  } as QueuePositionResponseBody);
-
 }

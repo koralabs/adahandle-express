@@ -1,7 +1,20 @@
 import { GetObjectOutput } from 'aws-sdk/clients/s3';
+import * as jwt from "jsonwebtoken";
 import { Secret } from 'jsonwebtoken';
 import { getS3 } from "./aws";
 import { LogCategory, Logger } from "../helpers/Logger";
+
+export interface AccessJWTPayload extends jwt.JwtPayload {
+  emailAddress: string;
+  isSPO?: boolean;
+}
+
+export interface SessionJWTPayload extends jwt.JwtPayload {
+  emailAddress: string;
+  cost: number;
+  handle: string;
+  isSPO?: boolean;
+}
 
 type SecretContext = 'access' | 'session'
 
@@ -11,7 +24,7 @@ let sessionSecret: Secret;
 export const getKey = async (
   context: SecretContext = 'access',
   type: 'secret' | 'public' = 'secret'
-): Promise<Secret|null> => {
+): Promise<Secret | null> => {
   const s3 = getS3();
 
   if ('access' === context && accessSecret) {
@@ -35,14 +48,14 @@ export const getKey = async (
         Key: Key || "",
       })
       .promise();
-  } catch(e) {
+  } catch (e) {
     Logger.log({ message: JSON.stringify(e), category: LogCategory.ERROR });
     return null;
   }
 
   const secret = res?.Body
-      ? res.Body.toString("utf-8") as Secret
-      : null;
+    ? res.Body.toString("utf-8") as Secret
+    : null;
 
   if ('access' === context && secret) {
     accessSecret = secret;

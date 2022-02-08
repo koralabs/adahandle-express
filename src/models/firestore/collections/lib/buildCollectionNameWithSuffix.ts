@@ -1,4 +1,4 @@
-import { isProduction, isTesting } from "../../../../helpers/constants";
+import { isLocal, isProduction, isTesting } from "../../../../helpers/constants";
 
 /**
  * @description adds suffix '_dev' based on environment
@@ -10,6 +10,6 @@ import { isProduction, isTesting } from "../../../../helpers/constants";
  */
 export const buildCollectionNameWithSuffix = (collectionName: string): string => {
     if (isProduction()) return collectionName
-    else if (isTesting()) return `${collectionName}_test`;
+    else if (isTesting() || isLocal()) return `${collectionName}_test`;
     return `${collectionName}_dev`;
 }

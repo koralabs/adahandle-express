@@ -27,23 +27,15 @@ export class ActiveSessions {
     if (session.empty) {
       return null;
     }
-    return {...session.docs[0].data} as ActiveSession;
+    return { ...session.docs[0].data } as ActiveSession;
   }
 
-  public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
-    return admin.firestore().runTransaction(async t => {
-      const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).limit(1));
-      if (!snapshot.empty) {
-        return false;
-      }
-
-      const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc();
-      const newDoc = { ...newSession.toJSON(), id: docRef.id };
-      t.create(docRef, newDoc);
-      return true;
-    });
+  public static async getActiveSessionsByEmail(emailAddress: string): Promise<ActiveSession[]> {
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('emailAddress', '==', emailAddress).get();
+    return collection.docs.map(doc => new ActiveSession({
+      ...doc.data() as ActiveSessionInput
+    }));
   }
-
 
   public static async getByWalletAddress(address: string): Promise<ActiveSession | null> {
     const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('paymentAddress', '==', address).limit(1).get();
@@ -56,8 +48,7 @@ export class ActiveSessions {
 
   static async getByStatus({ statusType, limit, }: { statusType: Status; limit?: number; }): Promise<ActiveSession[]> {
     let query = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', statusType);
-    if (limit)
-    {
+    if (limit) {
       query = query.limit(limit);
     }
     const collection = await query.get();
@@ -77,6 +68,21 @@ export class ActiveSessions {
     }
 
     return snapshot.docs.map(doc => doc.data() as ActiveSession);
+  }
+
+  public static async addActiveSession(newSession: ActiveSession): Promise<boolean> {
+    return admin.firestore().runTransaction(async t => {
+      const pendingSnapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).where('status', '==', Status.PENDING).limit(1));
+      const paidSnapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', newSession.handle).where('status', '==', Status.PAID).limit(1));
+      if (pendingSnapshot.empty && paidSnapshot.empty) {
+        const docRef = admin.firestore().collection(ActiveSessions.collectionName).doc();
+        const newDoc = { ...newSession.toJSON(), id: docRef.id };
+        t.create(docRef, newDoc);
+        return true;
+      }
+
+      return false;
+    });
   }
 
   static async updateSessions(sessions: ActiveSession[]): Promise<boolean[]> {

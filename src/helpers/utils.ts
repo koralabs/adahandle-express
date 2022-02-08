@@ -50,7 +50,7 @@ export const calculatePositionAndMinutesInQueue = (queueSize: number, lastTimest
         return { position: 0, minutes: 0 };
     }
     const currentTimestamp = Date.now();
-    const position = ((userTimestamp - lastTimestamp) / (currentTimestamp - lastTimestamp)) * queueSize;
-    const minutes = position / queueLimit;
+    const position = Math.round(((userTimestamp - lastTimestamp) / (currentTimestamp - lastTimestamp)) * queueSize);
+    const minutes = Math.round(position / queueLimit);
     return { position, minutes };
 }

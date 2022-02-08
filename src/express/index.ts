@@ -6,7 +6,7 @@ import { urlencoded, json } from 'body-parser'
 import Router from 'express-promise-router';
 
 // Handlers
-import { postToQueueHandler, queuePositionHandler } from "./handlers/queue";
+import { postToQueueHandler } from "./handlers/queue";
 import { verifyHandler } from "./handlers/verify";
 import { sessionHandler } from "./handlers/session";
 import { handleExistsHandler } from "./handlers/exists";
@@ -20,6 +20,8 @@ import { mintPaidSessionsHandler } from './handlers/jobs/minting';
 import { updateSessionsHandler } from './handlers/jobs/sessions';
 import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
 import { refundsHandler } from "./handlers/jobs/refunds";
+import { searchHandler } from "./handlers/search";
+import { queuePositionHandler } from "./handlers/queuePosition";
 
 export const startServer = async () => {
   const app = express();
@@ -50,6 +52,7 @@ export const startServer = async () => {
   app.get("/verify", verifyHandler);
   app.get("/session", sessionHandler);
   app.get("/location", locationHandler);
+  app.get('/search', searchHandler);
 
   // Jobs
   app.post("/state", stateHandler);
