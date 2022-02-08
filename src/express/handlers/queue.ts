@@ -17,8 +17,12 @@ interface QueueResponseBody {
   error: boolean;
   updated?: boolean;
   alreadyExists?: boolean;
+  accessQueuePosition?: {
+    position: number;
+    minutes: number;
+  },
+  accessQueueSize?: number;
   message?: string;
-  queue?: number;
 }
 
 const validateEmail = (email: string): boolean => {
@@ -74,13 +78,11 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     }
 
     const { updated, alreadyExists, dateAdded } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
+    const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
+    const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
 
     if (updated) {
       try {
-        const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
-
-        const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
-
         await createConfirmationEmail(email, accessQueuePosition.position, accessQueueSize, accessQueuePosition.minutes);
       }
       catch (e) {
@@ -93,6 +95,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
       error: false,
       updated,
       alreadyExists,
+      accessQueuePosition,
+      accessQueueSize,
       message: alreadyExists
         ? `Whoops! Looks like you're already in line. You'll receive your access link via the email address you entered when it's your turn!`
         : null,
