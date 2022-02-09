@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Request, Response } from 'express';
 import { paymentConfirmedHandler } from './payment';
-import * as graphql from '../../helpers/graphql';
 import { toLovelace } from '../../helpers/utils';
 import { ActiveSessions } from '../../models/firestore/collections/ActiveSession';
-import { ActiveSession } from '../../models/ActiveSession';
+import { ActiveSession, Status } from '../../models/ActiveSession';
 import { CreatedBySystem } from '../../helpers/constants';
 
 jest.mock('../../helpers/graphql');
@@ -31,13 +30,6 @@ describe('Payment Tests', () => {
 
   const address = 'addr123';
   const amount = 20;
-  const returnAddress = 'returnAddr123';
-
-  const WalletSimplifiedBalanceFixture = {
-    address,
-    amount: toLovelace(amount),
-    returnAddress
-  }
 
   it('should send an 400 response if auth token is not provided', async () => {
     mockRequest = {
@@ -59,7 +51,6 @@ describe('Payment Tests', () => {
       }
     }
 
-    jest.spyOn(graphql, 'checkPayments').mockResolvedValue([WalletSimplifiedBalanceFixture]);
     jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
       emailAddress: '',
       cost: toLovelace(amount),
@@ -67,6 +58,7 @@ describe('Payment Tests', () => {
       paymentAddress: '',
       start: 0,
       createdBySystem: CreatedBySystem.UI,
+      status: Status.PAID,
     }));
 
     await paymentConfirmedHandler(mockRequest as Request, mockResponse as Response);
