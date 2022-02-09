@@ -391,14 +391,14 @@ export class ReservedHandles {
 
         // it's about 5x faster to check the includes first than it is to just call replace directly
         if (handleReplacedTemp.includes('8')) handleReplacedTemp = handleReplacedTemp.replace(/(8[0-9])|([0-9]8){2,}/g, '');
-        if (handleReplacedTemp.includes('0')) handleReplacedTemp = handleReplacedTemp.replaceAll('0', 'o');
-        if (handleReplacedTemp.includes('2')) handleReplacedTemp = handleReplacedTemp.replaceAll('2', 'z');
-        if (handleReplacedTemp.includes('3')) handleReplacedTemp = handleReplacedTemp.replaceAll('3', 'e');
-        if (handleReplacedTemp.includes('4')) handleReplacedTemp = handleReplacedTemp.replaceAll('4', 'a');
-        if (handleReplacedTemp.includes('5')) handleReplacedTemp = handleReplacedTemp.replaceAll('5', 's');
-        if (handleReplacedTemp.includes('6')) handleReplacedTemp = handleReplacedTemp.replaceAll('6', 'g');
-        if (handleReplacedTemp.includes('7')) handleReplacedTemp = handleReplacedTemp.replaceAll('7', 't');
-        if (handleReplacedTemp.includes('9')) handleReplacedTemp = handleReplacedTemp.replaceAll('9', 'g');
+        if (handleReplacedTemp.includes('0')) handleReplacedTemp = handleReplacedTemp.replace(/0/g, 'o');
+        if (handleReplacedTemp.includes('2')) handleReplacedTemp = handleReplacedTemp.replace(/2/g, 'z');
+        if (handleReplacedTemp.includes('3')) handleReplacedTemp = handleReplacedTemp.replace(/3/g, 'e');
+        if (handleReplacedTemp.includes('4')) handleReplacedTemp = handleReplacedTemp.replace(/4/g, 'a');
+        if (handleReplacedTemp.includes('5')) handleReplacedTemp = handleReplacedTemp.replace(/5/g, 's');
+        if (handleReplacedTemp.includes('6')) handleReplacedTemp = handleReplacedTemp.replace(/6/g, 'g');
+        if (handleReplacedTemp.includes('7')) handleReplacedTemp = handleReplacedTemp.replace(/7/g, 't');
+        if (handleReplacedTemp.includes('9')) handleReplacedTemp = handleReplacedTemp.replace(/9/g, 'g');
         if (handleReplacedTemp.includes('1') || handleReplacedTemp.includes('8')) {
             // ones and eights have two replaceable chars each
             // This logic isn't quite right. It should check each individual instance with either replacement
@@ -407,7 +407,7 @@ export class ReservedHandles {
             // and this is the slowest part of the algorithm
             for (const one in ['i', 'l']) {
                 for (const eight in ['ate', 'ait']) {
-                    const handleReplaced = handleReplacedTemp.replaceAll('1', one).replaceAll('8', eight)
+                    const handleReplaced = handleReplacedTemp.replace(/1/g, one).replace(/8/g, eight)
                     const listed = this.isProtected(handleReplaced);
                     if (listed.protected) return { protected: true, words: listed.words };
                     if (checkIfMatches) {
