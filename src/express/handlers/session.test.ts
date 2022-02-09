@@ -249,12 +249,7 @@ describe('Session Tests', () => {
     expect(mockResponse.json).toHaveBeenCalledWith({
       address: "burrito_tacos123",
       error: false,
-      message: "Success! Session initiated.",
-      mintingQueuePosition: {
-        "minutes": 150,
-        "position": 3000
-      },
-      mintingQueueSize: 3000
+      message: "Success! Session initiated."
     });
   });
 
@@ -284,7 +279,7 @@ describe('Session Tests', () => {
       expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
       expect(getNewAddressSpy).toHaveBeenCalledWith(CreatedBySystem.SPO);
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({ "address": "burrito_tacos123", "error": false, "message": "Success! Session initiated.", "mintingQueuePosition": { "minutes": 150, "position": 3000 }, "mintingQueueSize": 3000 });
+      expect(mockResponse.json).toHaveBeenCalledWith({ "address": "burrito_tacos123", "error": false, "message": "Success! Session initiated." });
     });
 
     it('Should send 403 if handle does not exist', async () => {

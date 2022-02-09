@@ -16,18 +16,12 @@ import { ActiveSessions } from "../../models/firestore/collections/ActiveSession
 import { ActiveSession, Status } from "../../models/ActiveSession";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { StakePools } from "../../models/firestore/collections/StakePools";
-import { calculatePositionAndMinutesInQueue, toLovelace } from "../../helpers/utils";
-import { StateData } from "../../models/firestore/collections/StateData";
+import { toLovelace } from "../../helpers/utils";
 
 interface SessionResponseBody {
   error: boolean,
   message?: string;
   address?: string;
-  mintingQueueSize?: number;
-  mintingQueuePosition?: {
-    position: number;
-    minutes: number;
-  }
 }
 
 export const sessionHandler = async (req: express.Request, res: express.Response) => {
@@ -162,16 +156,11 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     return res.status(400).json(responseBody);
   }
 
-  const { mintingQueueSize, lastMintingTimestamp, paidSessionsLimit, availableMintingServers } = await StateData.getStateData();
-  const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, Date.now(), paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
-
   Logger.log(getLogMessage(startTime))
 
   return res.status(200).json({
     error: false,
     message: "Success! Session initiated.",
-    address: walletAddress,
-    mintingQueueSize,
-    mintingQueuePosition
+    address: walletAddress
   } as SessionResponseBody);
 };

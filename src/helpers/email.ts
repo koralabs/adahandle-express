@@ -70,7 +70,10 @@ export const createConfirmationEmail = async (
 ): Promise<boolean> => {
   const template = fs.readFileSync(path.resolve(__dirname, '../htmlTemplates/main.html'), 'utf8');
   const preheader = 'Your spot has been saved.';
-  const content = 'We have saved your place in line! When it\'s your turn, we will send you a special access link. Your approximate position in the access queue is {{accessposition}} out of {{accesscount}}. At our current queue processing rate, it should be about {{minutes}} minutes until we send you an access code. Due to load, this could change. Make sure you turn on email notifications!';
+  const approximateQueueText = minutes > 3 ?
+    'Your approximate position in the access queue is {{accessposition}} out of {{accesscount}}. At our current queue processing rate, it should be about {{minutes}} minutes until we send you an access code. Due to load, this could change.' :
+    'Expect an email in the next few minutes.';
+  const content = `We have saved your place in line! When it's your turn, we will send you a special access link. ${approximateQueueText} Make sure you turn on email notifications!`;
   const fromAddress = 'ADA Handle <hello@adahandle.com>';
   const subject = 'ADA Handle: You are confirmed and added to the queue.';
 
