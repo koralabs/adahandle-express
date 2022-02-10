@@ -118,7 +118,7 @@ export class ActiveSessions {
     }));
   }
 
-  public static async updatePaidSessionsWorkflowStatusesByTxId(txId: string, statusType: WorkflowStatus): Promise<void> {
+  public static async updatePaidSessionsWorkflowStatusesByTxId(txId: string, newStatus: WorkflowStatus): Promise<void> {
     return admin.firestore().runTransaction(async t => {
       const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('txId', '==', txId));
       if (snapshot.empty) {
@@ -138,7 +138,7 @@ export class ActiveSessions {
           return;
         }
 
-        t.update(doc.ref, { status: statusType, txId: txId, attempts: admin.firestore.FieldValue.increment(1) });
+        t.update(doc.ref, { workflowStatus: newStatus, txId: txId, attempts: admin.firestore.FieldValue.increment(1) });
         return;
       });
     });
