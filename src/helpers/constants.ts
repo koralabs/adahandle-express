@@ -107,5 +107,5 @@ export const isLocal = (): boolean => {
 export const getAdaHandleDomain = (): string => {
   if (isLocal() || isTesting()) return 'http://localhost:8888';
   if (isProduction()) return 'https://adahandle.com';
-  return 'https://testing.adahandle.com';
+  return 'https://testnet.adahandle.com';
 }

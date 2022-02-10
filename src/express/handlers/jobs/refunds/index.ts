@@ -14,7 +14,6 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
     const startTime = Date.now();
     const stateData = await StateData.getStateData();
     const refundAddresses = await UsedAddresses.getRefundableAddresses(stateData.usedAddressesLimit);
-    console.log(`Refund addresses: ${refundAddresses.length}`);
 
     if (refundAddresses.length === 0) {
         return res.status(200).json({
