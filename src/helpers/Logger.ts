@@ -1,19 +1,19 @@
 
 // Fix from https://stackoverflow.com/questions/18391212/is-it-not-possible-to-stringify-an-error-using-json-stringify
 if (!('toJSON' in Error.prototype))
-Object.defineProperty(Error.prototype, 'toJSON', {
-    value: function () {
-        const alt = {};
+    Object.defineProperty(Error.prototype, 'toJSON', {
+        value: function () {
+            const alt = {};
 
-        Object.getOwnPropertyNames(this).forEach( (key) => {
-            alt[key] = this[key];
-        }, this);
+            Object.getOwnPropertyNames(this).forEach((key) => {
+                alt[key] = this[key];
+            }, this);
 
-        return alt;
-    },
-    configurable: true,
-    writable: true
-});
+            return alt;
+        },
+        configurable: true,
+        writable: true
+    });
 
 export enum LogCategory {
     DEBUG = 'DEBUG',
@@ -37,7 +37,7 @@ export class Logger {
 
     private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: string[]): void {
         const now = (new Date()).toISOString();
-        message = message.replace(/\\/g, '\\\\').replace(/\"/g, '\\"'); // escape double quotes and already escaped escapes
+        message = message.replace(/\\/g, '\\\\').replace(/"/g, '\\"'); // escape double quotes and already escaped escapes
         const log_event = event ? `, "event": "${event}"` : "";
         const log_milliseconds = (milliseconds != undefined && milliseconds != null) ? `, "milliseconds": ${milliseconds}` : "";
         const log_count = (count != undefined && count != null) ? `, "count": ${count}` : "";
