@@ -37,6 +37,7 @@ export class Logger {
 
     private static log_entry(category: LogCategory, message: string, event?: string, milliseconds?: number, count?: number, dimensions?: string[]): void {
         const now = (new Date()).toISOString();
+        message = message.replace(/\\/g, '\\\\').replace(/\"/g, '\\"'); // escape double quotes and already escaped escapes
         const log_event = event ? `, "event": "${event}"` : "";
         const log_milliseconds = (milliseconds != undefined && milliseconds != null) ? `, "milliseconds": ${milliseconds}` : "";
         const log_count = (count != undefined && count != null) ? `, "count": ${count}` : "";
