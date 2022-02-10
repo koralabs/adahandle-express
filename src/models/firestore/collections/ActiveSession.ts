@@ -102,7 +102,12 @@ export class ActiveSessions {
     return Promise.all(sessions.map(async session => {
       return admin.firestore().runTransaction(async t => {
         const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
-        t.update(ref, { status: workflowStatus, txId });
+        const update: { status: WorkflowStatus; txId?: string; } = { status: workflowStatus };
+        if (txId && txId !== '') {
+          update.txId = txId;
+        }
+
+        t.update(ref, update);
         return true;
       }).catch(error => {
         Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'updateSessionStatuses.error', category: LogCategory.ERROR });
