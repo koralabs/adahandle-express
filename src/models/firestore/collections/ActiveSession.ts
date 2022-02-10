@@ -131,7 +131,7 @@ export class ActiveSessions {
           return;
         }
 
-        t.update(doc.ref, { status: statusType, txId: '', attempts: admin.firestore.FieldValue.increment(1) });
+        t.update(doc.ref, { status: statusType, txId: txId, attempts: admin.firestore.FieldValue.increment(1) });
         return;
       });
     });
