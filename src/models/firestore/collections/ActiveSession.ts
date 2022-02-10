@@ -92,7 +92,6 @@ export class ActiveSessions {
         t.update(ref, { ...session.toJSON() });
         return true;
       }).catch(error => {
-        console.log(error);
         Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'ActiveSessions.updateStatus.error', category: LogCategory.ERROR });
         return false;
       });
