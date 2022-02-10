@@ -16,7 +16,7 @@ export class ActiveSessions {
   }
 
   static async getPaidPendingSessions({ limit }: { limit: number; }): Promise<ActiveSession[]> {
-    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PENDING).where('workflowStatus', '==', WorkflowStatus.PENDING).limit(limit).get();
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PAID).where('workflowStatus', '==', WorkflowStatus.PENDING).limit(limit).get();
     return collection.docs.map(doc => new ActiveSession({
       ...doc.data() as ActiveSessionInput
     }));
