@@ -51,7 +51,12 @@ export const updateSessions = async (req: express.Request, res: express.Response
     dedupeActiveSessions.forEach(
       async (entry, index) => {
         const sessionAge = Date.now() - entry?.start;
-        const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ? MAX_SESSION_LENGTH_CLI : (entry.createdBySystem == CreatedBySystem.SPO ? MAX_SESSION_LENGTH_SPO : stateData.accessWindowTimeoutMinutes)
+        const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ?
+          MAX_SESSION_LENGTH_CLI :
+          (entry.createdBySystem == CreatedBySystem.SPO ?
+            MAX_SESSION_LENGTH_SPO :
+            stateData.accessWindowTimeoutMinutes * 1000 * 60);
+
         const matchingPayment = sessionPaymentStatuses[index];
 
         if (!matchingPayment) {

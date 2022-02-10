@@ -35,7 +35,8 @@ describe('Job Sessions Tets', () => {
         jest.clearAllMocks();
     });
 
-    const expiredDate = new Date().setMinutes(new Date().getMinutes() - 11);
+    const accessWindowTimeoutMinutes = 60
+    const expiredDate = new Date().setMilliseconds(new Date().getMilliseconds() - ((accessWindowTimeoutMinutes + 1) * 60 * 1000));
     const unexpiredDate = new Date().setMinutes(new Date().getMinutes() - 1);
     const UnpaidSessionFixture = [
         new ActiveSession(
@@ -203,7 +204,7 @@ describe('Job Sessions Tets', () => {
 
         it('should process paid, refunds, and expired sessions correctly', async () => {
             jest.spyOn(ActiveSessions, 'getPendingActiveSessions').mockResolvedValue(ActiveSessionsFixture);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171, accessWindowTimeoutMinutes: 600000 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171, accessWindowTimeoutMinutes }));
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
             jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
@@ -226,8 +227,9 @@ describe('Job Sessions Tets', () => {
         });
 
         it('should remove duplicate active sessions', async () => {
+            console.log('ActiveSessionsFixture.length', ActiveSessionsFixture.length)
             jest.spyOn(ActiveSessions, 'getPendingActiveSessions').mockResolvedValue([...ActiveSessionsFixture, ...ActiveSessionsFixture]);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171, accessWindowTimeoutMinutes: 600000 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171, accessWindowTimeoutMinutes }));
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
@@ -246,7 +248,7 @@ describe('Job Sessions Tets', () => {
                     createdBySystem: CreatedBySystem.UI
                 }
             )])
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171, accessWindowTimeoutMinutes: 600000 }));
+            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171, accessWindowTimeoutMinutes }));
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
