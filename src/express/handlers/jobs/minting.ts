@@ -51,7 +51,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     const existingSessions = await ActiveSessions.getByHandle(session.handle);
     const isAdded = await MintingCache.addHandleToMintCache(session.handle);
     const inMintingCache = isAdded === false;
-    if (existsOnChain || existingSessions.filter(s => s.status === Status.PAID).length > 1 || !inMintingCache) {
+    if (existsOnChain || existingSessions.filter(s => s.status === Status.PAID).length > 1 || inMintingCache) {
       Logger.log({ message: `Handle ${session.handle} already exists on-chain or in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
       refundableSessions.push(session);
       return;
