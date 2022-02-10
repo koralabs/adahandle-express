@@ -30,4 +30,15 @@ export class MintingCache {
 
         return false;
     }
+
+    public static async removeHandlesFromMintCache(handles: string[]): Promise<void> {
+        await Promise.all(handles.map(async handle => {
+            return admin.firestore().runTransaction(async t => {
+                const ref = admin.firestore().collection(MintingCache.collectionName).doc(handle);
+                t.delete(ref);
+            }).catch(error => {
+                Logger.log({ message: `error: ${JSON.stringify(error)} deleting handles ${handles.join(',')}`, event: 'removeHandlesFromMintCache.error', category: LogCategory.ERROR });
+            });
+        }));
+    }
 }
