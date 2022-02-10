@@ -49,8 +49,9 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
     // Make sure there isn't an existing handle on-chain.
     const { exists: existsOnChain } = await handleExists(session.handle);
     const existingSessions = await ActiveSessions.getByHandle(session.handle);
-    const inMintingCache = await MintingCache.addHandleToMintCache(session.handle) == false;
-    if (existsOnChain || existingSessions.length > 1 || inMintingCache) {
+    const isAdded = await MintingCache.addHandleToMintCache(session.handle);
+    const inMintingCache = isAdded === false;
+    if (existsOnChain || existingSessions.filter(s => s.status === Status.PAID).length > 1 || inMintingCache) {
       Logger.log({ message: `Handle ${session.handle} already exists on-chain or in DB`, event: 'mintPaidSessionsHandler.handleExists', category: LogCategory.NOTIFY });
       refundableSessions.push(session);
       return;
@@ -112,6 +113,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
       })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR
     });
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', sanitizedSessions, WorkflowStatus.PENDING);
+    await MintingCache.removeHandlesFromMintCache(sanitizedSessions.map(s => s.handle));
     return res.status(500).json({
       error: true,
       message: 'Transaction submission failed.'

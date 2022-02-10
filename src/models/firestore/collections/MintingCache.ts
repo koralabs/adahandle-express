@@ -11,6 +11,7 @@ export class MintingCache {
             Logger.log({ message: `Handle ${handle} already exists in minting cache`, event: 'mintingCache.addHandleToMintCache', category: LogCategory.INFO });
             return false;
         }
+
         const docRef = admin.firestore().collection(MintingCache.collectionName).doc(handle);
         const newDoc = { id: docRef.id };
         try {
@@ -18,14 +19,26 @@ export class MintingCache {
                 t.create(docRef, newDoc);
                 return true;
             }
-            admin.firestore().runTransaction(async t => {
+
+            return admin.firestore().runTransaction(async t => {
                 t.create(docRef, newDoc);
                 return true;
             });
-        }
-        catch (error) {
+        } catch (error) {
             Logger.log({ message: `Error adding Handle ${handle} to minting cache. Error: ${error}`, event: 'mintingCache.addHandleToMintCache', category: LogCategory.ERROR });
         }
+
         return false;
+    }
+
+    public static async removeHandlesFromMintCache(handles: string[]): Promise<void> {
+        await Promise.all(handles.map(async handle => {
+            return admin.firestore().runTransaction(async t => {
+                const ref = admin.firestore().collection(MintingCache.collectionName).doc(handle);
+                t.delete(ref);
+            }).catch(error => {
+                Logger.log({ message: `error: ${JSON.stringify(error)} deleting handles ${handles.join(',')}`, event: 'removeHandlesFromMintCache.error', category: LogCategory.ERROR });
+            });
+        }));
     }
 }
