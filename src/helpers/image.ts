@@ -40,7 +40,7 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
   await Promise.all(Object.keys(rarities).map(async (rarity) => {
     Logger.log({ message: `Started generating ${rarities[rarity].length} Handle images...`, event: 'getIPFSImage' });
     const target = rarity.replace(' ', '-').toLowerCase();
-    const path = resolve(__dirname, `../../src/nftTemplates/${target}.html`);
+    const path = resolve(__dirname, `../../src/htmlTemplates/nft-${target}.html`);
     const html = readFileSync(path).toString();
     await htmlToImage({
       html,
