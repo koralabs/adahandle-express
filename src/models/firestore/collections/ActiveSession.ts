@@ -22,6 +22,13 @@ export class ActiveSessions {
     }));
   }
 
+  static async getPaidSubmittedSessions({ limit }: { limit: number; }): Promise<ActiveSession[]> {
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PAID).where('workflowStatus', '==', WorkflowStatus.SUBMITTED).limit(limit).get();
+    return collection.docs.map(doc => new ActiveSession({
+      ...doc.data() as ActiveSessionInput
+    }));
+  }
+
   public static async getActiveSessionByHandle(handle: string): Promise<ActiveSession | null> {
     const session = await admin.firestore().collection(ActiveSessions.collectionName).where('handle', '==', handle).limit(1).get();
     if (session.empty) {
