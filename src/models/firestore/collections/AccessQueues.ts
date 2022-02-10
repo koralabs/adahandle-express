@@ -56,8 +56,8 @@ export class AccessQueues {
       try {
         data = createVerificationFunction ? await createVerificationFunction(entry.email) : await createVerificationEmail(entry.email, doc.ref.id)
       } catch (e) {
-        Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
-        Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
+        Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createVerification.error', category: LogCategory.ERROR });
+        Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createVerification.error', category: LogCategory.ERROR });
 
         // If Twilio throws an error, we are going to retry 2 more times
         // If we still fail, we will move the entry to the DLQ
@@ -80,7 +80,7 @@ export class AccessQueues {
         return;
       }
 
-      Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createTwilioVerification.data' });
+      Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createVerification.data' });
       if (data) {
         await admin.firestore().runTransaction(async t => {
           const document = await t.get(doc.ref);
