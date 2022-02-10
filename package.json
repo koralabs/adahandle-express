@@ -6,7 +6,7 @@
   "author": "Calvin Koepke <hello@calvinkoepke.com>",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -p .",
+    "build": "tsc -p . && cp -r ./src/htmlTemplates/ ./dist/htmlTemplates",
     "lint": "eslint . --ext .ts",
     "start:firestore:emulator": "firebase emulators:start --only firestore",
     "test:models": "NODE_ENV=test node node_modules/.bin/jest --testPathPattern=.*models/ --testPathIgnorePatterns=/node_modules/ /.build/",

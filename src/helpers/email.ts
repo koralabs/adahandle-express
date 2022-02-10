@@ -18,7 +18,7 @@ export class VerificationInstance {
 export const createVerificationEmail = async (
   email: string, docRef: string
 ): Promise<VerificationInstance> => {
-  const template = fs.readFileSync(path.resolve(__dirname, '../htmlTemplates/main.html'), 'utf8');
+  const template = fs.readFileSync(path.resolve(__dirname, '../htmlTemplates/email-main.html'), 'utf8');
   const preheader = 'Your activation code is here. Let\'s get started.';
   const content = `It's time to get your Handles. <br/>Hurry up though, this link is only valid for ${(await StateData.getStateData()).accessCodeTimeoutMinutes} minutes.<br/> Once expired, you'll need to re-enter the queue.`;
   const fromAddress = 'ADA Handle <hello@adahandle.com>';
@@ -68,7 +68,7 @@ export const createConfirmationEmail = async (
   accessCount: number,
   minutes: number
 ): Promise<boolean> => {
-  const template = fs.readFileSync(path.resolve(__dirname, '../htmlTemplates/main.html'), 'utf8');
+  const template = fs.readFileSync(path.resolve(__dirname, '../htmlTemplates/email-main.html'), 'utf8');
   const preheader = 'Your spot has been saved.';
   const content = 'We have saved your place in line! When it\'s your turn, we will send you a special access link. Your approximate position in the access queue is {{accessposition}} out of {{accesscount}}. At our current queue processing rate, it should be about {{minutes}} minutes until we send you an access code. Due to load, this could change. Make sure you turn on email notifications!';
   const fromAddress = 'ADA Handle <hello@adahandle.com>';
