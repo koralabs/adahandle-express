@@ -340,6 +340,11 @@
   resolved "https://registry.npmjs.org/@blockfrost/openapi/-/openapi-0.1.27.tgz"
   integrity sha512-lCGFPZ5D87lwhwP6nowJsVsJEaSFSAi87ORIF3RSakohilZRCgxOA5j5xFDA4mccUnfy1vbTc+CaQ8TKOQPaDA==
 
+"@emurgo/cardano-serialization-lib-nodejs@^7.0.0":
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/@emurgo/cardano-serialization-lib-nodejs/-/cardano-serialization-lib-nodejs-7.1.0.tgz#657ce11655d29560c2e302b616dc0fe86c4d2920"
+  integrity sha512-ogAUL23kJLDdc5nfRGBMhx/84aq0hnmEJea6VNozm3vnTYPsE1tmdvcYAmoRvsn+k745/E89ToSYBrjwnuZZpg==
+
 "@emurgo/cardano-serialization-lib-nodejs@^8.1.0":
   version "8.1.0"
   resolved "https://registry.npmjs.org/@emurgo/cardano-serialization-lib-nodejs/-/cardano-serialization-lib-nodejs-8.1.0.tgz"
@@ -1977,12 +1982,12 @@ caniuse-lite@^1.0.30001286:
   resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001301.tgz"
   integrity sha512-csfD/GpHMqgEL3V3uIgosvh+SVIQvCh43SNu9HRbP1lnxkKm1kjDG4f32PP571JplkLjfS+mg2p1gxR7MYrrIA==
 
-cardano-wallet-js@^1.2.3:
-  version "1.3.3"
-  resolved "https://registry.npmjs.org/cardano-wallet-js/-/cardano-wallet-js-1.3.3.tgz"
-  integrity sha512-5pfQX7RlaQ8oWbrAs8Gv1mqcPYVgYKQAbznWI9o3neW7C+Nj0HZCw7HbBl0GPmwFw0xJ6c32zsf/Dpq52kchCQ==
+cardano-wallet-js@1.2.3:
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/cardano-wallet-js/-/cardano-wallet-js-1.2.3.tgz#a86d64cef187f3d16907bcf2e450ce0e480454fd"
+  integrity sha512-uCHdAcvd4v6BmiEK3SRyZcLNsyT67IFmXX2ssELusnVIVCDRqE24nqP14WhenYmh00AxZy/wdDL2rDeu3SPqnQ==
   dependencies:
-    "@emurgo/cardano-serialization-lib-nodejs" "^9.1.2"
+    "@emurgo/cardano-serialization-lib-nodejs" "^7.0.0"
     axios "^0.21.1"
     bip39 "^3.0.4"
     chai "^4.3.4"

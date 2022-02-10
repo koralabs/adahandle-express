@@ -113,6 +113,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
       })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR
     });
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', sanitizedSessions, WorkflowStatus.PENDING);
+    await MintingCache.removeHandlesFromMintCache(sanitizedSessions.map(s => s.handle));
     return res.status(500).json({
       error: true,
       message: 'Transaction submission failed.'

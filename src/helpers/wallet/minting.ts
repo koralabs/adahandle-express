@@ -184,7 +184,7 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   const recoveryPhrase = getMintingWalletSeedPhrase();
   const rootKey = wallet.Seed.deriveRootKey(recoveryPhrase);
   const signingKeys = coinSelection.inputs.map((i) => {
-    return wallet.Seed.deriveKey(rootKey, i.derivation_path || []).to_raw_key();
+    return wallet.Seed.deriveKey(rootKey, i.derivation_path).to_raw_key();
   });
 
   // Add policy signing keys.
