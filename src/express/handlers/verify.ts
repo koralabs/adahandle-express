@@ -49,7 +49,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       return res.status(403).json({
         verified: false,
         error: true,
-        message: 'Invalid acccess code.'
+        message: 'Invalid access code.'
       } as VerifyResponseBody)
     }
 
@@ -63,6 +63,9 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
     } else {
       // Remove the number from the access queue.
       await removeAccessQueueData(email);
+
+      const stateData = await StateData.getStateData();
+      const expireDateInSeconds = stateData.accessWindowTimeoutMinutes * 60
 
       const secretKey = await getKey('access');
       token = secretKey && jwt.sign(
@@ -79,7 +82,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
         },
         secretKey,
         {
-          expiresIn: Math.floor(MAX_ACCESS_LENGTH / 1000)
+          expiresIn: expireDateInSeconds
         }
       );
     }
