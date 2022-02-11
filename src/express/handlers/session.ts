@@ -98,7 +98,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     newSession.createdBySystem = CreatedBySystem.SPO;
 
     // Set the cost to the SPO cost
-    newSession.cost = SPO_HANDLE_ADA_COST;
+    newSession.cost = toLovelace(SPO_HANDLE_ADA_COST);
 
     // if SPO don't allow 1 letter handle?
     if (handle.length <= 1) {
