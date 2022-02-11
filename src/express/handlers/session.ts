@@ -98,7 +98,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     newSession.createdBySystem = CreatedBySystem.SPO;
 
     // Set the cost to the SPO cost
-    newSession.cost = SPO_HANDLE_ADA_COST;
+    newSession.cost = toLovelace(SPO_HANDLE_ADA_COST);
 
     // if SPO don't allow 1 letter handle?
     if (handle.length <= 1) {
@@ -109,8 +109,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     }
 
     // check in most recent snapshot and verify SPO exists. If not, don't allow purchase.
-    const uppercaseHandle = handle.toUpperCase();
-    const stakePools = await StakePools.getStakePoolsByTicker(uppercaseHandle);
+    const stakePools = await StakePools.getStakePoolsByTicker(handle);
 
     if (stakePools.length === 0) {
       return res.status(403).json({
