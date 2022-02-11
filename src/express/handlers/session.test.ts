@@ -276,7 +276,7 @@ describe('Session Tests', () => {
 
       await sessionHandler(mockRequest as Request, mockResponse as Response);
 
-      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
+      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250000000, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
       expect(getNewAddressSpy).toHaveBeenCalledWith(CreatedBySystem.SPO);
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({ "address": "burrito_tacos123", "error": false, "message": "Success! Session initiated." });
