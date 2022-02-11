@@ -48,8 +48,7 @@ export const searchHandler = async (req: express.Request, res: express.Response)
         const { emailAddress, isSPO = false } = validAccessToken;
 
         if (isSPO) {
-            const uppercaseHandle = handle.toUpperCase();
-            const stakePools = await StakePools.getStakePoolsByTicker(uppercaseHandle);
+            const stakePools = await StakePools.getStakePoolsByTicker(handle);
             if (stakePools.length === 0) {
                 return res.status(403).json({
                     error: true,
