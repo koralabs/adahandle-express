@@ -3,7 +3,7 @@ name: ADA Handle NodeJS App Deploy
 on:
   push:
     branches: [ develop, master ]
-  
+
 jobs:
   dispatch-testnet:
     if: ${{github.ref == 'refs/heads/develop'}}
