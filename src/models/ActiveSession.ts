@@ -23,6 +23,8 @@ export interface ActiveSessionInput {
     handle: string,
     paymentAddress: string,
     returnAddress?: string,
+    txHash?: string,
+    index?: number,
     start: number,
     id?: string,
     txId?: string,
@@ -40,6 +42,8 @@ export class ActiveSession extends BaseModel {
     public handle: string;
     public paymentAddress: string;
     public returnAddress?: string;
+    public txHash?: string;
+    public index?: number;
     public start: number;
     public id?: string;
     public txId?: string;
@@ -49,7 +53,7 @@ export class ActiveSession extends BaseModel {
     public attempts?: number;
     public dateAdded?: number;
 
-    constructor({ id, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, workflowStatus, status = Status.PENDING, attempts = 0, dateAdded = Date.now() }: ActiveSessionInput) {
+    constructor({ id, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, txHash, index, workflowStatus, status = Status.PENDING, attempts = 0, dateAdded = Date.now() }: ActiveSessionInput) {
         super();
         this.id = id;
         this.emailAddress = emailAddress;
@@ -58,6 +62,8 @@ export class ActiveSession extends BaseModel {
         this.handle = handle;
         this.paymentAddress = paymentAddress;
         this.returnAddress = returnAddress;
+        this.txHash = txHash;
+        this.index = index;
         this.start = start;
         this.txId = txId;
         this.createdBySystem = createdBySystem;

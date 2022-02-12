@@ -82,7 +82,7 @@ export const sendEmail = async (params: {to: string, html: string, text?:string,
     secure: false
   } as SMTPConnection.Options);
 
-  const info = await transporter.sendMail({
+  await transporter.sendMail({
     from: params.from,
     replyTo: params.replyTo || params.from,
     to: params.to,
