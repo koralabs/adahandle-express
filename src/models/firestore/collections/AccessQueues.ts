@@ -20,7 +20,7 @@ export class AccessQueues {
   }
 
   static async getAccessQueueCount(): Promise<number> {
-    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'pending').get(); // Need to account for the people that haven't clicked their links yet
+    const snapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').get(); // Need to account for the people that haven't clicked their links yet
     return snapshot.size;
   }
 
@@ -56,8 +56,8 @@ export class AccessQueues {
       try {
         data = createVerificationFunction ? await createVerificationFunction(entry.email) : await createVerificationEmail(entry.email, doc.ref.id)
       } catch (e) {
-        Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
-        Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createTwilioVerification.error', category: LogCategory.ERROR });
+        Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createVerification.error', category: LogCategory.ERROR });
+        Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createVerification.error', category: LogCategory.ERROR });
 
         // If Twilio throws an error, we are going to retry 2 more times
         // If we still fail, we will move the entry to the DLQ
@@ -80,7 +80,7 @@ export class AccessQueues {
         return;
       }
 
-      Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createTwilioVerification.data' });
+      Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createVerification.data' });
       if (data) {
         await admin.firestore().runTransaction(async t => {
           const document = await t.get(doc.ref);
@@ -94,12 +94,14 @@ export class AccessQueues {
       }
     }));
 
-    stateData.lastAccessTimestamp = Math.max(...queuedSnapshot.docs.map(doc => doc.data().dateAdded || 0));
-    StateData.upsertStateData(stateData)
+    if (queuedSnapshot.size > 0) {
+      stateData.lastAccessTimestamp = Math.max(...queuedSnapshot.docs.map(doc => doc.data().dateAdded || 0));
+      StateData.upsertStateData(stateData);
+    }
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)
-      .where('start', '<', Date.now() - stateData.accessCodeTimeoutMinutes)
+      .where('start', '<', Date.now() - (stateData.accessCodeTimeoutMinutes * 1000 * 60))
       .orderBy('start')
       .get();
 

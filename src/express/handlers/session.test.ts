@@ -9,12 +9,15 @@ import { ActiveSessions } from "../../models/firestore/collections/ActiveSession
 import { StakePools } from "../../models/firestore/collections/StakePools";
 import { StakePool } from "../../models/StakePool";
 import { CreatedBySystem } from "../../helpers/constants";
+import { StateData } from "../../models/firestore/collections/StateData";
+import { State } from "../../models/State";
 
 jest.mock('jsonwebtoken');
 jest.mock('../../helpers/jwt');
 jest.mock('../../helpers/wallet');
 jest.mock('../../models/firestore/collections/ActiveSession');
 jest.mock('../../models/firestore/collections/StakePools');
+jest.mock('../../models/firestore/collections/StateData');
 
 describe('Session Tests', () => {
   let mockRequest: Partial<Request>;
@@ -31,6 +34,25 @@ describe('Session Tests', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  const stateData: State = new State({
+    chainLoad: 0,
+    accessQueueSize: 7000,
+    mintingQueueSize: 3000,
+    updateActiveSessionsLock: false,
+    mintPaidSessionsLock: false,
+    sendAuthCodesLock: false,
+    saveStateLock: false,
+    mintConfirmLock: false,
+    mintConfirmPaidSessionsLimit: 0,
+    usedAddressesLimit: 0,
+    accessCodeTimeoutMinutes: 0,
+    accessWindowTimeoutMinutes: 0,
+    chainLoadThresholdPercent: 0,
+    ipfsRateDelay: 0,
+    lastMintingTimestamp: 0,
+    lastAccessTimestamp: 0,
   });
 
   it('should send an 400 response if auth token is not provided', async () => {
@@ -147,6 +169,7 @@ describe('Session Tests', () => {
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(false);
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -168,11 +191,35 @@ describe('Session Tests', () => {
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue('validAddress');
     jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(false);
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Sorry, this handle is being purchased! Try another handle." });
+  });
+
+
+  it('should send an 403 response if user has too many active sessions', async () => {
+    mockRequest = {
+      headers: {
+        'x-access-token': 'test-access-token',
+        'x-session-token': 'test-session-token'
+      }
+    }
+
+    jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+
+    // @ts-ignore
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    const activeSessions = [{ handle: 'validHandle' }, { handle: 'validHandle' }, { handle: 'validHandle' }];
+    // @ts-ignore
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue(activeSessions);
+
+    await sessionHandler(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(403);
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Too many sessions open! Try again after one expires." });
   });
 
   it('should send a successful 200 response', async () => {
@@ -191,13 +238,19 @@ describe('Session Tests', () => {
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
+    jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
     const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 10000000, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "UI", status: 'pending' });
     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      address: "burrito_tacos123",
+      error: false,
+      message: "Success! Session initiated."
+    });
   });
 
   describe('SPO tests', () => {
@@ -217,15 +270,16 @@ describe('Session Tests', () => {
       // @ts-ignore
       jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
       jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('1', validHandle, 'stakeKey_1', ['owner1', 'owner2'])]);
+      jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
       const getNewAddressSpy = jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
       const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
       await sessionHandler(mockRequest as Request, mockResponse as Response);
 
-      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
+      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250000000, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
       expect(getNewAddressSpy).toHaveBeenCalledWith(CreatedBySystem.SPO);
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Success! Session initiated.", "address": validAddress });
+      expect(mockResponse.json).toHaveBeenCalledWith({ "address": "burrito_tacos123", "error": false, "message": "Success! Session initiated." });
     });
 
     it('Should send 403 if handle does not exist', async () => {
@@ -236,7 +290,6 @@ describe('Session Tests', () => {
         }
       }
 
-      //const validAddress = 'burrito_tacos123';
       const validHandle = 'taco';
 
       jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');

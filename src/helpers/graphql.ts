@@ -6,6 +6,8 @@ export interface WalletSimplifiedBalance {
   address: string;
   amount: number;
   returnAddress: string;
+  txHash: string;
+  index: number;
 }
 
 export interface GraphqlCardanoPaymentAddress {
@@ -42,6 +44,8 @@ export interface GraphqlCardanoSenderAddress {
   }[],
   outputs: {
     address: string;
+    index: number;
+    txHash: string;
     value?: string;
   }[]
 }
@@ -179,7 +183,9 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
   const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address));
   if (returnAddresses) {
     addressesWithPayments.forEach((address, index) => {
-      address.returnAddress = returnAddresses[index];
+      address.returnAddress = returnAddresses[index].returnAddress;
+      address.index = returnAddresses[index].index;
+      address.txHash = returnAddresses[index].txHash;
     });
   }
 
@@ -240,7 +246,7 @@ export const handleExists = async (handle: string): Promise<GraphqlHandleExistsR
 
 export const lookupReturnAddresses = async (
   receiverAddresses: string[]
-): Promise<string[] | null> => {
+): Promise<WalletSimplifiedBalance[] | null> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
     method: 'POST',
@@ -294,10 +300,9 @@ export const lookupReturnAddresses = async (
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
     const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
-    return [cleanedOutputs[0].address, tx.inputs[0].address]
+    return [cleanedOutputs[0].address, {returnAddress: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index}];
   }));
-  const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as string[];
-
+  const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as WalletSimplifiedBalance[];
   return orderedTransactions;
 }
 

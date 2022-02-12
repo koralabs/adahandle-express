@@ -5,11 +5,12 @@ import {
   HEADER_JWT_ACCESS_TOKEN,
   HEADER_JWT_SESSION_TOKEN,
   CreatedBySystem,
-  SPO_HANDLE_ADA_COST
+  SPO_HANDLE_ADA_COST,
+  MAX_SESSION_COUNT
 } from "../../helpers/constants";
 
 import { isValid, normalizeNFTHandle } from "../../helpers/nft";
-import { getKey } from "../../helpers/jwt";
+import { getKey, SessionJWTPayload } from "../../helpers/jwt";
 import { getNewAddress } from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status } from "../../models/ActiveSession";
@@ -21,12 +22,6 @@ interface SessionResponseBody {
   error: boolean,
   message?: string;
   address?: string;
-}
-interface SessionJWTPayload extends jwt.JwtPayload {
-  emailAddress: string;
-  cost: number;
-  handle: string;
-  isSPO?: boolean;
 }
 
 export const sessionHandler = async (req: express.Request, res: express.Response) => {
@@ -74,6 +69,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   // Normalize and validate handle.
   const handle = sessionData?.handle && normalizeNFTHandle(sessionData.handle);
   const validHandle = handle && isValid(handle);
+  const { emailAddress, cost, iat = Date.now(), isSPO = false } = sessionData;
 
   if (!handle || !validHandle) {
     return res.status(403).json({
@@ -83,7 +79,6 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   }
 
   // Save session.
-  const { emailAddress, cost, iat = Date.now(), isSPO = false } = sessionData;
   const newSession = new ActiveSession({
     emailAddress,
     handle,
@@ -94,12 +89,16 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     status: Status.PENDING
   });
 
+  /**
+   * If the user is an SPO, we need to check if they have enough ADA to cover the cost of the session.
+   * If not, we need to make sure they don't have too many sessions already.
+   */
   if (isSPO) {
     // Set the session as SPO
     newSession.createdBySystem = CreatedBySystem.SPO;
 
     // Set the cost to the SPO cost
-    newSession.cost = SPO_HANDLE_ADA_COST;
+    newSession.cost = toLovelace(SPO_HANDLE_ADA_COST);
 
     // if SPO don't allow 1 letter handle?
     if (handle.length <= 1) {
@@ -110,8 +109,7 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     }
 
     // check in most recent snapshot and verify SPO exists. If not, don't allow purchase.
-    const uppercaseHandle = handle.toUpperCase();
-    const stakePools = await StakePools.getStakePoolsByTicker(uppercaseHandle);
+    const stakePools = await StakePools.getStakePoolsByTicker(handle);
 
     if (stakePools.length === 0) {
       return res.status(403).json({
@@ -127,6 +125,14 @@ export const sessionHandler = async (req: express.Request, res: express.Response
         message: 'Ticker belongs to multiple stake pools. Please contact support.'
       } as SessionResponseBody);
     }
+  } else {
+    const activeSessions = await ActiveSessions.getActiveSessionsByEmail(emailAddress);
+    if (activeSessions.length >= MAX_SESSION_COUNT) {
+      return res.status(403).json({
+        error: true,
+        message: 'Too many sessions open! Try again after one expires.'
+      } as SessionResponseBody);
+    }
   }
 
   const walletAddress = await getNewAddress(newSession.createdBySystem);
@@ -140,7 +146,6 @@ export const sessionHandler = async (req: express.Request, res: express.Response
 
   newSession.paymentAddress = walletAddress;
   const added = await ActiveSessions.addActiveSession(newSession);
-
   if (!added) {
     const responseBody: SessionResponseBody = {
       error: true,
@@ -155,6 +160,6 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   return res.status(200).json({
     error: false,
     message: "Success! Session initiated.",
-    address: walletAddress,
+    address: walletAddress
   } as SessionResponseBody);
 };

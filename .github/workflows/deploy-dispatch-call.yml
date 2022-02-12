@@ -14,8 +14,8 @@ jobs:
         run: |
           curl -XPOST -u "${{secrets.DEPLOYMENT_ACCESS_USERNAME}}:${{secrets.DEPLOYMENT_ACCESS_TOKEN}}" \
           -H "Accept: application/vnd.github.everest-preview+json" \
-          -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy-testnet.yml/dispatches \
-          --data '{"ref": "master"}'
+          -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy.yml/dispatches \
+          --data '{"ref": "master", "inputs": { "branch_to_deploy":"develop", "network":"TESTNET", "commit_sha":"${{ github.sha }}", "commit_url": "${{ github.event.head_commit.url }}", "commit_message": ${{ toJson(github.event.head_commit.message) }} }}'
   dispatch-mainnet:
     if: ${{github.ref == 'refs/heads/master'}}
     name: Dispatch to Deployments
@@ -25,5 +25,5 @@ jobs:
         run: |
           curl -XPOST -u "${{secrets.DEPLOYMENT_ACCESS_USERNAME}}:${{secrets.DEPLOYMENT_ACCESS_TOKEN}}" \
           -H "Accept: application/vnd.github.everest-preview+json" \
-          -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy-mainnet.yml/dispatches \
-          --data '{"ref": "master"}'
+          -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy.yml/dispatches \
+          --data '{"ref": "master", "inputs": { "branch_to_deploy":"master", "network":"MAINNET", "commit_sha":"${{ github.sha }}", "commit_url": "${{ github.event.head_commit.url }}", "commit_message": ${{ toJson(github.event.head_commit.message) }} }}'

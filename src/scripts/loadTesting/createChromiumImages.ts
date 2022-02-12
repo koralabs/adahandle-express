@@ -9,7 +9,7 @@ console.time("createChromiumImages");
 let index = 0;
 const promises = Array.from({ length: 1 }, async () => {
     const images = []
-    const path = resolve(__dirname, `../../nftTemplates/basic.html`);
+    const path = resolve(__dirname, `../../htmlTemplates/nft-basic.html`);
     const html = readFileSync(path).toString();
     for(let i=0;i<200;i++){
         index++;

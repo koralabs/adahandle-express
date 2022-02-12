@@ -2,7 +2,6 @@ import FingerPrint from '@emurgo/cip14-js';
 import { getPolicyId } from './constants';
 
 export const toLovelace = (adaAmount: number): number => adaAmount * 1000000;
-// export const toADA = (lovelaceAmount: number): number => lovelaceAmount / 1000000;
 
 export const chunk = <T>(input: T[], size: number) => {
     return input.reduce<T[][]>((arr: T[][], item: T, idx: number) => {
@@ -50,7 +49,7 @@ export const calculatePositionAndMinutesInQueue = (queueSize: number, lastTimest
         return { position: 0, minutes: 0 };
     }
     const currentTimestamp = Date.now();
-    const position = ((userTimestamp - lastTimestamp) / (currentTimestamp - lastTimestamp)) * queueSize;
-    const minutes = position / queueLimit;
+    const position = Math.round(((userTimestamp - lastTimestamp) / (currentTimestamp - lastTimestamp)) * queueSize);
+    const minutes = Math.round(position / queueLimit);
     return { position, minutes };
 }

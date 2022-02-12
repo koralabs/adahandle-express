@@ -1,7 +1,7 @@
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
 
-import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH } from "../../helpers/constants";
+import { HEADER_EMAIL, HEADER_EMAIL_AUTH } from "../../helpers/constants";
 import { removeAccessQueueData, getAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
 import { LogCategory, Logger } from "../../helpers/Logger";
@@ -33,12 +33,12 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       message: 'Missing email authentication code.'
     } as VerifyResponseBody)
   }
-  
+
   let token: string | null;
   try {
 
     const decodedAuth = Buffer.from(authCode as string, 'base64').toString('utf8');
-  
+
     const ref = decodedAuth.split('|')[0];
     const email = decodedAuth.split('|')[1];
 
@@ -49,7 +49,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       return res.status(403).json({
         verified: false,
         error: true,
-        message: 'Invalid acccess code.'
+        message: 'Invalid access code.'
       } as VerifyResponseBody)
     }
 
@@ -64,6 +64,9 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       // Remove the number from the access queue.
       await removeAccessQueueData(email);
 
+      const stateData = await StateData.getStateData();
+      const expireDateInSeconds = stateData.accessWindowTimeoutMinutes * 60
+
       const secretKey = await getKey('access');
       token = secretKey && jwt.sign(
         {
@@ -74,11 +77,12 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
            * of the session lifecycle, and set a corresponding
            * expirey on the local cookie.
            */
-          emailAddress: email
+          emailAddress: email,
+          isSPO: false
         },
         secretKey,
         {
-          expiresIn: Math.floor(MAX_ACCESS_LENGTH / 1000)
+          expiresIn: expireDateInSeconds
         }
       );
     }

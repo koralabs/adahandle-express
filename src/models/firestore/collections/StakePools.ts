@@ -14,7 +14,8 @@ export class StakePools {
     }
 
     public static async getStakePoolsByTicker(handle: string): Promise<StakePool[]> {
-        const snapshot = await admin.firestore().collection(StakePools.collectionName).where('ticker', '==', handle).get();
+        const uppercaseHandle = handle.toUpperCase();
+        const snapshot = await admin.firestore().collection(StakePools.collectionName).where('ticker', '==', uppercaseHandle).get();
         if (snapshot.empty) {
             return [];
         }
