@@ -72,6 +72,22 @@ export const getMintingWalletSeedPhrase = (): string => {
   return JSON.parse(seed.trim());
 }
 
+export const getPaymentWalletId = (): string => {
+  const walletId = readFileSync(`${getPrivatePath()}/paymentwalletid.txt`, {
+    encoding: 'utf-8'
+  });
+
+  return walletId.trim();
+}
+
+export const getPaymentWalletSeedPhrase = (): string => {
+  const seed = readFileSync(`${getPrivatePath()}/paymentseedphrase.txt`, {
+    encoding: 'utf-8'
+  });
+
+  return JSON.parse(seed.trim());
+}
+
 export const getPolicyId = (): string => {
   const policyId = readFileSync(`${getPrivatePath()}/policyid.txt`, {
     encoding: 'utf-8'

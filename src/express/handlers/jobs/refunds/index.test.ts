@@ -54,12 +54,20 @@ describe('Refund Cron Tests', () => {
 
     const refunds: Refund[] = [{
         paymentAddress: '0x1',
-        returnAddress: 'return_0x1',
-        amount: 10
+        returnAddress: {
+            address: "return_0x1",
+            amount: 10,
+            index: undefined,
+            txHash: undefined,
+          }
     }, {
         paymentAddress: '0x2',
-        returnAddress: 'return_0x2',
-        amount: 500
+        returnAddress:  {
+            address: "return_0x2",
+            amount: 500,
+            index: undefined,
+            txHash: undefined,
+          }
     }]
 
     describe('updateSessionsHandler tests', () => {

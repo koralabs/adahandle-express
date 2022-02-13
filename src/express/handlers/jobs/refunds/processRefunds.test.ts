@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as wallet from 'cardano-wallet-js';
+import { CoinSelectionWallet } from 'cardano-wallet-js/dist/wallet/coin-selection-wallet';
+import { WalletSimplifiedBalance } from '../../../../helpers/graphql';
 
 import { UsedAddresses } from '../../../../models/firestore/collections/UsedAddresses';
 import { processRefunds, Refund } from "./processRefunds";
@@ -15,41 +17,45 @@ describe('processRefund tests', () => {
 
     const paymentAddressFixture: Refund[] = [{
         paymentAddress: 'p1',
-        returnAddress: 'r1',
-        amount: 500
+        returnAddress: {
+            address: "r1",
+            amount: 500,
+            index: undefined,
+            txHash: undefined,
+        }
     }, {
         paymentAddress: 'p2',
-        returnAddress: 'r2',
-        amount: 10
+        returnAddress: {
+            address: "r2",
+            amount: 10,
+            index: undefined,
+            txHash: undefined,
+        }
     }]
 
     it('Should send payment and update usedAddress status', async () => {
-        const id = 'txId'
-        const mockSendPayment = jest.fn(() => ({ id }));
-        const mockWallet = {
-            sendPayment: mockSendPayment
-        }
-
-        await processRefunds(paymentAddressFixture, mockWallet as unknown as wallet.ShelleyWallet);
+        const testingCallback = jest.fn(() => {return "txId"});
+        await processRefunds(paymentAddressFixture, testingCallback);
 
         expect(batchUpdateUsedAddressesSpy).toHaveBeenNthCalledWith(1, [{ "address": "p1", "props": { "status": "processing" } }, { "address": "p2", "props": { "status": "processing" } }]);
         expect(batchUpdateUsedAddressesSpy).toHaveBeenNthCalledWith(2, [{ "address": "p1", "props": { "status": "processed", "txId": "txId" } }, { "address": "p2", "props": { "status": "processed", "txId": "txId" } }]);
-        expect(mockSendPayment).toHaveBeenCalledWith(undefined, [{ "id": "r1", "state": "unused" }, { "id": "r2", "state": "unused" }], [500, 10]);
+        expect(testingCallback).toHaveBeenCalledWith({"change": [], "inputs": [{"address": "p1", "amount": {"quantity": 500, "unit": "lovelace"}, "derivation_path": ["1852H"], "id": undefined, "index": undefined}, {"address": "p2", "amount": {"quantity": 10, "unit": "lovelace"}, "derivation_path": ["1852H"], "id": undefined, "index": undefined}], "outputs": [{"address": "r1", "amount": {"quantity": 500, "unit": "lovelace"}}, {"address": "r2", "amount": {"quantity": 10, "unit": "lovelace"}}]});
     });
 
     it('Should not update to processing if sendPayment does not return an object with an id', async () => {
-        const mockSendPayment = jest.fn(() => ({ burrito: 'taco' }));
-        const mockWallet = {
-            sendPayment: mockSendPayment
-        }
+        const testingCallback = jest.fn(() => {return null});
 
         await processRefunds([{
             paymentAddress: '0x2',
-            returnAddress: 'return_0x2',
-            amount: 500
-        }], mockWallet as unknown as wallet.ShelleyWallet);
+            returnAddress: {
+                address: "return_0x2",
+                amount: 500,
+                index: undefined,
+                txHash: undefined,
+              }
+        }], testingCallback);
 
         expect(batchUpdateUsedAddressesSpy).toHaveBeenCalledTimes(1);
-        expect(mockSendPayment).toHaveBeenCalledTimes(1);
+        expect(testingCallback).toHaveBeenCalledWith({"change": [], "inputs": [{"address": "0x2", "amount": {"quantity": 500, "unit": "lovelace"}, "derivation_path": ["1852H"], "id": undefined, "index": undefined}], "outputs": [{"address": "return_0x2", "amount": {"quantity": 500, "unit": "lovelace"}}]});
     });
 });

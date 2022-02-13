@@ -53,7 +53,7 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
 
         await checkWalletBalance(verifiedRefunds, refundWallet);
 
-        await processRefunds(verifiedRefunds, refundWallet)
+        await processRefunds(verifiedRefunds)
 
         Logger.log(buildLogMessage(startTime, verifiedRefunds.length));
 
