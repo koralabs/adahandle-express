@@ -10,7 +10,7 @@ import { UsedAddressStatus } from "../../../../models/UsedAddress";
 
 export interface Refund { paymentAddress: string, returnAddress: WalletSimplifiedBalance }
 
-export const processRefunds = async (refunds: Refund[], testRefundTransactions?: Function) => {
+export const processRefunds = async (refunds: Refund[], testRefundTransactions?: (item: CoinSelectionWallet) => string) => {
   const { paymentAddresses, returnAddresses } = refunds.reduce<{ paymentAddresses: string[], returnAddresses: WalletSimplifiedBalance[]}>((acc, curr) => {
     const { paymentAddress, returnAddress } = curr;
     acc.paymentAddresses.push(paymentAddress);

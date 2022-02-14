@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-
 export const CRON_BANK_LENGTH = 60000; // 1 minute
 export const CRON_AUTH_LENGTH = 300000; // 5 minutes
 export const CRON_SESSION_LENGTH = 60000; // 1 minute
@@ -47,8 +45,6 @@ export const BETA_PHASE_MATCH = new RegExp(/.{2,}/g);
 /**
  * Environment specific.
  */
-export const getPrivatePath = (): string =>
-  process.env.POLICY_DATA_DIR as string;
 
 export const getWalletEndpoint = (): string =>
   process.env.WALLET_ENDPOINT as string;
@@ -57,51 +53,45 @@ export const getGraphqlEndpoint = (): string =>
   process.env.GRAPHQL_ENDPOINT as string;
 
 export const getMintingWalletId = (): string => {
-  const walletId = readFileSync(`${getPrivatePath()}/walletid.txt`, {
-    encoding: 'utf-8'
-  });
-
+  const walletId = process.env.MINT_WALLET_ID;
+  if (!walletId) { throw new Error ("Couldn't retrieve minting wallet ID"); }
   return walletId.trim();
 }
 
 export const getMintingWalletSeedPhrase = (): string => {
-  const seed = readFileSync(`${getPrivatePath()}/seedphrase.txt`, {
-    encoding: 'utf-8'
-  });
+  const seed = process.env.MINT_SEED_PHRASE;
+  if (!seed) { throw new Error ("Couldn't retrieve minting seed phrase"); }
 
   return JSON.parse(seed.trim());
 }
 
 export const getPaymentWalletId = (): string => {
-  const walletId = readFileSync(`${getPrivatePath()}/paymentwalletid.txt`, {
-    encoding: 'utf-8'
-  });
-
+  const walletId = process.env.PAYMENT_WALLET_ID;
+  if (!walletId) { throw new Error ("Couldn't retrieve payment wallet ID"); }
   return walletId.trim();
 }
 
 export const getPaymentWalletSeedPhrase = (): string => {
-  const seed = readFileSync(`${getPrivatePath()}/paymentseedphrase.txt`, {
-    encoding: 'utf-8'
-  });
+  const seed = process.env.PAYMENT_SEED_PHRASE;
+  if (!seed) { throw new Error ("Couldn't retrieve payment seed phrase"); }
 
   return JSON.parse(seed.trim());
 }
 
 export const getPolicyId = (): string => {
-  const policyId = readFileSync(`${getPrivatePath()}/policyid.txt`, {
-    encoding: 'utf-8'
-  });
+  const policyId = process.env.POLICY_ID;
+
+  if (!policyId) { throw new Error ("Couldn't retrieve policy ID"); }
 
   return policyId.trim();
 }
 
 export const getPolicyPrivateKey = (): string => {
-  const file = readFileSync(`${getPrivatePath()}/private.txt`, {
-    encoding: 'utf-8'
-  });
+  const policyKey = process.env.POLICY_KEY;
 
-  return file.trim();
+  if (!policyKey) { throw new Error ("Couldn't retrieve policy key"); }
+
+  return policyKey.trim();
 }
 
 export const isProduction = (): boolean => {

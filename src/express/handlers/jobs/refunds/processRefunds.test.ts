@@ -1,8 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import * as wallet from 'cardano-wallet-js';
-import { CoinSelectionWallet } from 'cardano-wallet-js/dist/wallet/coin-selection-wallet';
-import { WalletSimplifiedBalance } from '../../../../helpers/graphql';
-
 import { UsedAddresses } from '../../../../models/firestore/collections/UsedAddresses';
 import { processRefunds, Refund } from "./processRefunds";
 
