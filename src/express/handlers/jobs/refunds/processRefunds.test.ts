@@ -39,7 +39,7 @@ describe('processRefund tests', () => {
     });
 
     it('Should not update to processing if sendPayment does not return an object with an id', async () => {
-        const testingCallback = jest.fn(() => {return null});
+        const testingCallback = jest.fn(() => {return ''});
 
         await processRefunds([{
             paymentAddress: '0x2',
