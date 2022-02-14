@@ -8,7 +8,6 @@ import { startServer } from './express';
 import { Logger, LogCategory } from './helpers/Logger'
 import { Firebase } from './helpers/firebase';
 
-console.log(`SMTP_HOST=${process.env.SMTP_HOST}`);
 const startApp = async () => {
   // If either is set to production, they both should be production or exit  
   if (process.env.NODE_ENV?.trim() === 'production' || process.env.Machine_Environment?.trim() === 'production'){
