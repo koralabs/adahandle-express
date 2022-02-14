@@ -1,8 +1,8 @@
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
 
-import { HEADER_JWT_SESSION_TOKEN } from "../../helpers/constants";
-import { getKey, SessionJWTPayload } from "../../helpers/jwt";
+import { HEADER_JWT_ALL_SESSIONS_TOKEN } from "../../helpers/constants";
+import { AllSessionsJWTPayload, getKey } from "../../helpers/jwt";
 
 import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";
@@ -15,8 +15,8 @@ interface QueuePositionResponseBody {
     message?: string;
 }
 
-export const queuePositionHandler = async (req: express.Request, res: express.Response) => {
-    const sessionToken = req.headers[HEADER_JWT_SESSION_TOKEN];
+export const mintingQueuePositionHandler = async (req: express.Request, res: express.Response) => {
+    const sessionToken = req.headers[HEADER_JWT_ALL_SESSIONS_TOKEN];
 
     if (!sessionToken) {
         return res.status(400).json({
@@ -35,34 +35,41 @@ export const queuePositionHandler = async (req: express.Request, res: express.Re
     }
 
     // Validate session token.
-    const sessionData = jwt.verify(sessionToken as string, sessionSecret) as SessionJWTPayload;
+    const sessionData = jwt.verify(sessionToken as string, sessionSecret) as AllSessionsJWTPayload;
     // eslint-disable-next-line no-prototype-builtins
-    if ('string' === typeof sessionData || !sessionData?.hasOwnProperty('iat')) {
+    if ('string' === typeof sessionData || !sessionData?.hasOwnProperty('sessions')) {
         return res.status(403).json({
             error: true,
             message: 'Invalid session token.'
         })
     }
 
-    const { iat: userTimestamp } = sessionData as { iat: number };
-
     const {
-        accessQueueSize,
         mintingQueueSize,
-        accessQueueLimit,
         paidSessionsLimit,
         availableMintingServers,
-        lastAccessTimestamp,
         lastMintingTimestamp } = await StateData.getStateData();
 
-    const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, userTimestamp, accessQueueLimit);
-    const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, userTimestamp, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
+    const sessions = sessionData.sessions.filter(session => session.dateAdded > lastMintingTimestamp);
+    // sort user sessions by date added
+    sessions.sort((a, b) => a.dateAdded - b.dateAdded);
+
+    const [session] = sessions;
+
+    if (!session) {
+        return res.status(404).json({
+            error: true,
+            message: 'No sessions found'
+        })
+    }
+
+
+    const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
 
     return res.status(200).json({
         error: false,
-        accessQueuePosition: accessQueuePosition.position,
         mintingQueuePosition: mintingQueuePosition.position,
-        minutes: accessQueuePosition.minutes + mintingQueuePosition.minutes
+        minutes: mintingQueuePosition.minutes
     } as QueuePositionResponseBody);
 
 }

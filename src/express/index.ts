@@ -21,7 +21,7 @@ import { updateSessionsHandler } from './handlers/jobs/sessions';
 import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
 import { refundsHandler } from "./handlers/jobs/refunds";
 import { searchHandler } from "./handlers/search";
-import { queuePositionHandler } from "./handlers/queuePosition";
+import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
 
 export const startServer = async () => {
   const app = express();
@@ -46,7 +46,7 @@ export const startServer = async () => {
 
   // Handlers
   app.post("/queue", postToQueueHandler);
-  app.post("/queuePosition", queuePositionHandler);
+  app.post("/mintingQueuePosition", mintingQueuePositionHandler);
   app.get("/payment", paymentConfirmedHandler);
   app.get("/exists", handleExistsHandler);
   app.get("/verify", verifyHandler);

@@ -20,6 +20,11 @@ export const HEADER_TWITTER_ACCESS_TOKEN = 'x-twitter-token';
 export const TWITTER_UNLOCK_HEADER = 'x-twitter-credentials';
 export const HEADER_JWT_ACCESS_TOKEN = 'x-access-token';
 export const HEADER_JWT_SESSION_TOKEN = 'x-session-token';
+
+export const HEADER_JWT_SPO_ACCESS_TOKEN = 'x-spo-access-token';
+export const HEADER_JWT_SPO_SESSION_TOKEN = 'x-spo-session-token';
+
+export const HEADER_JWT_ALL_SESSIONS_TOKEN = 'x-all-sessions-token';
 export const AUTH_CODE_TIMEOUT_MINUTES = 60;
 export const MAX_SESSION_COUNT = 3;
 
