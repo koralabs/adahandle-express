@@ -292,7 +292,6 @@ export const lookupReturnAddresses = async (
   }
 
   // TODO: check includedAt to make sure valid transaction
-  // TODO: include txHash and index into receiver address object (for manual refunding)
 
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
@@ -360,9 +359,9 @@ export const lookupTransaction = async (
   res?.data?.transactions?.forEach(t => {
     const outputSum = t.outputs.reduce((acc, output) => {
       if (output.address === address && output.value) {
-        return acc + parseFloat(output.value);
         txHash = output.txHash
         index = output.index
+        return acc + parseFloat(output.value);
       }
 
       return acc;
