@@ -5,14 +5,14 @@ import * as jwt from "jsonwebtoken";
 
 import { StateData } from "../../models/firestore/collections/StateData";
 import { State } from "../../models/State";
-import { queuePositionHandler } from "./queuePosition";
+import { mintingQueuePositionHandler } from "./mintingQueuePosition";
 import * as jwtHelper from "../../helpers/jwt";
-import { HEADER_JWT_SESSION_TOKEN } from '../../helpers/constants';
+import { HEADER_JWT_ALL_SESSIONS_TOKEN } from '../../helpers/constants';
 
 jest.mock('../../models/firestore/collections/StateData');
 jest.mock('../../helpers/jwt');
 
-describe('queuePositionHandler Tests', () => {
+describe('mintingQueuePositionHandler Tests', () => {
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
 
@@ -46,11 +46,11 @@ describe('queuePositionHandler Tests', () => {
         accessWindowTimeoutMinutes: 0,
         chainLoadThresholdPercent: 0,
         ipfsRateDelay: 0,
-        lastMintingTimestamp: 0,
+        lastMintingTimestamp: new Date().setMinutes(new Date().getMinutes() - 10), // 10 minutes ago
         lastAccessTimestamp: 0,
     });
 
-    it('should send an 403 with no session token', async () => {
+    it('should send an 400 with no session token', async () => {
         mockRequest = {
             headers: {
             }
@@ -58,7 +58,7 @@ describe('queuePositionHandler Tests', () => {
 
         jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
 
-        await queuePositionHandler(mockRequest as Request, mockResponse as Response);
+        await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -67,10 +67,10 @@ describe('queuePositionHandler Tests', () => {
         });
     });
 
-    it('should send an 404 with no userTimestamp', async () => {
+    it('should send an 403 with no sessions', async () => {
         mockRequest = {
             headers: {
-                [HEADER_JWT_SESSION_TOKEN]: 'test-session-token'
+                [HEADER_JWT_ALL_SESSIONS_TOKEN]: 'test-session-token'
             }
         }
 
@@ -80,7 +80,7 @@ describe('queuePositionHandler Tests', () => {
         // @ts-expect-error
         jest.spyOn(jwt, 'verify').mockResolvedValue({ not: 'real' });
 
-        await queuePositionHandler(mockRequest as Request, mockResponse as Response);
+        await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -89,26 +89,60 @@ describe('queuePositionHandler Tests', () => {
         });
     });
 
-    it('should send an 200 with no userTimestamp', async () => {
+    it('should send an 404 with no sessions', async () => {
+        const sessions = [
+            { handle: 'salsa', dateAdded: new Date().setMinutes(new Date().getMinutes() - 20), },
+            { handle: 'guacamole', dateAdded: new Date().setMinutes(new Date().getMinutes() - 11), },
+        ]
+
         mockRequest = {
             headers: {
-                [HEADER_JWT_SESSION_TOKEN]: 'test-session-token'
+                [HEADER_JWT_ALL_SESSIONS_TOKEN]: 'test-session-token'
+            }
+        }
+
+        jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // @ts-expect-error
+        jest.spyOn(jwt, 'verify').mockReturnValue({ sessions });
+
+        await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+            error: true,
+            message: "No sessions found"
+        });
+    });
+
+    it('should send an 200 with no userTimestamp', async () => {
+        const sessions = [
+            { handle: 'burrito', dateAdded: new Date().setMinutes(new Date().getMinutes() - 1), },
+            { handle: 'taco', dateAdded: new Date().setMinutes(new Date().getMinutes() - 2), },
+            { handle: 'enchilada', dateAdded: new Date().setMinutes(new Date().getMinutes() - 3), },
+            { handle: 'salsa', dateAdded: new Date().setMinutes(new Date().getMinutes() - 4), },
+            { handle: 'guacamole', dateAdded: new Date().setMinutes(new Date().getMinutes() - 11), },
+        ]
+
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_ALL_SESSIONS_TOKEN]: 'test-session-token'
             }
         }
 
         jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-expect-error
-        jest.spyOn(jwt, 'verify').mockReturnValue({ iat: Date.now() });
+        jest.spyOn(jwt, 'verify').mockReturnValue({ sessions });
 
-        await queuePositionHandler(mockRequest as Request, mockResponse as Response);
+        await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({
-            accessQueuePosition: 7000,
             error: false,
-            mintingQueuePosition: 3000,
-            minutes: 500
+            mintingQueuePosition: expect.any(Number),
+            minutes: expect.any(Number)
         });
     });
 });

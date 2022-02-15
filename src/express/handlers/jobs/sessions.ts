@@ -55,7 +55,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
           MAX_SESSION_LENGTH_CLI :
           (entry.createdBySystem == CreatedBySystem.SPO ?
             MAX_SESSION_LENGTH_SPO :
-            stateData.accessWindowTimeoutMinutes * 1000 * 60);
+            stateData.paymentWindowTimeoutMinutes * 1000 * 60);
 
         const matchingPayment = sessionPaymentStatuses[index];
 

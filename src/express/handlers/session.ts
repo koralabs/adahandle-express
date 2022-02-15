@@ -6,7 +6,9 @@ import {
   HEADER_JWT_SESSION_TOKEN,
   CreatedBySystem,
   SPO_HANDLE_ADA_COST,
-  MAX_SESSION_COUNT
+  MAX_SESSION_COUNT,
+  HEADER_JWT_SPO_ACCESS_TOKEN,
+  HEADER_JWT_SPO_SESSION_TOKEN
 } from "../../helpers/constants";
 
 import { isValid, normalizeNFTHandle } from "../../helpers/nft";
@@ -27,8 +29,8 @@ interface SessionResponseBody {
 export const sessionHandler = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
   const getLogMessage = (startTime: number) => ({ message: `sessionHandler processed in ${Date.now() - startTime}ms`, event: 'sessionHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
-  const accessToken = req.headers[HEADER_JWT_ACCESS_TOKEN];
-  const sessionToken = req.headers[HEADER_JWT_SESSION_TOKEN];
+  const accessToken = req.headers[HEADER_JWT_ACCESS_TOKEN] ?? req.headers[HEADER_JWT_SPO_ACCESS_TOKEN];
+  const sessionToken = req.headers[HEADER_JWT_SESSION_TOKEN] ?? req.headers[HEADER_JWT_SPO_SESSION_TOKEN];
 
   if (!accessToken || !sessionToken) {
     return res.status(400).json({
