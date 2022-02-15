@@ -94,8 +94,10 @@ export class AccessQueues {
       }
     }));
 
-    stateData.lastAccessTimestamp = Math.max(...queuedSnapshot.docs.map(doc => doc.data().dateAdded || 0));
-    StateData.upsertStateData(stateData)
+    if (queuedSnapshot.size > 0) {
+      stateData.lastAccessTimestamp = Math.max(...queuedSnapshot.docs.map(doc => doc.data().dateAdded || 0));
+      StateData.upsertStateData(stateData);
+    }
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)

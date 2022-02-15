@@ -158,15 +158,15 @@ describe('Job Sessions Tets', () => {
     ]
 
     const CheckPaymentsFixture = [
-        { address: 'expired_unpaid', amount: 0, returnAddress: '' },
-        { address: 'addr_paid', amount: toLovelace(50), returnAddress: 'return_addr_paid' },
-        { address: 'addr_invalid_payment', amount: toLovelace(40), returnAddress: 'return_addr_invalid' },
-        { address: 'addr_expired_paid', amount: toLovelace(50), returnAddress: 'return_addr_expired' },
-        { address: 'addr_handle_unavailable', amount: toLovelace(50), returnAddress: 'return_addr_unavail' },
-        { address: 'addr_spo_invalid_payment', amount: toLovelace(100), returnAddress: 'return_addr_spo_invalid_payment' },
-        { address: 'addr_zero_payment', amount: 0, returnAddress: '' },
-        { address: 'addr_spo_payment', amount: toLovelace(250), returnAddress: 'return_addr_spo' },
-        { address: 'addr_spo_not_owner', amount: toLovelace(250), returnAddress: 'return_addr_spo_not_owner' }
+        { address: 'expired_unpaid', amount: 0, returnAddress: '', txHash: '', index: 0 },
+        { address: 'addr_paid', amount: toLovelace(50), returnAddress: 'return_addr_paid', txHash: '', index: 0 },
+        { address: 'addr_invalid_payment', amount: toLovelace(40), returnAddress: 'return_addr_invalid', txHash: '', index: 0 },
+        { address: 'addr_expired_paid', amount: toLovelace(50), returnAddress: 'return_addr_expired', txHash: '', index: 0 },
+        { address: 'addr_handle_unavailable', amount: toLovelace(50), returnAddress: 'return_addr_unavail', txHash: '', index: 0 },
+        { address: 'addr_spo_invalid_payment', amount: toLovelace(100), returnAddress: 'return_addr_spo_invalid_payment', txHash: '', index: 0 },
+        { address: 'addr_zero_payment', amount: 0, returnAddress: '', txHash: '', index: 0 },
+        { address: 'addr_spo_payment', amount: toLovelace(250), returnAddress: 'return_addr_spo', txHash: '', index: 0 },
+        { address: 'addr_spo_not_owner', amount: toLovelace(250), returnAddress: 'return_addr_spo_not_owner', txHash: '', index: 0 }
     ]
 
     describe('updateSessionsHandler tests', () => {
@@ -210,17 +210,17 @@ describe('Job Sessions Tets', () => {
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
             expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(8);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(1, [{ ...UnpaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: 0, returnAddress: expect.any(String), status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(2, [{ ...PaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(3, [{ ...RefundableSessionsFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(40), returnAddress: expect.any(String), status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(4, [{ ...RefundableSessionsFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(5, [{ ...RefundableSessionsFixture[2], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(6, [{ ...RefundableSessionsFixture[3], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(1, [{ ...UnpaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: 0, returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(2, [{ ...PaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), txHash: '', index: 0, status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(3, [{ ...RefundableSessionsFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(40), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(4, [{ ...RefundableSessionsFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(5, [{ ...RefundableSessionsFixture[2], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(6, [{ ...RefundableSessionsFixture[3], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
 
             // since the 7th item is a 0 payment session, it should skip and be left alone
 
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(7, [{ ...SPOSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(8, [{ ...SPOSessionFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(200), returnAddress: expect.any(String), status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(7, [{ ...SPOSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), txHash: '', index: 0, status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(8, [{ ...SPOSessionFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(200), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
             // If the above number of items were called correctly then
             // then the last use case should be true which is
             // The zero payment session is left alone

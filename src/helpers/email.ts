@@ -1,9 +1,10 @@
-import { sendEmail } from '../helpers/aws';
 import { getAdaHandleDomain } from "./constants";
 import * as fs from 'fs';
 import * as path from 'path';
 import { LogCategory, Logger } from './Logger';
 import { StateData } from "../models/firestore/collections/StateData";
+import * as nodemailer from "nodemailer"
+import * as SMTPConnection from "nodemailer/lib/smtp-connection";
 
 export class VerificationInstance {
   public authCode: string;
@@ -33,31 +34,9 @@ export const createVerificationEmail = async (
     .replace('{{content}}', content)
     .replace('{{actionbutton}}', actionButton);
 
-  const params = {
-    Destination: {
-      ToAddresses: [email]
-    },
-    Message: {
-      Body: {
-        Html: {
-          Charset: "UTF-8",
-          Data: html
-        },
-        Text: {
-          Charset: "UTF-8",
-          Data: `${content} Get Access Now - ${authCodeLink}`
-        }
-      },
-      Subject: {
-        Charset: 'UTF-8',
-        Data: subject
-      }
-    },
-    Source: fromAddress,
-    ReplyToAddresses: [fromAddress],
-  };
+    const params = { to: email, html: html, text: content, subject: subject, from: fromAddress, replyTo: fromAddress };
 
-  sendEmail(params).send();
+  await sendEmail(params);
 
   return { authCode: authCode, status };
 };
@@ -81,31 +60,38 @@ export const createConfirmationEmail = async (
     .replace('{{content}}', content.replace('{{accessposition}}', accessPosition.toString()).replace('{{accesscount}}', accessCount.toString()).replace('{{minutes}}', minutes.toString()))
     .replace('{{actionbutton}}', '');
 
-  const params = {
-    Destination: {
-      ToAddresses: [email]
-    },
-    Message: {
-      Body: {
-        Html: {
-          Charset: "UTF-8",
-          Data: html
-        },
-        Text: {
-          Charset: "UTF-8",
-          Data: content
-        }
-      },
-      Subject: {
-        Charset: 'UTF-8',
-        Data: subject
-      }
-    },
-    Source: fromAddress,
-    ReplyToAddresses: [fromAddress],
-  };
+  const params = { to: email, html: html, text: content, subject: subject, from: fromAddress, replyTo: fromAddress };
 
-  sendEmail(params).send((err) => { if (err) Logger.log({ message: JSON.stringify(err), category: LogCategory.ERROR, event: 'createConfirmationEmail.send' }) });
+  try {
+    await sendEmail(params);
+  }
+  catch (err)
+  {
+    Logger.log({ message: JSON.stringify(err), category: LogCategory.ERROR, event: 'createConfirmationEmail.send' });
+    return false;
+  }
 
   return true;
 };
+
+export const sendEmail = async (params: {to: string, html: string, text?:string, subject: string, from: string, replyTo?: string}): Promise<void> => {
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: false
+  } as SMTPConnection.Options);
+
+  await transporter.sendMail({
+    from: params.from,
+    replyTo: params.replyTo || params.from,
+    to: params.to,
+    subject: params.subject,
+    text: params.text ? params.text : params.html.replace(/<style[^>]*>.*<\/style>/gm, '')
+        .replace(/<script[^>]*>.*<\/script>/gm, '')
+        .replace(/<[^>]+>/gm, '\\n')
+        .replace(/([\r\n]+ +)+/gm, ''),
+    html: params.html
+  });
+
+}

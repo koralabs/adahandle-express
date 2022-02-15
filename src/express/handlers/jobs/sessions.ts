@@ -81,6 +81,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               emailAddress: '',
               refundAmount: matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
+              txHash: matchingPayment.txHash,
+              index: matchingPayment.index,
               status: Status.REFUNDABLE,
               workflowStatus: WorkflowStatus.PENDING
             })]);
@@ -93,6 +95,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
             emailAddress: '',
             refundAmount: matchingPayment.amount,
             returnAddress: matchingPayment.returnAddress,
+            txHash: matchingPayment.txHash,
+            index: matchingPayment.index,
             status: Status.REFUNDABLE,
             workflowStatus: WorkflowStatus.PENDING
           })]);
@@ -109,6 +113,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               emailAddress: '',
               refundAmount: matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
+              txHash: matchingPayment.txHash,
+              index: matchingPayment.index,
               status: Status.REFUNDABLE,
               workflowStatus: WorkflowStatus.PENDING
             })]);
@@ -123,6 +129,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               emailAddress: '',
               refundAmount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
               returnAddress: matchingPayment.returnAddress,
+              txHash: matchingPayment.txHash,
+              index: matchingPayment.index,
               status: Status.REFUNDABLE,
               workflowStatus: WorkflowStatus.PENDING
             })]);
@@ -139,6 +147,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
                 emailAddress: '',
                 refundAmount: matchingPayment.amount,
                 returnAddress: matchingPayment.returnAddress,
+                txHash: matchingPayment.txHash,
+                index: matchingPayment.index,
                 status: Status.REFUNDABLE,
                 workflowStatus: WorkflowStatus.PENDING
               })]);
@@ -155,6 +165,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
                   emailAddress: '',
                   refundAmount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
                   returnAddress: matchingPayment.returnAddress,
+                  txHash: matchingPayment.txHash,
+                  index: matchingPayment.index,
                   status: Status.REFUNDABLE,
                   workflowStatus: WorkflowStatus.PENDING
                 })]);
@@ -167,6 +179,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               ...entry,
               emailAddress: '',
               returnAddress: matchingPayment.returnAddress,
+              txHash: matchingPayment.txHash,
+              index: matchingPayment.index,
               status: Status.PAID,
               workflowStatus: WorkflowStatus.PENDING
             })]);
