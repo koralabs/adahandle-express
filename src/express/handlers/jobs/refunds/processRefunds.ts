@@ -10,7 +10,7 @@ import { UsedAddressStatus } from "../../../../models/UsedAddress";
 
 export interface Refund { paymentAddress: string, returnAddress: WalletSimplifiedBalance }
 
-export const processRefunds = async (refunds: Refund[], testRefundTransactions?: (item: CoinSelectionWallet) => string) => {
+export const processRefunds = async (refunds: Refund[]) => {
   const { paymentAddresses, returnAddresses } = refunds.reduce<{ paymentAddresses: string[], returnAddresses: WalletSimplifiedBalance[]}>((acc, curr) => {
     const { paymentAddress, returnAddress } = curr;
     acc.paymentAddresses.push(paymentAddress);
@@ -51,13 +51,9 @@ export const processRefunds = async (refunds: Refund[], testRefundTransactions?:
       },
     };
   });
-
-  if (testRefundTransactions && process.env.NODE_ENV != 'test') {
-    // This is a problem throw errors
-    throw new Error("testRefundTransactions can only be a parameter if NODE_ENV is 'test'");
-  }
+  
   // If we're running tests, we don't actually want to hit wallets
-  const txId = await (testRefundTransactions ? testRefundTransactions(coinSelection) : refundTransactions(coinSelection));
+  const txId = await refundTransactions(coinSelection);
 
   if (txId) {
     const usedAddressUpdatesWithTxIds = paymentAddresses.map((paymentAddress) => ({ address: paymentAddress, props: { status: UsedAddressStatus.PROCESSED, txId: txId } }));
@@ -65,7 +61,7 @@ export const processRefunds = async (refunds: Refund[], testRefundTransactions?:
   }
 }
 
-const refundTransactions = async (coinSelection: CoinSelectionWallet) => {
+export const refundTransactions = async (coinSelection: CoinSelectionWallet) => {
   const networkConfig = getNetworkConfig();
   const walletServer = getWalletServer();
 
@@ -78,7 +74,7 @@ const refundTransactions = async (coinSelection: CoinSelectionWallet) => {
 
   // Time to live.
   const info = await walletServer.getNetworkInformation();
-  const ttl = info.node_tip.absolute_slot_number + 12000;
+  const ttl = info.node_tip.absolute_slot_number + 14400;
   let txBody = wallet.Seed.buildTransaction(coinSelection, ttl, { config: networkConfig });
 
   // Sign the tx so we can get the real transaction fee.
