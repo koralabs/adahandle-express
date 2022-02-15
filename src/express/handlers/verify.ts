@@ -1,7 +1,7 @@
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
 
-import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH } from "../../helpers/constants";
+import { HEADER_EMAIL, HEADER_EMAIL_AUTH } from "../../helpers/constants";
 import { removeAccessQueueData, getAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
 import { LogCategory, Logger } from "../../helpers/Logger";

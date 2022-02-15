@@ -46,11 +46,11 @@ describe('mintingQueuePositionHandler Tests', () => {
         accessWindowTimeoutMinutes: 0,
         chainLoadThresholdPercent: 0,
         ipfsRateDelay: 0,
-        lastMintingTimestamp: 1644872369489, // 10 minutes ago
+        lastMintingTimestamp: new Date().setMinutes(new Date().getMinutes() - 10), // 10 minutes ago
         lastAccessTimestamp: 0,
     });
 
-    it('should send an 403 with no session token', async () => {
+    it('should send an 400 with no session token', async () => {
         mockRequest = {
             headers: {
             }
@@ -67,7 +67,7 @@ describe('mintingQueuePositionHandler Tests', () => {
         });
     });
 
-    it('should send an 404 with no userTimestamp', async () => {
+    it('should send an 403 with no sessions', async () => {
         mockRequest = {
             headers: {
                 [HEADER_JWT_ALL_SESSIONS_TOKEN]: 'test-session-token'
@@ -89,13 +89,40 @@ describe('mintingQueuePositionHandler Tests', () => {
         });
     });
 
+    it('should send an 404 with no sessions', async () => {
+        const sessions = [
+            { handle: 'salsa', dateAdded: new Date().setMinutes(new Date().getMinutes() - 20), },
+            { handle: 'guacamole', dateAdded: new Date().setMinutes(new Date().getMinutes() - 11), },
+        ]
+
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_ALL_SESSIONS_TOKEN]: 'test-session-token'
+            }
+        }
+
+        jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // @ts-expect-error
+        jest.spyOn(jwt, 'verify').mockReturnValue({ sessions });
+
+        await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+            error: true,
+            message: "No sessions found"
+        });
+    });
+
     it('should send an 200 with no userTimestamp', async () => {
         const sessions = [
-            { handle: 'burrito', dateAdded: 1644873560989, },
-            { handle: 'taco', dateAdded: 164487349917 },
-            { handle: 'enchilada', dateAdded: 1644873435773 },
-            { handle: 'salsa', dateAdded: 1644873362049 },
-            { handle: 'guacamole', dateAdded: 1644872267349, },
+            { handle: 'burrito', dateAdded: new Date().setMinutes(new Date().getMinutes() - 1), },
+            { handle: 'taco', dateAdded: new Date().setMinutes(new Date().getMinutes() - 2), },
+            { handle: 'enchilada', dateAdded: new Date().setMinutes(new Date().getMinutes() - 3), },
+            { handle: 'salsa', dateAdded: new Date().setMinutes(new Date().getMinutes() - 4), },
+            { handle: 'guacamole', dateAdded: new Date().setMinutes(new Date().getMinutes() - 11), },
         ]
 
         mockRequest = {
@@ -114,8 +141,8 @@ describe('mintingQueuePositionHandler Tests', () => {
         expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({
             error: false,
-            mintingQueuePosition: 2239,
-            minutes: 112
+            mintingQueuePosition: expect.any(Number),
+            minutes: expect.any(Number)
         });
     });
 });

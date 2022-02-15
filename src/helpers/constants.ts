@@ -1,13 +1,7 @@
 import { readFileSync } from 'fs';
 
-export const CRON_BANK_LENGTH = 60000; // 1 minute
-export const CRON_AUTH_LENGTH = 300000; // 5 minutes
-export const CRON_SESSION_LENGTH = 60000; // 1 minute
-export const CRON_MINT_LENGTH = 30000 // 30 seconds
-export const CRON_REFUND_LENGTH = 30000; // 30 seconds
 export const MAX_SESSION_LENGTH_SPO = 86400000; // 24 hours
 export const MAX_SESSION_LENGTH_CLI = 86400000; // 24 hours
-export const MAX_ACCESS_LENGTH = 1800000; // 30 minutes
 export const PAYMENT_ADDRESS_THRESHOLD = 10;
 export const WALLET_BALANCE_THRESHOLD = 1000 * 1000000;
 export const SPO_HANDLE_ADA_COST = 250;
@@ -25,7 +19,6 @@ export const HEADER_JWT_SPO_ACCESS_TOKEN = 'x-spo-access-token';
 export const HEADER_JWT_SPO_SESSION_TOKEN = 'x-spo-session-token';
 
 export const HEADER_JWT_ALL_SESSIONS_TOKEN = 'x-all-sessions-token';
-export const AUTH_CODE_TIMEOUT_MINUTES = 60;
 export const MAX_SESSION_COUNT = 3;
 
 export enum CreatedBySystem {
