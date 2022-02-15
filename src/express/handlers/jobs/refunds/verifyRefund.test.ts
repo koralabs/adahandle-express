@@ -40,8 +40,12 @@ describe('verifyRefund tests', () => {
         expect(refund).toEqual({
             refund: {
                 paymentAddress: 'addr_123',
-                returnAddress: 'return_123',
-                amount: toLovelace(10),
+                returnAddress:  {
+                    address: "return_123",
+                    amount: toLovelace(10),
+                    index: undefined,
+                    txHash: undefined,
+                  }
             }
         });
     });
@@ -114,8 +118,12 @@ describe('verifyRefund tests', () => {
             expect(refund).toEqual({
                 refund: {
                     paymentAddress: 'addr_123',
-                    returnAddress: 'return_123',
-                    amount: toLovelace(200),
+                    returnAddress:  {
+                        address: "return_123",
+                        amount: toLovelace(200),
+                        index: undefined,
+                        txHash: undefined,
+                      }
                 }
             });
         });
@@ -139,8 +147,12 @@ describe('verifyRefund tests', () => {
             expect(refund).toEqual({
                 refund: {
                     paymentAddress: 'addr_123',
-                    returnAddress: 'return_123',
-                    amount: toLovelace(150),
+                    returnAddress: {
+                      address: "return_123",
+                      amount: toLovelace(150),
+                      index: undefined,
+                      txHash: undefined,
+                    }
                 }
             });
         });

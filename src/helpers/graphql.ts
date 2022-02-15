@@ -5,9 +5,8 @@ import { getFingerprint } from './utils';
 export interface WalletSimplifiedBalance {
   address: string;
   amount: number;
-  returnAddress: string;
-  txHash: string;
-  index: number;
+  txHash?: string;
+  index?: number;
 }
 
 export interface GraphqlCardanoPaymentAddress {
@@ -168,22 +167,20 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
       return {
         address: paymentAddress.address,
         amount: 0,
-        returnAddress: ''
       } as WalletSimplifiedBalance;
     }
 
     return {
       address: paymentAddress.address,
       amount: parseInt(ada.quantity),
-      returnAddress: ''
     } as WalletSimplifiedBalance;
   });
 
-  const addressesWithPayments = checkedAddresses.filter(address => address.amount > 0)
-  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address));
+  const addressesWithPayments = checkedAddresses.filter(address => address.amount && address.amount > 0)
+  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address || ''));
   if (returnAddresses) {
     addressesWithPayments.forEach((address, index) => {
-      address.returnAddress = returnAddresses[index].returnAddress;
+      address.address = returnAddresses[index].address;
       address.index = returnAddresses[index].index;
       address.txHash = returnAddresses[index].txHash;
     });
@@ -299,7 +296,7 @@ export const lookupReturnAddresses = async (
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
     const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
-    return [cleanedOutputs[0].address, {returnAddress: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index}];
+    return [cleanedOutputs[0].address, {address: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index}];
   }));
   const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as WalletSimplifiedBalance[];
   return orderedTransactions;
@@ -310,6 +307,8 @@ export const lookupTransaction = async (
 ): Promise<{
   totalPayments: number;
   returnAddress?: string;
+  txHash?: string;
+  index?: number;
 }> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
@@ -340,6 +339,8 @@ export const lookupTransaction = async (
             ){
               address
               value
+              txHash
+              index
             }
 
             inputs(
@@ -354,10 +355,12 @@ export const lookupTransaction = async (
   }).then(res => res.json())
 
   let totalPayments = 0
-  let returnAddress;
+  let returnAddress, txHash, index;
   res?.data?.transactions?.forEach(t => {
     const outputSum = t.outputs.reduce((acc, output) => {
       if (output.address === address && output.value) {
+        txHash = output.txHash
+        index = output.index
         return acc + parseFloat(output.value);
       }
 
@@ -374,7 +377,9 @@ export const lookupTransaction = async (
 
   return {
     totalPayments,
-    returnAddress
+    returnAddress,
+    txHash,
+    index
   };
 }
 
@@ -487,10 +492,10 @@ export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolD
       },
       query: `
       query ($addresses: [String!]!) {
-        stakePools(where: { 
-            id: { 
-              _in: $addresses 
-            } 
+        stakePools(where: {
+            id: {
+              _in: $addresses
+            }
           }) {
           url
           id
