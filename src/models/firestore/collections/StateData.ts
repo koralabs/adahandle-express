@@ -39,7 +39,7 @@ export class StateData {
     public static async checkAndLockCron(name: CronJobLockName): Promise<boolean> {
         const state = await StateData.getStateData();
         if (state[name] == true) {
-          Logger.log({ message: `Cron job ${name} is locked`, event: `{name}.locked`, category: LogCategory.NOTIFY });
+          Logger.log({ message: `Cron job ${name} is locked`, event: `${name}.locked`, category: LogCategory.NOTIFY });
           return false;
         }
         await StateData.lockCron(name);
