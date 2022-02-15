@@ -55,7 +55,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
           MAX_SESSION_LENGTH_CLI :
           (entry.createdBySystem == CreatedBySystem.SPO ?
             MAX_SESSION_LENGTH_SPO :
-            stateData.accessWindowTimeoutMinutes * 1000 * 60);
+            stateData.paymentWindowTimeoutMinutes * 1000 * 60);
 
         const matchingPayment = sessionPaymentStatuses[index];
 
@@ -80,7 +80,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
               ...entry,
               emailAddress: '',
               refundAmount: matchingPayment.amount,
-              returnAddress: matchingPayment.returnAddress,
+              returnAddress: matchingPayment.address,
               txHash: matchingPayment.txHash,
               index: matchingPayment.index,
               status: Status.REFUNDABLE,
@@ -94,7 +94,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
             ...entry,
             emailAddress: '',
             refundAmount: matchingPayment.amount,
-            returnAddress: matchingPayment.returnAddress,
+            returnAddress: matchingPayment.address,
             txHash: matchingPayment.txHash,
             index: matchingPayment.index,
             status: Status.REFUNDABLE,
@@ -107,12 +107,12 @@ export const updateSessions = async (req: express.Request, res: express.Response
         if (matchingPayment.amount !== 0) {
 
           // If no return address, refund.
-          if (!matchingPayment.returnAddress) {
+          if (!matchingPayment.address) {
             ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               refundAmount: matchingPayment.amount,
-              returnAddress: matchingPayment.returnAddress,
+              returnAddress: matchingPayment.address,
               txHash: matchingPayment.txHash,
               index: matchingPayment.index,
               status: Status.REFUNDABLE,
@@ -128,7 +128,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
               ...entry,
               emailAddress: '',
               refundAmount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
-              returnAddress: matchingPayment.returnAddress,
+              returnAddress: matchingPayment.address,
               txHash: matchingPayment.txHash,
               index: matchingPayment.index,
               status: Status.REFUNDABLE,
@@ -146,7 +146,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
                 ...entry,
                 emailAddress: '',
                 refundAmount: matchingPayment.amount,
-                returnAddress: matchingPayment.returnAddress,
+                returnAddress: matchingPayment.address,
                 txHash: matchingPayment.txHash,
                 index: matchingPayment.index,
                 status: Status.REFUNDABLE,
@@ -157,14 +157,14 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
             // verify SPO can purchase the ticker
             if (entry.createdBySystem === CreatedBySystem.SPO) {
-              const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(matchingPayment.returnAddress, entry.handle);
+              const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(matchingPayment.address, entry.handle);
               if (!returnAddressOwnsStakePool) {
                 // if not, refund cost plus fee
                 ActiveSessions.updateSessions([new ActiveSession({
                   ...entry,
                   emailAddress: '',
                   refundAmount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
-                  returnAddress: matchingPayment.returnAddress,
+                  returnAddress: matchingPayment.address,
                   txHash: matchingPayment.txHash,
                   index: matchingPayment.index,
                   status: Status.REFUNDABLE,
@@ -178,7 +178,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
             ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
-              returnAddress: matchingPayment.returnAddress,
+              returnAddress: matchingPayment.address,
               txHash: matchingPayment.txHash,
               index: matchingPayment.index,
               status: Status.PAID,

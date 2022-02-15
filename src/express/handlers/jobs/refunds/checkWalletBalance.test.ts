@@ -11,12 +11,20 @@ describe('getRefundsWallet tests', () => {
 
     const refundsFixture: Refund[] = [{
         paymentAddress: 'todo',
-        returnAddress: 'todo',
-        amount: 20
+        returnAddress: {
+            address: "todo",
+            amount: 20,
+            index: undefined,
+            txHash: undefined,
+          }
     }, {
         paymentAddress: 'todo',
-        returnAddress: 'todo',
-        amount: 20
+        returnAddress: {
+            address: "todo",
+            amount: 20,
+            index: undefined,
+            txHash: undefined,
+          }
     }]
 
     it('Should lock the cron and send notification if there is not enough data', async () => {
