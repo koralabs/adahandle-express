@@ -16,6 +16,10 @@ export interface SessionJWTPayload extends jwt.JwtPayload {
   isSPO?: boolean;
 }
 
+export interface AllSessionsJWTPayload extends jwt.JwtPayload {
+  sessions: { handle: string; dateAdded: number }[]
+}
+
 type SecretContext = 'access' | 'session'
 
 let accessSecret: Secret;

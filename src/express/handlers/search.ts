@@ -1,6 +1,6 @@
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
-import { HEADER_HANDLE, HEADER_JWT_ACCESS_TOKEN, MAX_SESSION_COUNT } from "../../helpers/constants";
+import { HEADER_HANDLE, HEADER_JWT_ACCESS_TOKEN, HEADER_JWT_SPO_ACCESS_TOKEN, MAX_SESSION_COUNT } from "../../helpers/constants";
 import { AccessJWTPayload, getKey } from "../../helpers/jwt";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
@@ -17,7 +17,7 @@ export const searchHandler = async (req: express.Request, res: express.Response)
     try {
         const startTime = Date.now();
         const getLogMessage = (startTime: number) => ({ message: `searchHandler processed in ${Date.now() - startTime}ms`, event: 'searchHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
-        const accessToken = req.headers[HEADER_JWT_ACCESS_TOKEN];
+        const accessToken = req.headers[HEADER_JWT_ACCESS_TOKEN] ?? req.headers[HEADER_JWT_SPO_ACCESS_TOKEN];
         const handle = req.headers[HEADER_HANDLE] as string;
 
         if (!accessToken) {

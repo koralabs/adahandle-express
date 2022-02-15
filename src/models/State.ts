@@ -17,6 +17,7 @@ interface StateConstructor {
     usedAddressesLimit?: number;
     accessCodeTimeoutMinutes?: number;
     accessWindowTimeoutMinutes?: number;
+    paymentWindowTimeoutMinutes?: number;
     chainLoadThresholdPercent?: number;
     ipfsRateDelay?: number;
     lastMintingTimestamp?: number;
@@ -41,6 +42,7 @@ export class State extends BaseModel {
     public usedAddressesLimit: number;
     public accessCodeTimeoutMinutes: number;
     public accessWindowTimeoutMinutes: number;
+    public paymentWindowTimeoutMinutes: number;
     public chainLoadThresholdPercent: number;
     public ipfsRateDelay: number;
     public lastMintingTimestamp: number;
@@ -64,6 +66,7 @@ export class State extends BaseModel {
         usedAddressesLimit = 50,
         accessCodeTimeoutMinutes = 60,
         accessWindowTimeoutMinutes = 60,
+        paymentWindowTimeoutMinutes = 60,
         chainLoadThresholdPercent = 85,
         ipfsRateDelay = 1000, // <- Blockfrost is 10/sec, Pinata is 3/sec. 2 servers at 1/sec = 2/sec
         lastMintingTimestamp = Date.now(),
@@ -87,6 +90,7 @@ export class State extends BaseModel {
         this.usedAddressesLimit = usedAddressesLimit;
         this.accessCodeTimeoutMinutes = accessCodeTimeoutMinutes;
         this.accessWindowTimeoutMinutes = accessWindowTimeoutMinutes;
+        this.paymentWindowTimeoutMinutes = paymentWindowTimeoutMinutes;
         this.chainLoadThresholdPercent = chainLoadThresholdPercent;
         this.ipfsRateDelay = ipfsRateDelay;
         this.lastMintingTimestamp = lastMintingTimestamp;

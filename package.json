@@ -19,6 +19,7 @@
     "forever:list": "forever list",
     "logs": "forever logs app",
     "restart": "forever restart dist/server.js || forever start ./development.json",
+    "reset": "forever stopall && forever start ./development.json",
     "restartall": "forever restartall"
   },
   "dependencies": {
