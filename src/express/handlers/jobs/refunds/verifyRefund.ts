@@ -78,8 +78,12 @@ export const verifyRefund = async (address: string): Promise<VerifyRefundResults
         return {
             refund: {
                 paymentAddress: address,
-                returnAddress: results.returnAddress,
-                amount: lovelaceBalance,
+                returnAddress: { 
+                    amount: lovelaceBalance,
+                    address: results.returnAddress,
+                    txHash: results.txHash,
+                    index: results.index
+                }
             }
         }
     }
