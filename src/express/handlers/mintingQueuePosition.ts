@@ -9,7 +9,6 @@ import { StateData } from "../../models/firestore/collections/StateData";
 
 interface QueuePositionResponseBody {
     error: boolean;
-    accessQueuePosition: number;
     mintingQueuePosition: number;
     minutes: number;
     message?: string;
