@@ -7,6 +7,7 @@ import { UsedAddresses, UsedAddressUpdates } from "../../../../models/firestore/
 import { verifyRefund } from "./verifyRefund";
 import { checkWalletBalance } from "./checkWalletBalance";
 import { processRefunds, Refund } from "./processRefunds";
+import { getMintingWalletId } from "../../../../helpers/constants";
 
 const buildLogMessage = (startTime: number, refundsCount: number) => ({ message: `refundsHandler processed ${refundsCount} refunds in ${Date.now() - startTime}ms`, event: 'refundsHandler.run', count: refundsCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
@@ -49,7 +50,8 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
             });
         }
 
-        const refundWallet = await getMintWalletServer();
+        const walletId = getMintingWalletId();
+        const refundWallet = await getMintWalletServer(walletId);
 
         await checkWalletBalance(verifiedRefunds, refundWallet);
 

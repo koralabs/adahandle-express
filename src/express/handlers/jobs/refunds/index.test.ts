@@ -11,6 +11,7 @@ import { UsedAddress, UsedAddressStatus } from '../../../../models/UsedAddress';
 import * as verifyRefund from "./verifyRefund";
 import * as checkWalletBalance from "./checkWalletBalance";
 import * as processRefunds from "./processRefunds";
+import * as constants from "../../../../helpers/constants";
 import { Refund } from './processRefunds';
 
 jest.mock('express');
@@ -59,15 +60,15 @@ describe('Refund Cron Tests', () => {
             amount: 10,
             index: undefined,
             txHash: undefined,
-          }
+        }
     }, {
         paymentAddress: '0x2',
-        returnAddress:  {
+        returnAddress: {
             address: "return_0x2",
             amount: 500,
             index: undefined,
             txHash: undefined,
-          }
+        }
     }]
 
     describe('updateSessionsHandler tests', () => {
@@ -100,6 +101,7 @@ describe('Refund Cron Tests', () => {
             jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, mintingQueueSize: 10, accessQueueSize: 10, refundsLock: false, totalHandles: 171 }));
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
             jest.spyOn(cardano, 'getMintWalletServer').mockResolvedValue(mockShellyWallet);
+            jest.spyOn(constants, 'getMintingWalletId').mockReturnValue('minting_wallet_id');
             jest.spyOn(verifyRefund, 'verifyRefund')
                 .mockResolvedValueOnce({ status: UsedAddressStatus.PROCESSED })
                 .mockResolvedValueOnce({ status: UsedAddressStatus.PROCESSED })

@@ -61,6 +61,7 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     // check the wallet for block depth (Assurance level) is >= 5 set to 'confirmed'
     if (status === ApiTransactionStatusEnum.InLedger && depth >= 5) {
       await ActiveSessions.updatePaidSessionsWorkflowStatusesByTxId(txId, WorkflowStatus.CONFIRMED);
+      await StateData.unlockMintingWalletByTxId(txId);
       return;
     }
 

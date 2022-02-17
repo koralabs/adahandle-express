@@ -2,13 +2,13 @@ import * as wallet from 'cardano-wallet-js';
 import { AddressWallet } from 'cardano-wallet-js';
 import { ReservedHandles } from '../../models/firestore/collections/ReservedHandles';
 
-import { getMintingWalletSeedPhrase, getPolicyId, getPolicyPrivateKey } from '../constants';
+import { getMintingWallet, getPolicyId, getPolicyPrivateKey } from '../constants';
 import { GraphqlCardanoSenderAddress } from "../graphql";
 import { getIPFSImage, createNFTImages } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
-import { StateData } from "../../models/firestore/collections/StateData";
+import { MintingWallet, StateData } from "../../models/firestore/collections/StateData";
 import { ActiveSession } from '../../models/ActiveSession';
 
 export const getAddressWalletsFromTransactions = async (txs: GraphqlCardanoSenderAddress[]): Promise<wallet.AddressWallet[]> => {
@@ -142,12 +142,12 @@ export const consolidateChanges = (changes: wallet.ApiCoinSelectionChange[]): wa
   return newChange;
 }
 
-export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]) => {
+export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[], mintingWalletDetails: MintingWallet) => {
   const networkConfig = getNetworkConfig();
 
   // Wallets.
-  const walletServer = getWalletServer();
-  const ourWallet = await getMintWalletServer();
+  const { walletId, seedPhrase } = getMintingWallet(mintingWalletDetails.index);
+  const ourWallet = await getMintWalletServer(walletId);
 
   // Purchase data.
   const returnAddresses = sessions.map(session => session.returnAddress).filter(Boolean) as string[];
@@ -181,7 +181,7 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   }
 
   // Add signing keys.
-  const recoveryPhrase = getMintingWalletSeedPhrase();
+  const recoveryPhrase = seedPhrase;
   const rootKey = wallet.Seed.deriveRootKey(recoveryPhrase);
   const signingKeys = coinSelection.inputs.map((i) => {
     return wallet.Seed.deriveKey(rootKey, i.derivation_path).to_raw_key();
@@ -218,6 +218,7 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   coinSelection.change = consolidateChanges(coinSelection.change);
 
   // Time to live.
+  const walletServer = getWalletServer();
   const info = await walletServer.getNetworkInformation();
   const ttl = info.node_tip.absolute_slot_number + 12000;
 

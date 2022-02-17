@@ -5,12 +5,14 @@ import { config } from 'dotenv';
 import { lookupReturnAddresses } from "../helpers/graphql";
 import { getMintWalletServer } from "../helpers/wallet/cardano";
 import { toADA } from '../helpers/utils';
+import { getMintingWalletId } from '../helpers/constants';
 config();
 
 const run = async () => {
   await Firebase.init();
   const sessions = await RefundableSessions.getRefundableSessionsByLimitAndStatus(0);
-  const refundWallet = await getMintWalletServer();
+  const walletId = getMintingWalletId();
+  const refundWallet = await getMintWalletServer(walletId);
   const availableBalance = refundWallet.getTotalBalance();
   console.log('Attempting to refund: ', sessions.length);
   console.log(`Total minting wallet balance: ${toADA(availableBalance)}`);
