@@ -5,11 +5,11 @@ import { handleExists } from "../../../helpers/graphql";
 import { MintingCache } from '../../../models/firestore/collections/MintingCache';
 import { awaitForEach } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { StateData } from "../../../models/firestore/collections/StateData";
+import { MintingWallet, StateData } from "../../../models/firestore/collections/StateData";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../../models/ActiveSession";
 
-const mintPaidSessions = async (req: express.Request, res: express.Response) => {
+const mintPaidSessions = async (res: express.Response, availableWallet: MintingWallet) => {
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintPaidSessions processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintPaidSessions.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
@@ -88,7 +88,10 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 
   // Mint the handles!
   try {
-    const txId = await mintHandlesAndSend(sanitizedSessions);
+    const txId = await mintHandlesAndSend(sanitizedSessions, availableWallet);
+
+    await StateData.updateMintingWalletTxId(availableWallet, txId);
+
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, sanitizedSessions, WorkflowStatus.SUBMITTED);
@@ -122,6 +125,7 @@ const mintPaidSessions = async (req: express.Request, res: express.Response) => 
 }
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
+  let availableWallet: MintingWallet | null = null;
   try {
 
     if (!await StateData.checkAndLockCron('mintPaidSessionsLock')) {
@@ -131,14 +135,23 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
       });
     }
 
-    const result = await mintPaidSessions(req, res);
+    availableWallet = await StateData.findAvailableMintingWallet();
+    if (!availableWallet) {
+      Logger.log({ message: 'No available wallet found', event: 'mintPaidSessionsHandler.availableWallet', category: LogCategory.NOTIFY });
+      return res.status(200).json({
+        error: false,
+        message: 'No available wallets.'
+      });
+    }
+
+    const result = await mintPaidSessions(res, availableWallet);
 
     await StateData.unlockCron('mintPaidSessionsLock');
 
     return result;
   } catch (error) {
-
     await StateData.unlockCron('mintPaidSessionsLock');
+    await StateData.unlockMintingWallet(availableWallet);
     return res.status(200).json({
       error: true,
       message: JSON.stringify(error)

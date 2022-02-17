@@ -52,26 +52,26 @@ export const getGraphqlEndpoint = (): string =>
 
 export const getMintingWalletId = (): string => {
   const walletId = process.env.MINT_WALLET_ID;
-  if (!walletId) { throw new Error ("Couldn't retrieve minting wallet ID"); }
+  if (!walletId) { throw new Error("Couldn't retrieve minting wallet ID"); }
   return walletId.trim();
 }
 
 export const getMintingWalletSeedPhrase = (): string => {
   const seed = process.env.MINT_SEED_PHRASE;
-  if (!seed) { throw new Error ("Couldn't retrieve minting seed phrase"); }
+  if (!seed) { throw new Error("Couldn't retrieve minting seed phrase"); }
 
   return JSON.parse(seed.trim());
 }
 
 export const getPaymentWalletId = (): string => {
   const walletId = process.env.PAYMENT_WALLET_ID;
-  if (!walletId) { throw new Error ("Couldn't retrieve payment wallet ID"); }
+  if (!walletId) { throw new Error("Couldn't retrieve payment wallet ID"); }
   return walletId.trim();
 }
 
 export const getPaymentWalletSeedPhrase = (): string => {
   const seed = process.env.PAYMENT_SEED_PHRASE;
-  if (!seed) { throw new Error ("Couldn't retrieve payment seed phrase"); }
+  if (!seed) { throw new Error("Couldn't retrieve payment seed phrase"); }
 
   return JSON.parse(seed.trim());
 }
@@ -79,7 +79,7 @@ export const getPaymentWalletSeedPhrase = (): string => {
 export const getPolicyId = (): string => {
   const policyId = process.env.POLICY_ID;
 
-  if (!policyId) { throw new Error ("Couldn't retrieve policy ID"); }
+  if (!policyId) { throw new Error("Couldn't retrieve policy ID"); }
 
   return policyId.trim();
 }
@@ -87,9 +87,21 @@ export const getPolicyId = (): string => {
 export const getPolicyPrivateKey = (): string => {
   const policyKey = process.env.POLICY_KEY;
 
-  if (!policyKey) { throw new Error ("Couldn't retrieve policy key"); }
+  if (!policyKey) { throw new Error("Couldn't retrieve policy key"); }
 
   return policyKey.trim();
+}
+
+export const getMintingWallet = (index: number): { walletId: string; seedPhrase: string } => {
+  const walletId = process.env[`MINT_WALLET_ID_${index}`];
+  const seedPhrase = process.env[`MINT_WALLET_SEED_PHRASE_${index}`];
+
+  if (!walletId || !seedPhrase) { throw new Error("Couldn't retrieve minting wallet ID or seed phrase"); }
+
+  return {
+    walletId,
+    seedPhrase
+  }
 }
 
 export const isProduction = (): boolean => {

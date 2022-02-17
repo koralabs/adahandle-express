@@ -227,7 +227,6 @@ describe('Job Sessions Tets', () => {
         });
 
         it('should remove duplicate active sessions', async () => {
-            console.log('ActiveSessionsFixture.length', ActiveSessionsFixture.length)
             jest.spyOn(ActiveSessions, 'getPendingActiveSessions').mockResolvedValue([...ActiveSessionsFixture, ...ActiveSessionsFixture]);
             jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, totalHandles: 171, paymentWindowTimeoutMinutes }));
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);

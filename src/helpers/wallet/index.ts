@@ -7,6 +7,7 @@ import { Logger } from "../Logger";
 import { buildTransactionFromPaidSessions } from "./minting";
 import { CreatedBySystem } from "../constants";
 import { ActiveSession } from "../../models/ActiveSession";
+import { MintingWallet } from "../../models/firestore/collections/StateData";
 
 export const getNewAddress = async (createdBySystem?: CreatedBySystem): Promise<string | false> => {
   const newAddress = await WalletAddresses.getFirstAvailableWalletAddress(createdBySystem);
@@ -31,9 +32,9 @@ export const getAmountsFromPaymentAddresses = (
   return totalBalances;
 };
 
-export const mintHandlesAndSend = async (sessions: ActiveSession[]): Promise<string> => {
+export const mintHandlesAndSend = async (sessions: ActiveSession[], wallet: MintingWallet): Promise<string> => {
   const walletServer = getWalletServer();
-  const signedTransaction = await buildTransactionFromPaidSessions(sessions);
+  const signedTransaction = await buildTransactionFromPaidSessions(sessions, wallet);
   const txId = await walletServer.submitTx(signedTransaction);
   return txId;
 };
