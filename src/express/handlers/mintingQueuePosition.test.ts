@@ -89,7 +89,7 @@ describe('mintingQueuePositionHandler Tests', () => {
         });
     });
 
-    it('should send an 404 with no sessions', async () => {
+    it('should return zero with no sessions', async () => {
         const sessions = [
             { handle: 'salsa', dateAdded: new Date().setMinutes(new Date().getMinutes() - 20), },
             { handle: 'guacamole', dateAdded: new Date().setMinutes(new Date().getMinutes() - 11), },
@@ -109,10 +109,11 @@ describe('mintingQueuePositionHandler Tests', () => {
 
         await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
 
-        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({
-            error: true,
-            message: "No sessions found"
+            error: false,
+            mintingQueuePosition: 0,
+            minutes: 0
         });
     });
 
