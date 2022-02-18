@@ -56,9 +56,10 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
     const [session] = sessions;
 
     if (!session) {
-        return res.status(404).json({
-            error: true,
-            message: 'No sessions found'
+        return res.status(200).json({
+            error: false,
+            mintingQueuePosition: 0,
+            minutes: 0
         })
     }
 
