@@ -5,14 +5,14 @@ import { isValid } from "../../../helpers/nft"
 import * as pluralize from "pluralize";
 import { delay } from "../../../helpers/utils"
 
-const RESPONSE_INVALID_HANDLE_FORMAT = 'Invalid handle. Only a-z, 0-9, dash (-), underscore (_), and period (.) are allowed';
+const RESPONSE_INVALID_HANDLE_FORMAT = 'Invalid handle. Only a-z, 0-9, dash (-), underscore (_), and period (.) are allowed.';
 const RESPONSE_UNAVAILABLE_PAID = 'Sorry! This Handle is pending mint or already minted.';
 const RESPONSE_UNAVAILABLE_TWITTER = 'Reserved! Please unlock with Twitter below.';
 const RESPONSE_AVAILABLE_DEFAULT = 'Yay! This handle is available.';
 const RESPONSE_BETA_PHASE_UNAVAILABLE = 'Legendary handles are not available yet.';
 const RESPONSE_ACTIVE_SESSION_UNAVAILABLE = 'Pending purchase. Try a different variation.';
-const RESPONSE_SPO_HANDLE_UNAVAILABLE = 'Reserved for the stake pool. Head to https://adahandle.com/spo';
-const RESPONSE_RESERVED_HANDLE_UNAVAILABLE = 'This Handle has a private reservation. Private reservations will be contacted separately';
+const RESPONSE_SPO_HANDLE_UNAVAILABLE = 'Reserved for the stake pool. Head to https://adahandle.com/spo.';
+const RESPONSE_RESERVED_HANDLE_UNAVAILABLE = 'This Handle has a private reservation. Private reservations will be contacted separately.';
 const RESPONSE_NOT_ALLOWED = 'Sorry, that handle is not allowed.'
 const REGEX_SPLIT_ON_CHARS = /([0-9a-z]+)[.\-_]*/g
 const REGEX_SPLIT_ON_NUMS = /([a-z]+)[0-9]*/g
