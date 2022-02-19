@@ -189,7 +189,7 @@ export class ReservedHandles {
             return allowedResponse;
         }
 
-        let handleMatches = handle.match(REGEX_SPLIT_ON_CHARS);
+        let handleMatches = handle.match(REGEX_SPLIT_ON_CHARS); 
 
         if (handleMatches) {
             for (let i = 0; i < handleMatches?.length; i++) {
