@@ -11,10 +11,12 @@ jobs:
     steps:
       - name: Trigger Workflow Dispatch Event for TestNet
         run: |
+          MESSAGE=${{ toJson(github.event.head_commit.message) }}
+          MESSAGE=$(echo $MESSAGE | sed "s/'/'\\\''/")
           curl -XPOST -u "${{secrets.DEPLOYMENT_ACCESS_USERNAME}}:${{secrets.DEPLOYMENT_ACCESS_TOKEN}}" \
           -H "Accept: application/vnd.github.everest-preview+json" \
           -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy.yml/dispatches \
-          --data '{"ref": "master", "inputs": { "branch_to_deploy":"develop", "network":"TESTNET", "commit_sha":"${{ github.sha }}", "commit_url": "${{ github.event.head_commit.url }}", "commit_message": ${{ toJson(github.event.head_commit.message) }}, "hard_reset": "false" }}'
+          --data '{"ref": "master", "inputs": { "branch_to_deploy":"develop", "network":"TESTNET", "commit_sha":"${{ github.sha }}", "commit_url": "${{ github.event.head_commit.url }}", "commit_message": "'"${MESSAGE}"'", "hard_reset": "false" }}'
   dispatch-mainnet:
     if: ${{github.ref == 'refs/heads/master'}}
     name: Dispatch to Deployments
@@ -22,7 +24,9 @@ jobs:
     steps:
       - name: Trigger Workflow Dispatch Event for MainNet
         run: |
+          MESSAGE=${{ toJson(github.event.head_commit.message) }}
+          MESSAGE=$(echo $MESSAGE | sed "s/'/'\\\''/")
           curl -XPOST -u "${{secrets.DEPLOYMENT_ACCESS_USERNAME}}:${{secrets.DEPLOYMENT_ACCESS_TOKEN}}" \
           -H "Accept: application/vnd.github.everest-preview+json" \
           -H "Content-Type: application/json" https://api.github.com/repos/adahandle/adahandle-deployments/actions/workflows/adahandle-express-deploy.yml/dispatches \
-          --data '{"ref": "master", "inputs": { "branch_to_deploy":"master", "network":"MAINNET", "commit_sha":"${{ github.sha }}", "commit_url": "${{ github.event.head_commit.url }}", "commit_message": ${{ toJson(github.event.head_commit.message) }}, "hard_reset": "false" }}'
+          --data '{"ref": "master", "inputs": { "branch_to_deploy":"master", "network":"MAINNET", "commit_sha":"${{ github.sha }}", "commit_url": "${{ github.event.head_commit.url }}", "commit_message": "'"${MESSAGE}"'", "hard_reset": "false" }}'
