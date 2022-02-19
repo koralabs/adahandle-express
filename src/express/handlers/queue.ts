@@ -81,7 +81,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
     const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
 
-    if (updated) {
+    if (updated && accessQueuePosition.minutes > 10) {
       try {
         await createConfirmationEmail(email, accessQueuePosition.position, accessQueueSize, accessQueuePosition.minutes);
       }
