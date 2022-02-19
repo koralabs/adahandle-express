@@ -92,7 +92,7 @@ export const getPolicyPrivateKey = (): string => {
   return policyKey.trim();
 }
 
-export const getMintingWallet = (index: number): { walletId: string; seedPhrase: string } => {
+export const getMintingWallet = (index: number): { walletId: string; seedPhrase: string[] } => {
   const walletId = process.env[`MINT_WALLET_ID_${index}`];
   const seedPhrase = process.env[`MINT_WALLET_SEED_PHRASE_${index}`];
 
@@ -100,8 +100,8 @@ export const getMintingWallet = (index: number): { walletId: string; seedPhrase:
 
   return {
     walletId,
-    seedPhrase
-  }
+    seedPhrase: JSON.parse(seedPhrase.trim())
+  };
 }
 
 export const isProduction = (): boolean => {
