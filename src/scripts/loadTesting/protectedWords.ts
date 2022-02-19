@@ -17,12 +17,12 @@ const run = async () => {
         durations.push(avail.duration || 0);
         const color = avail.available ? Color.FgGreen : Color.FgRed
         !avail.available ? badWordsCount++ : null;
-        console.log(`${avail.duration?.toString().padEnd(6)} processing "${color}${(handle + "\"").padEnd(16)}${reset} - AVAILABLE: ${color}${avail.available}${reset} REASON: ${avail.reason} MESSAGE: ${avail.debug ?? avail.message}`);
+        console.log(`${avail.duration?.toString().padEnd(6)} processing "${color}${(handle + "\"").padEnd(16)}${reset} - AVAILABLE: ${color}${avail.available}${reset} REASON: ${avail.reason} MESSAGE: ${avail.reason ?? avail.message}`);
     }, 25)
     console.log(`average processing time per handle ${average(durations)}`)
     console.log(`minimum processing time per handle ${Math.min(...durations)}`)
     console.log(`maximum processing time per handle ${Math.max(...durations)}`)
-    console.log(`found ${badWordsCount} bad words in ${listToCheck.length}`)
+    console.log(`found ${badWordsCount} unavailable words in ${listToCheck.length}`)
     console.timeEnd("reserved handles testing");
 }
 
@@ -42,7 +42,11 @@ const smallList = [
     "ipedophile", //bad
     "love2lickbabies", // bad
     "ilovebabies", // good
-    "power2africa" // good
+    "power2africa", // good
+    "pussy1", // bad
+    "1pussy", // bad
+    "pussyx", // bad
+    "xpussy", // bad
 ]
 
 run();

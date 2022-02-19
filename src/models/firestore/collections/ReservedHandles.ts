@@ -468,9 +468,6 @@ export class ReservedHandles {
         let lastIndex = handle.length - 1;
         while (chars.includes(handle[startIndex])) { startIndex++; }
         while (chars.includes(handle[lastIndex])) { lastIndex--; }
-        if (lastIndex == handle.length - 1) {
-            return handle.substring(startIndex);
-        }
-        return handle.substring(startIndex, lastIndex);
+        return handle.substring(startIndex, lastIndex+1);
     }
 }
