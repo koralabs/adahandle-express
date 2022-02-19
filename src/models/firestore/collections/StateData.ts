@@ -69,9 +69,10 @@ export class StateData {
     static async findAvailableMintingWallet(): Promise<MintingWallet | null> {
         return admin.firestore().runTransaction(async t => {
             const snapshot = await t.get(admin.firestore().collection(StateData.collectionName));
+
             const wallet = snapshot.docs.find(doc => {
                 const d = doc.data();
-                return d.id.contains('wallet') && !d.locked;
+                return doc.id.startsWith('wallet') && !d.locked;
             });
 
             if (wallet) {
