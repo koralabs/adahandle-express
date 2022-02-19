@@ -132,7 +132,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
       Logger.log({ message: 'No available wallet found', event: 'mintPaidSessionsHandler.availableWallet', category: LogCategory.NOTIFY });
       return res.status(200).json({
         error: false,
-        message: 'No available wallets.'
+        message: 'No available minting wallets.'
       });
     }
 
