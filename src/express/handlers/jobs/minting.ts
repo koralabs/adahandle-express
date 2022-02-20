@@ -117,6 +117,7 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
     });
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', sanitizedSessions, WorkflowStatus.PENDING);
     await MintingCache.removeHandlesFromMintCache(sanitizedSessions.map(s => s.handle));
+    await StateData.unlockMintingWallet(availableWallet);
     return res.status(500).json({
       error: true,
       message: 'Transaction submission failed.'
@@ -127,20 +128,19 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
   let availableWallet: MintingWallet | null = null;
   try {
-
-    if (!await StateData.checkAndLockCron('mintPaidSessionsLock')) {
-      return res.status(200).json({
-        error: false,
-        message: 'Mint Paid Sessions cron is locked. Try again later.'
-      });
-    }
-
     availableWallet = await StateData.findAvailableMintingWallet();
     if (!availableWallet) {
       Logger.log({ message: 'No available wallet found', event: 'mintPaidSessionsHandler.availableWallet', category: LogCategory.NOTIFY });
       return res.status(200).json({
         error: false,
-        message: 'No available wallets.'
+        message: 'No available minting wallets.'
+      });
+    }
+
+    if (!await StateData.checkAndLockCron('mintPaidSessionsLock')) {
+      return res.status(200).json({
+        error: false,
+        message: 'Mint Paid Sessions cron is locked. Try again later.'
       });
     }
 

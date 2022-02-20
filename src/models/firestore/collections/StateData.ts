@@ -102,7 +102,7 @@ export class StateData {
                 return;
             }
 
-            t.update(snapshot.docs[0].ref, { locked: false });
+            t.update(snapshot.docs[0].ref, { txId: '', locked: false });
         });
     }
 
