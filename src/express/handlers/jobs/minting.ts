@@ -117,6 +117,7 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
     });
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', sanitizedSessions, WorkflowStatus.PENDING);
     await MintingCache.removeHandlesFromMintCache(sanitizedSessions.map(s => s.handle));
+    await StateData.unlockMintingWallet(availableWallet);
     return res.status(500).json({
       error: true,
       message: 'Transaction submission failed.'
