@@ -12,7 +12,6 @@ const dbQuery = async (trim:number=100) => {
     .get();
     let fields = {};
     if (snapshot?.size > 0){
-        console.log(`count=${snapshot.size}`);
         for (let record of snapshot.docs) {
             for (const [key, value] of Object.entries(record.data())) {
                 let length = 0;
@@ -68,7 +67,9 @@ const dbQuery = async (trim:number=100) => {
         }
         console.log(`${snapshot.size} records found`);
     }
-    console.log("No records found");
+    else {
+        console.log("No records found");
+    }
     console.timeEnd("query");
 }
 
