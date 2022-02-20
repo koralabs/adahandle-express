@@ -8,12 +8,14 @@ const dbQuery = async (trim:number=100) => {
     console.time("query");
     
     // **************************************************
-    /// MODIFY THIS QUERY AS YOU SEE FIT FOR YOUR PURPOSE
+    // MODIFY THIS QUERY AS YOU SEE FIT FOR YOUR PURPOSE
     const snapshot = await admin.firestore().collection("activeSessions_dev")
     .where('status', '==', 'paid')
     .where('workflowStatus', '==', 'confirmed')
-    .select('id', 'handle', 'status', 'workflowStatus', 'createdBySystem')
-    .limit(10)
+    //.where('handle', '>=', 'xar').where('handle', '<=', 'xar' + '~') // This is a "startsWith" query
+    //.orderBy('dateAdded', 'desc')
+    //.select('id', 'handle', 'status', 'workflowStatus', 'createdBySystem')
+    //.limit(10)
     .get();
     // **************************************************
 
@@ -70,4 +72,4 @@ const dbQuery = async (trim:number=100) => {
     console.timeEnd("query");
 }
 
-dbQuery();
+dbQuery(20);

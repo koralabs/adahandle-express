@@ -46,7 +46,6 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
       html,
       quality: 100,
       type: 'jpeg',
-      pupeteerArgs: { executablePath: '/usr/bin/chromium-browser' },
       content: rarities[rarity]
     });
   }));
