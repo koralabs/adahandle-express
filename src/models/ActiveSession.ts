@@ -33,6 +33,7 @@ export interface ActiveSessionInput {
     workflowStatus?: WorkflowStatus,
     attempts?: number;
     dateAdded?: number;
+    walletId?: string;
 }
 
 export class ActiveSession extends BaseModel {
@@ -52,10 +53,12 @@ export class ActiveSession extends BaseModel {
     public workflowStatus?: WorkflowStatus;
     public attempts?: number;
     public dateAdded?: number;
+    public walletId?: string;
 
-    constructor({ id, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, txHash, index, workflowStatus, status = Status.PENDING, attempts = 0, dateAdded = Date.now() }: ActiveSessionInput) {
+    constructor({ id, walletId, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, txHash, index, workflowStatus, status = Status.PENDING, attempts = 0, dateAdded = Date.now() }: ActiveSessionInput) {
         super();
         this.id = id;
+        this.walletId = walletId;
         this.emailAddress = emailAddress;
         this.cost = cost;
         this.refundAmount = refundAmount;

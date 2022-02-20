@@ -8,36 +8,46 @@ import { LogCategory, Logger } from "../../../helpers/Logger";
 import { MintingWallet, StateData } from "../../../models/firestore/collections/StateData";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../../models/ActiveSession";
+import { getMintingWallet } from "../../../helpers/constants";
 
-const mintPaidSessions = async (res: express.Response, availableWallet: MintingWallet) => {
+interface MintSessionsResponse {
+  status: number
+  error: boolean
+  message: string,
+  txId?: string
+}
+
+const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSessionsResponse> => {
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintPaidSessions processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintPaidSessions.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   const state = await StateData.getStateData();
   if (state.chainLoad > state.chainLoadThresholdPercent) {
-
-    return res.status(200).json({
+    return {
+      status: 200,
       error: false,
       message: 'Chain load is too high.'
-    });
+    }
   }
 
   const paidSessionsLimit = state.paidSessionsLimit;
   const paidSessions: ActiveSession[] = await ActiveSessions.getPaidPendingSessions({ limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
-    return res.status(200).json({
+    return {
+      status: 200,
       error: false,
       message: 'No paid sessions!'
-    });
+    }
   }
 
-  const results = await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', paidSessions, WorkflowStatus.PROCESSING);
+  const results = await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', '', paidSessions, WorkflowStatus.PROCESSING);
   if (results.some(result => !result)) {
     Logger.log({ message: 'Error setting "processing" status', event: 'mintPaidSessionsHandler.updateSessionStatuses.processing', category: LogCategory.NOTIFY });
-    return res.status(400).json({
+    return {
+      status: 400,
       error: true,
       message: 'Error setting "processing" status'
-    });
+    }
   }
 
   // Filter out any possibly duplicated sessions.
@@ -80,10 +90,11 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
         sanitizedSessions
       })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', category: LogCategory.INFO
     });
-    return res.status(200).json({
+    return {
+      status: 200,
       error: false,
       message: 'No Handles to mint!'
-    });
+    }
   }
 
   // Mint the handles!
@@ -94,7 +105,9 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
 
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
-    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, sanitizedSessions, WorkflowStatus.SUBMITTED);
+
+    const { walletId } = getMintingWallet(availableWallet.index);
+    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
 
     const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
     if (lastSessionDateAdded) {
@@ -103,10 +116,13 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
     }
 
     Logger.log(getLogMessage(startTime, paidSessions.length));
-    return res.status(200).json({
+
+    return {
+      status: 200,
       error: false,
-      message: txId
-    });
+      message: 'Handles submitted successfully',
+      txId
+    }
   } catch (e) {
     // Log the failed transaction submission (will try again on next round).
     Logger.log({
@@ -115,13 +131,14 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
         sanitizedSessions
       })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR
     });
-    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', sanitizedSessions, WorkflowStatus.PENDING);
+    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', '', sanitizedSessions, WorkflowStatus.PENDING);
     await MintingCache.removeHandlesFromMintCache(sanitizedSessions.map(s => s.handle));
     await StateData.unlockMintingWallet(availableWallet);
-    return res.status(500).json({
+    return {
+      status: 500,
       error: true,
       message: 'Transaction submission failed.'
-    });
+    }
   }
 }
 
@@ -144,11 +161,19 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
       });
     }
 
-    const result = await mintPaidSessions(res, availableWallet);
+    const { status, error, message, txId } = await mintPaidSessions(availableWallet);
+
+    // Unlock the available wallet if there wasn't a transaction or an error occurred.
+    if (!txId) {
+      await StateData.unlockMintingWallet(availableWallet);
+    }
 
     await StateData.unlockCron('mintPaidSessionsLock');
 
-    return result;
+    return res.status(status).json({
+      error,
+      message
+    });
   } catch (error) {
     await StateData.unlockCron('mintPaidSessionsLock');
     await StateData.unlockMintingWallet(availableWallet);

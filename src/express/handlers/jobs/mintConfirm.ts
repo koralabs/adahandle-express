@@ -36,9 +36,11 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
   await awaitForEach<string>([...groupedPaidSessionsByTxIdMap.keys()], async (txId) => {
     let transactionResponse: Response | undefined;
 
+    const sessions = groupedPaidSessionsByTxIdMap.get(txId) as ActiveSession[];
+    const mintingWalletID = sessions[0].walletId;
+
     try {
       const walletEndpoint = getWalletEndpoint();
-      const mintingWalletID = getMintingWalletId();
       transactionResponse = await fetch(
         `${walletEndpoint}/wallets/${mintingWalletID}/transactions/${txId}`,
         {
