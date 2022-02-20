@@ -8,6 +8,7 @@ import { LogCategory, Logger } from "../../../helpers/Logger";
 import { MintingWallet, StateData } from "../../../models/firestore/collections/StateData";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../../models/ActiveSession";
+import { getMintingWallet } from "../../../helpers/constants";
 
 const mintPaidSessions = async (res: express.Response, availableWallet: MintingWallet) => {
   const startTime = Date.now();
@@ -31,7 +32,7 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
     });
   }
 
-  const results = await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', paidSessions, WorkflowStatus.PROCESSING);
+  const results = await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', '', paidSessions, WorkflowStatus.PROCESSING);
   if (results.some(result => !result)) {
     Logger.log({ message: 'Error setting "processing" status', event: 'mintPaidSessionsHandler.updateSessionStatuses.processing', category: LogCategory.NOTIFY });
     return res.status(400).json({
@@ -94,7 +95,9 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
 
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
-    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, sanitizedSessions, WorkflowStatus.SUBMITTED);
+
+    const { walletId } = getMintingWallet(availableWallet.index);
+    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
 
     const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
     if (lastSessionDateAdded) {
@@ -115,7 +118,7 @@ const mintPaidSessions = async (res: express.Response, availableWallet: MintingW
         sanitizedSessions
       })}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend.error', category: LogCategory.ERROR
     });
-    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', sanitizedSessions, WorkflowStatus.PENDING);
+    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', '', sanitizedSessions, WorkflowStatus.PENDING);
     await MintingCache.removeHandlesFromMintCache(sanitizedSessions.map(s => s.handle));
     await StateData.unlockMintingWallet(availableWallet);
     return res.status(500).json({

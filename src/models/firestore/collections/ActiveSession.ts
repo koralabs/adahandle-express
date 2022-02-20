@@ -114,7 +114,7 @@ export class ActiveSessions {
     }));
   }
 
-  static updateWorkflowStatusAndTxIdForSessions(txId: string, sessions: ActiveSession[], workflowStatus: WorkflowStatus): Promise<boolean[]> {
+  static updateWorkflowStatusAndTxIdForSessions(txId: string, walletId: string, sessions: ActiveSession[], workflowStatus: WorkflowStatus): Promise<boolean[]> {
     const filteredSessions = sessions.reduce<ActiveSession[]>((acc, session) => {
       if (session.id) {
         acc.push(session);
@@ -127,7 +127,7 @@ export class ActiveSessions {
     return Promise.all(filteredSessions.map(async session => {
       return admin.firestore().runTransaction(async t => {
         const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
-        t.update(ref, { workflowStatus, txId });
+        t.update(ref, { workflowStatus, txId, walletId });
         return true;
       }).catch(error => {
         Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'updateSessionStatuses.error', category: LogCategory.ERROR });
