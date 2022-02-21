@@ -1,7 +1,7 @@
 import * as wallet from 'cardano-wallet-js';
 import { AddressWallet } from 'cardano-wallet-js';
 import { ReservedHandles } from '../../models/firestore/collections/ReservedHandles';
-
+import { ActiveSessions } from '../../models/firestore/collections/ActiveSession';
 import { getMintingWallet, getPolicyId, getPolicyPrivateKey } from '../constants';
 import { GraphqlCardanoSenderAddress } from "../graphql";
 import { getIPFSImage, createNFTImages } from '../image';
@@ -66,6 +66,7 @@ export const generateMetadataFromPaidSessions = async (sessions: ActiveSession[]
     let ipfs: string;
     try {
       ipfs = await getIPFSImage(session.handle);
+      session.ipfsHash = ipfs;
     } catch (e) {
       Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
       throw e;
@@ -163,6 +164,9 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   const tokens = assets.map(asset => new wallet.TokenWallet(asset, script, [keyPair]));
   const amounts = assets.map((_asset, index) => wallet.Seed.getMinUtxoValueWithAssets([assets[index]], networkConfig));
   const data = await generateMetadataFromPaidSessions(sessions);
+  
+  // Update sessions with IPFS hashes
+  await ActiveSessions.updateSessions(sessions);
 
   // Get coin selection structure (without the assets).
   const coinSelection = await ourWallet.getCoinSelection(

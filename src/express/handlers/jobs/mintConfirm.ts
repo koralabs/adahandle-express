@@ -5,7 +5,7 @@ import { LogCategory, Logger } from "../../../helpers/Logger";
 import { StateData } from "../../../models/firestore/collections/StateData";
 import { awaitForEach } from "../../../helpers/utils";
 import { ApiTransactionStatusEnum } from "cardano-wallet-js";
-import { getMintingWalletId, getWalletEndpoint } from "../../../helpers/constants";
+import { getWalletEndpoint } from "../../../helpers/constants";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, WorkflowStatus } from "../../../models/ActiveSession";
 
