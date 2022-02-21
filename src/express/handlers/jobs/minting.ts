@@ -9,6 +9,7 @@ import { MintingWallet, StateData } from "../../../models/firestore/collections/
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../../models/ActiveSession";
 import { getMintingWallet } from "../../../helpers/constants";
+import { applyAxiosResponeInterceptor } from "../../../helpers/http"
 
 interface MintSessionsResponse {
   status: number
@@ -99,6 +100,7 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
 
   // Mint the handles!
   try {
+    applyAxiosResponeInterceptor();
     const txId = await mintHandlesAndSend(sanitizedSessions, availableWallet);
 
     await StateData.updateMintingWalletTxId(availableWallet, txId);

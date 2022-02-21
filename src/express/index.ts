@@ -4,7 +4,6 @@ import * as helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import { urlencoded, json } from 'body-parser'
 import Router from 'express-promise-router';
-import { applyAxiosResponeInterceptor } from "../helpers/http"
 
 // Handlers
 import { postToQueueHandler } from "./handlers/queue";
@@ -62,8 +61,6 @@ export const startServer = async () => {
   app.post('/mintPaidSessions', mintPaidSessionsHandler);
   app.post('/mintConfirm', mintConfirmHandler);
   app.post('/refunds', refundsHandler);
-
-  applyAxiosResponeInterceptor();
 
   app.listen(3000);
 }
