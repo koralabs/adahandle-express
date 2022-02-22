@@ -1,8 +1,9 @@
-import axios from 'axios'
+import axios, { AxiosInstance } from 'axios'
 import { LogCategory, Logger } from './Logger';
 
-export const applyAxiosRequestInterceptor = () => {
-    axios.interceptors.request.use(
+export const applyAxiosRequestInterceptor = (axiosInstance?: AxiosInstance) => {
+    const ax = axiosInstance || axios;
+    ax.interceptors.request.use(
         function (successfulReq) {
             return successfulReq;
         },
@@ -11,8 +12,9 @@ export const applyAxiosRequestInterceptor = () => {
         }
     );
 }
-export const applyAxiosResponeInterceptor = () => {
-    axios.interceptors.request.use(
+export const applyAxiosResponeInterceptor = (axiosInstance?: AxiosInstance) => {
+    const ax = axiosInstance || axios;
+    ax.interceptors.request.use(
         function (successfulReq) {
             return successfulReq;
         },

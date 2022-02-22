@@ -10,6 +10,7 @@ import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
 import { MintingWallet, StateData } from "../../models/firestore/collections/StateData";
 import { ActiveSession } from '../../models/ActiveSession';
+import { applyAxiosResponeInterceptor } from "../../helpers/http"
 
 export const getAddressWalletsFromTransactions = async (txs: GraphqlCardanoSenderAddress[]): Promise<wallet.AddressWallet[]> => {
   return txs.map((tx, index) => {
@@ -149,6 +150,9 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   // Wallets.
   const { walletId, seedPhrase } = getMintingWallet(mintingWalletDetails.index);
   const ourWallet = await getMintWalletServer(walletId);
+
+  // @ts-ignore
+  applyAxiosResponeInterceptor(ourWallet.coinSelectionsApi.axios); 
 
   // Purchase data.
   const returnAddresses = sessions.map(session => session.returnAddress).filter(Boolean) as string[];
