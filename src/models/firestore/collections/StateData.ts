@@ -66,6 +66,20 @@ export class StateData {
         });
     }
 
+    public static async getMintingWallets(): Promise<MintingWallet[]> {
+        const snapshot = await admin.firestore().collection(StateData.collectionName).get();
+
+        const mintingWallets = snapshot.docs.filter(doc => doc.id.startsWith('wallet'));
+        return mintingWallets.map(doc => ({ ...doc.data(), id: doc.id } as MintingWallet));
+    }
+
+    static updateMintingWalletBalance(id: string, walletBalance: number) {
+        return admin.firestore().runTransaction(async t => {
+            const snapshot = await t.get(admin.firestore().collection(StateData.collectionName).doc(id));
+            t.update(snapshot.ref, { balance: walletBalance });
+        });
+    }
+
     static async findAvailableMintingWallet(): Promise<MintingWallet | null> {
         return admin.firestore().runTransaction(async t => {
             const snapshot = await t.get(admin.firestore().collection(StateData.collectionName));
