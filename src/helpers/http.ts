@@ -13,13 +13,13 @@ export const applyAxiosRequestInterceptor = (axiosInstance?: AxiosInstance) => {
     );
 }
 export const applyAxiosResponeInterceptor = (axiosInstance?: AxiosInstance) => {
-    console.log('I am in the interceptor!');
     const ax = axiosInstance || axios;
     ax.interceptors.request.use(
         function (successfulReq) {
             return successfulReq;
         },
         function (error) {
+            console.log(`I am in the interceptor! - ${JSON.stringify(error)}`);
             if (error.response.config.url.includes('/v2/wallets/'))
             {
                 Logger.log({ message: `Wallet API error detected. Extracted data is: ${JSON.stringify({url: error.response.config.url, data: error.response.data})}`, event: 'walletApi.interceptedError', category: LogCategory.INFO });
