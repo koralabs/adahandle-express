@@ -22,7 +22,7 @@ export const applyAxiosResponeInterceptor = (axiosInstance?: AxiosInstance) => {
             if (error.response.config.url.includes('/v2/'))
             {
                 Logger.log({ message: `Wallet API error detected. Extracted data is: ${JSON.stringify({url: error.response.config.url, data: error.response.data})}`, event: 'walletApi.interceptedError', category: LogCategory.INFO });
-                error.response.request.responseData = error.response.data;
+                error.response.config.responseData = error.response.data;
             }
             return Promise.reject(error);
         }
