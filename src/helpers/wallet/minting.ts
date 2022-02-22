@@ -151,8 +151,9 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   const { walletId, seedPhrase } = getMintingWallet(mintingWalletDetails.index);
   const ourWallet = await getMintWalletServer(walletId);
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  applyAxiosResponeInterceptor(ourWallet.coinSelectionsApi.axios); 
+  applyAxiosResponeInterceptor(ourWallet.coinSelectionsApi.axios);
 
   // Purchase data.
   const returnAddresses = sessions.map(session => session.returnAddress).filter(Boolean) as string[];
@@ -168,7 +169,7 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   const tokens = assets.map(asset => new wallet.TokenWallet(asset, script, [keyPair]));
   const amounts = assets.map((_asset, index) => wallet.Seed.getMinUtxoValueWithAssets([assets[index]], networkConfig));
   const data = await generateMetadataFromPaidSessions(sessions);
-  
+
   // Update sessions with IPFS hashes
   await ActiveSessions.updateSessions(sessions);
 
