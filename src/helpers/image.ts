@@ -38,7 +38,7 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
     });
   });
   await Promise.all(Object.keys(rarities).map(async (rarity) => {
-    Logger.log({ message: `Started generating ${rarities[rarity].length} Handle images...`, event: 'getIPFSImage' });
+    Logger.log({ message: `Started generating ${rarities[rarity].length} Handle images...`, event: 'getIPFSImage.generateImages' });
     const target = rarity.replace(' ', '-').toLowerCase();
     const path = resolve(__dirname, `../../src/htmlTemplates/nft-${target}.html`);
     const html = readFileSync(path).toString();
@@ -53,7 +53,6 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
 
 export const getIPFSImage = async (handle: string): Promise<string> => {
   const logStart = Date.now();
-  Logger.log({ message: `Started IPFS image entry for $${handle}...`, event: 'getIPFSImage' });
   const ipfs = new BlockFrostIPFS({
     projectId: process.env.IPFS_KEY as string
   });

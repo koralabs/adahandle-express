@@ -3,13 +3,13 @@ import { CreatedBySystem } from "../helpers/constants";
 import { Firebase } from "../helpers/firebase";
 import { ActiveSession, Status, WorkflowStatus } from "../models/ActiveSession";
 import { ActiveSessions } from "../models/firestore/collections/ActiveSession";
-
+import { delay } from "../helpers/utils"
 
 const run = async () => {
     await Firebase.init();
     let returnAddressesJson = fs.readFileSync('./src/scripts/return01.json');
     let returnAddresses = JSON.parse(returnAddressesJson.toString());
-
+    let index = 0;
     for (const address of returnAddresses) {
         const handle = await makeid(15)
         const activeSession = new ActiveSession({
@@ -26,6 +26,7 @@ const run = async () => {
             workflowStatus: WorkflowStatus.PENDING,
             returnAddress: address.id
         });
+        console.log(`${index++} adding ${handle}`)
         await ActiveSessions.addActiveSession(activeSession);
     }
 }
