@@ -11,6 +11,8 @@ export interface MintingWallet {
     index: number;
     locked: boolean;
     txId?: string;
+    balance?: number;
+    minBalance: number;
 }
 
 export class StateData {
