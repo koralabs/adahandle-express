@@ -6,35 +6,38 @@ import { Color } from "./scriptUtils"
 const dbQuery = async (trim:number=100) => {
     await Firebase.init();
     console.time("query");
+    
+    // **************************************************
+    // MODIFY THIS QUERY AS YOU SEE FIT FOR YOUR PURPOSE
     const snapshot = await admin.firestore().collection("activeSessions_dev")
     .where('status', '==', 'paid')
     .where('workflowStatus', '==', 'pending')
+    .where('emailAddress', '==', 'testing@adahandle.com')
+    //.where('handle', '>=', 'xar').where('handle', '<=', 'xar' + '~') // This is a "startsWith" query
+    //.orderBy('dateAdded', 'desc')
+    //.select('id', 'handle', 'status', 'workflowStatus', 'createdBySystem')
+    //.limit(10)
     .get();
+    // **************************************************
+
     let fields = {};
     if (snapshot?.size > 0){
         for (let record of snapshot.docs) {
             for (const [key, value] of Object.entries(record.data())) {
                 let length = 0;
-                if (typeof value == 'object') {
+                if (typeof value == 'object')
                     length = JSON.stringify(value).length;
-                }
-                else if (typeof value != 'string') {
+                else if (typeof value != 'string')
                     length = value.toString().length;
-                }
-                else {
+                else
                     length = value.length;
-                }
-                if (!fields[key]){
+                if (!fields[key])
                     fields[key] = length;
-                }
-                else {
-                    if (length > fields[key]) {
-                        fields[key] = length;   
-                    }
-                }
-                if (key.length > fields[key]) {
+                else
+                    if (length > fields[key])
+                        fields[key] = length;
+                if (key.length > fields[key])
                     fields[key] = key.length;
-                }
             }
         }
         let header = '';
@@ -50,15 +53,12 @@ const dbQuery = async (trim:number=100) => {
             for (let field of keys) {
                 let value = '';
                 if (data[field]){
-                    if (typeof data[field] == 'object') {
+                    if (typeof data[field] == 'object')
                         value = JSON.stringify(data[field]);
-                    }
-                    else if (typeof data[field] != 'string') {
+                    else if (typeof data[field] != 'string')
                         value = data[field].toString();
-                    }
-                    else {
+                    else
                         value = data[field];
-                    }
                 }
                 row += `${color}${value.padEnd(fields[field]).substring(0,trim)}${Color.FgBlue}|${Color.Reset}`;
             }

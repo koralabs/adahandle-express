@@ -34,6 +34,7 @@ export interface ActiveSessionInput {
     attempts?: number;
     dateAdded?: number;
     walletId?: string;
+    ipfsHash?: string;
 }
 
 export class ActiveSession extends BaseModel {
@@ -54,8 +55,9 @@ export class ActiveSession extends BaseModel {
     public attempts?: number;
     public dateAdded?: number;
     public walletId?: string;
+    public ipfsHash?: string;
 
-    constructor({ id, walletId, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, txHash, index, workflowStatus, status = Status.PENDING, attempts = 0, dateAdded = Date.now() }: ActiveSessionInput) {
+    constructor({ id, walletId, emailAddress, cost, refundAmount, handle, paymentAddress, start, txId, createdBySystem, returnAddress, txHash, index, workflowStatus, status = Status.PENDING, attempts = 0, dateAdded = Date.now(), ipfsHash }: ActiveSessionInput) {
         super();
         this.id = id;
         this.walletId = walletId;
@@ -74,5 +76,6 @@ export class ActiveSession extends BaseModel {
         this.workflowStatus = workflowStatus;
         this.attempts = attempts;
         this.dateAdded = dateAdded;
+        this.ipfsHash = ipfsHash;
     }
 }

@@ -35,6 +35,7 @@ export const getAmountsFromPaymentAddresses = (
 export const mintHandlesAndSend = async (sessions: ActiveSession[], wallet: MintingWallet): Promise<string> => {
   const walletServer = getWalletServer();
   const signedTransaction = await buildTransactionFromPaidSessions(sessions, wallet);
+  Logger.log({message: `Transaction size is ${signedTransaction.length}`});
   const txId = await walletServer.submitTx(signedTransaction);
   return txId;
 };
