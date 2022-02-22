@@ -14,7 +14,7 @@ export const applyAxiosRequestInterceptor = (axiosInstance?: AxiosInstance) => {
 }
 export const applyAxiosResponeInterceptor = (axiosInstance?: AxiosInstance) => {
     const ax = axiosInstance || axios;
-    ax.interceptors.request.use(
+    ax.interceptors.response.use(
         function (successfulReq) {
             return successfulReq;
         },
