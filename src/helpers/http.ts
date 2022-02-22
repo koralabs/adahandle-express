@@ -13,6 +13,7 @@ export const applyAxiosRequestInterceptor = (axiosInstance?: AxiosInstance) => {
     );
 }
 export const applyAxiosResponeInterceptor = (axiosInstance?: AxiosInstance) => {
+    console.log('I am in the interceptor!');
     const ax = axiosInstance || axios;
     ax.interceptors.request.use(
         function (successfulReq) {
