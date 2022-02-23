@@ -1,7 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const htmlToImage = require('node-html-to-image');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Pinata = require('@pinata/sdk');
+import htmlToImage from 'node-html-to-image';
+import Pinata from '@pinata/sdk';
 
 import { BlockFrostIPFS } from '@blockfrost/blockfrost-js';
 import { readFileSync } from 'fs';
@@ -69,8 +67,8 @@ export const getIPFSImage = async (handle: string): Promise<string> => {
   }
 
   try {
-    const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
-    await pinataClient.pinByHash(res.ipfs_hash);
+    const pinataClient = Pinata(process.env.PINATA_API_KEY || '', process.env.PINATA_API_SECRET || '');
+    await pinataClient.pinByHash(res.ipfs_hash, {pinataMetadata:{name:handle}} );
   } catch (e) {
     Logger.log({ message: `Pinata errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.pinByHash', category: LogCategory.ERROR });
   }

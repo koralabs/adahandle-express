@@ -151,6 +151,7 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   const { walletId, seedPhrase } = getMintingWallet(mintingWalletDetails.index);
   const ourWallet = await getMintWalletServer(walletId);
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   applyAxiosResponeInterceptor(ourWallet.coinSelectionsApi.axios); 
 
