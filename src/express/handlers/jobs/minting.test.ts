@@ -66,8 +66,8 @@ describe('mintPaidSessionsHandler Tests', () => {
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Not enough balance in wallet." });
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Not enough balance in wallet." });
   });
 
   it('should not proceed if chain load is too high', async () => {

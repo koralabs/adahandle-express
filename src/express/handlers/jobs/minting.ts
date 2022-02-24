@@ -156,8 +156,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
 
     if (availableWallet.balance && availableWallet.balance < availableWallet.minBalance) {
       Logger.log({ message: `${availableWallet.id} balance is lower than minimum balance`, event: 'mintPaidSessionsHandler.availableWallet.balance', category: LogCategory.NOTIFY });
-      return res.status(200).json({
-        error: false,
+      return res.status(400).json({
+        error: true,
         message: 'Not enough balance in wallet.'
       });
     }
