@@ -29,7 +29,9 @@ describe('mintPaidSessionsHandler Tests', () => {
     jest.spyOn(StateData, 'findAvailableMintingWallet').mockResolvedValue({
       id: '1234',
       index: 1,
-      locked: false
+      locked: false,
+      balance: 1000,
+      minBalance: 100
     });
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
@@ -50,13 +52,33 @@ describe('mintPaidSessionsHandler Tests', () => {
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "No available minting wallets." });
   });
 
+  it('should not proceed if minting wallet balance is lower than minimum balance', async () => {
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, mintPaidSessionsLock: false, totalHandles: 171, chainLoadThresholdPercent: .80 }));
+    jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
+    jest.spyOn(cardanoHelper, 'getChainLoad').mockResolvedValue(.90);
+    jest.spyOn(StateData, 'findAvailableMintingWallet').mockResolvedValue({
+      id: '1234',
+      index: 1,
+      locked: false,
+      balance: 99,
+      minBalance: 100
+    });
+    // @ts-expect-error mocking response
+    await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Not enough balance in wallet." });
+  });
+
   it('should not proceed if chain load is too high', async () => {
     jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .90, accessQueueSize: 10, mintingQueueSize: 10, updateActiveSessionsLock: false, mintPaidSessionsLock: false, totalHandles: 171, chainLoadThresholdPercent: .80 }));
     jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
     jest.spyOn(StateData, 'findAvailableMintingWallet').mockResolvedValue({
       id: '1234',
       index: 1,
-      locked: false
+      locked: false,
+      balance: 1000,
+      minBalance: 100
     });
     jest.spyOn(cardanoHelper, 'getChainLoad').mockResolvedValue(.90);
     // @ts-expect-error mocking response
