@@ -79,6 +79,7 @@ export class StateData {
         return admin.firestore().runTransaction(async t => {
             const snapshot = await t.get(admin.firestore().collection(StateData.collectionName).doc(id));
             t.update(snapshot.ref, { balance: walletBalance });
+            return true;
         });
     }
 
