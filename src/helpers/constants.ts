@@ -125,3 +125,7 @@ export const getAdaHandleDomain = (): string => {
   if (isProduction()) return 'https://adahandle.com';
   return 'https://testnet.adahandle.com';
 }
+
+export const getWalletAddressPrefix = () => {
+  return isProduction() ? 'addr1' : 'addr_test1'
+}

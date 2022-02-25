@@ -1,6 +1,6 @@
 import * as express from "express";
 
-import { MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
+import { getWalletAddressPrefix, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
 import { checkPayments } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { toLovelace } from "../../../helpers/utils";
@@ -67,11 +67,15 @@ export const updateSessions = async (req: express.Request, res: express.Response
          * Remove if expired and not paid
          * Refund if not expired but invalid payment
          * Refund if expired and paid
+         * Refund if return address is not shelly era formatted
          * Refund if paid sessions already has handle
          * Refund SPO and charge fee
          * Move to paid if accurate payment and not expired
          * Leave alone if not expired and no payment
          */
+
+
+        // TODO: refund if payment if a multiple transaction
 
         // Handle expired.
         if (sessionAge >= maxSessionLength) {
@@ -90,6 +94,21 @@ export const updateSessions = async (req: express.Request, res: express.Response
           }
 
           // If there is no amount, it's possible that a payment was made after the session expired.
+          ActiveSessions.updateSessions([new ActiveSession({
+            ...entry,
+            emailAddress: '',
+            refundAmount: matchingPayment.amount,
+            returnAddress: matchingPayment.address,
+            txHash: matchingPayment.txHash,
+            index: matchingPayment.index,
+            status: Status.REFUNDABLE,
+            workflowStatus: WorkflowStatus.PENDING
+          })]);
+          return;
+        }
+
+        // refund if return address is not from a shelly era wallet
+        if (matchingPayment.address && matchingPayment.address !== '' && !matchingPayment.address.startsWith(getWalletAddressPrefix())) {
           ActiveSessions.updateSessions([new ActiveSession({
             ...entry,
             emailAddress: '',
