@@ -24,9 +24,13 @@ export class StateData {
         return doc.data() as State;
     }
 
+    private static isKeyStatic = (key: string): boolean => {
+        return key.endsWith('Lock') || key.endsWith('Limit') || key.endsWith('Minutes') || key.endsWith('Name')
+    }
+
     public static async upsertStateData(state: State): Promise<void> {
         const stateObj = Object.keys(state).reduce((acc, key) => {
-            if (key.endsWith('Lock') || key.endsWith('Limit') || key.endsWith('Minutes')) {
+            if (StateData.isKeyStatic(key)) {
                 return acc;
             }
 

@@ -168,6 +168,8 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    // @ts-expect-error only adding one property
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(false);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
 
@@ -189,6 +191,8 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    // @ts-expect-error only adding one property
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue('validAddress');
     jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(false);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
@@ -237,6 +241,8 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
+    // @ts-expect-error only adding one property
+    jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
     jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
@@ -269,6 +275,8 @@ describe('Session Tests', () => {
 
       // @ts-ignore
       jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
+      // @ts-expect-error only adding one property
+      jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
       jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('1', validHandle, 'stakeKey_1', ['owner1', 'owner2'])]);
       jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
       const getNewAddressSpy = jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
@@ -277,7 +285,7 @@ describe('Session Tests', () => {
       await sessionHandler(mockRequest as Request, mockResponse as Response);
 
       expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250000000, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
-      expect(getNewAddressSpy).toHaveBeenCalledWith(CreatedBySystem.SPO);
+      expect(getNewAddressSpy).toHaveBeenCalledWith(CreatedBySystem.SPO, 'walletAddresses');
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({ "address": "burrito_tacos123", "error": false, "message": "Success! Session initiated." });
     });
