@@ -63,7 +63,7 @@ export const generateMetadataFromPaidSessions = async (sessions: ActiveSession[]
   await createNFTImages(sessions);
 
   const handlesMetadata = await asyncForEach(sessions, async (session) => {
-    const og = twitterHandles.includes(session.handle);
+    const og = twitterHandles.some(({ handle: twitterHandle, index }) => twitterHandle === session.handle && index);
     let ipfs: string;
     try {
       ipfs = await getIPFSImage(session.handle);
