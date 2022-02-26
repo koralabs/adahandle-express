@@ -52,7 +52,7 @@ describe('Image Helper Tests', () => {
               "handle": "burritos",
               "og": true,
               "ogNumber": 1,
-              "ogTotal": 2,
+              "ogTotal": 2438,
               "output": expect.stringContaining("burritos.jpg"),
             }
           )
