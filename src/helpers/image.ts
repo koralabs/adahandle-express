@@ -8,6 +8,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { ActiveSession } from '../models/ActiveSession';
 import { ReservedHandles } from '../models/firestore/collections/ReservedHandles';
+import { TWITTER_OG_SIZE } from './constants';
 import { LogCategory, Logger } from './Logger';
 import { getRaritySlug } from './nft';
 
@@ -25,7 +26,7 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
       templateContent = {
         og: true,
         ogNumber,
-        ogTotal: twitterHandles.length
+        ogTotal: TWITTER_OG_SIZE
       }
     }
     const slug = getRaritySlug(session.handle)

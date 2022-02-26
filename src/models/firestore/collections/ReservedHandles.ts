@@ -58,6 +58,7 @@ export interface HandleAvailabilityResponse {
     link?: string; //`https://${process.env.CARDANOSCAN_DOMAIN}/token/${policyID}.${assetName}`
     reason?: string;
     duration?: number;
+    ogNumber?: number;
 }
 
 export class ReservedHandles {
@@ -163,11 +164,13 @@ export class ReservedHandles {
             };
         }
 
-        if (ReservedHandles.reservedHandles?.twitter.some(({ handle: twitterHandle }) => twitterHandle === handle)) {
+        const twitterHandle = ReservedHandles.reservedHandles?.twitter.find(({ handle: twitterHandle }) => twitterHandle === handle)
+        if (twitterHandle) {
             return {
                 available: false,
                 message: RESPONSE_UNAVAILABLE_TWITTER,
                 type: 'twitter',
+                ogNumber: twitterHandle.index ?? 0,
                 duration: getDuration(startTime, waitTime)
             };
         }

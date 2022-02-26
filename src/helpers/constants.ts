@@ -18,6 +18,7 @@ export const HEADER_JWT_SPO_SESSION_TOKEN = 'x-spo-session-token';
 
 export const HEADER_JWT_ALL_SESSIONS_TOKEN = 'x-all-sessions-token';
 export const MAX_SESSION_COUNT = 3;
+export const TWITTER_OG_SIZE = 2438;
 
 export enum CreatedBySystem {
   UI = 'UI',
