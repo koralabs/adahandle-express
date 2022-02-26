@@ -23,6 +23,7 @@ interface StateConstructor {
     lastMintingTimestamp?: number;
     lastAccessTimestamp?: number;
     availableMintingServers?: string;
+    walletAddressCollectionName?: string;
 }
 
 export class State extends BaseModel {
@@ -48,6 +49,7 @@ export class State extends BaseModel {
     public lastMintingTimestamp: number;
     public lastAccessTimestamp: number;
     public availableMintingServers?: string;
+    public walletAddressCollectionName?: string;
 
     constructor({
         chainLoad,
@@ -72,6 +74,7 @@ export class State extends BaseModel {
         lastMintingTimestamp = Date.now(),
         lastAccessTimestamp = Date.now(),
         availableMintingServers = "testnet01,testnet02",
+        walletAddressCollectionName = "walletAddresses"
     }: StateConstructor) {
         super();
         this.chainLoad = chainLoad ?? 0;
@@ -96,5 +99,6 @@ export class State extends BaseModel {
         this.lastMintingTimestamp = lastMintingTimestamp;
         this.lastAccessTimestamp = lastAccessTimestamp;
         this.availableMintingServers = availableMintingServers;
+        this.walletAddressCollectionName = walletAddressCollectionName;
     }
 }
