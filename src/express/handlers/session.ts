@@ -19,6 +19,7 @@ import { ActiveSession, Status } from "../../models/ActiveSession";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { StakePools } from "../../models/firestore/collections/StakePools";
 import { toLovelace } from "../../helpers/utils";
+import { StateData } from "../../models/firestore/collections/StateData";
 
 interface SessionResponseBody {
   error: boolean,
@@ -137,7 +138,8 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     }
   }
 
-  const walletAddress = await getNewAddress(newSession.createdBySystem);
+  const state = await StateData.getStateData();
+  const walletAddress = await getNewAddress(newSession.createdBySystem, state.walletAddressCollectionName);
 
   if (false === walletAddress) {
     return res.status(500).json({

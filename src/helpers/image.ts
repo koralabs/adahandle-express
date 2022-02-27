@@ -6,6 +6,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { ActiveSession } from '../models/ActiveSession';
 import { ReservedHandles } from '../models/firestore/collections/ReservedHandles';
+import { TWITTER_OG_SIZE } from './constants';
 import { LogCategory, Logger } from './Logger';
 import { getRaritySlug } from './nft';
 
@@ -16,13 +17,14 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
   sessions.forEach((session) => {
     const outputPath = resolve(__dirname, '../../bin');
     const output = `${outputPath}/${session.handle}.jpg`;
-    const og = twitterHandles.includes(session.handle);
+    const twitterHandle = twitterHandles.find(({ handle }) => handle === session.handle);
+    const ogNumber = twitterHandle?.index;
     let templateContent = {};
-    if (og) {
+    if (twitterHandle && ogNumber) {
       templateContent = {
-        og,
-        ogNumber: twitterHandles.indexOf(session.handle),
-        ogTotal: twitterHandles.length
+        og: true,
+        ogNumber,
+        ogTotal: TWITTER_OG_SIZE
       }
     }
     const slug = getRaritySlug(session.handle)
@@ -35,6 +37,7 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
       output
     });
   });
+
   await Promise.all(Object.keys(rarities).map(async (rarity) => {
     Logger.log({ message: `Started generating ${rarities[rarity].length} Handle images...`, event: 'getIPFSImage.generateImages' });
     const target = rarity.replace(' ', '-').toLowerCase();

@@ -9,8 +9,8 @@ import { CreatedBySystem } from "../constants";
 import { ActiveSession } from "../../models/ActiveSession";
 import { MintingWallet } from "../../models/firestore/collections/StateData";
 
-export const getNewAddress = async (createdBySystem?: CreatedBySystem): Promise<string | false> => {
-  const newAddress = await WalletAddresses.getFirstAvailableWalletAddress(createdBySystem);
+export const getNewAddress = async (createdBySystem?: CreatedBySystem, collectionName?: string): Promise<string | false> => {
+  const newAddress = await WalletAddresses.getFirstAvailableWalletAddress(createdBySystem, collectionName);
 
   if (!newAddress) {
     Logger.log("Not able to get new address.");
@@ -35,7 +35,7 @@ export const getAmountsFromPaymentAddresses = (
 export const mintHandlesAndSend = async (sessions: ActiveSession[], wallet: MintingWallet): Promise<string> => {
   const walletServer = getWalletServer();
   const signedTransaction = await buildTransactionFromPaidSessions(sessions, wallet);
-  Logger.log({message: `Transaction size is ${signedTransaction.length}`});
+  Logger.log({ message: `Transaction size is ${signedTransaction.length}` });
   const txId = await walletServer.submitTx(signedTransaction);
   return txId;
 };

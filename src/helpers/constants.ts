@@ -18,6 +18,7 @@ export const HEADER_JWT_SPO_SESSION_TOKEN = 'x-spo-session-token';
 
 export const HEADER_JWT_ALL_SESSIONS_TOKEN = 'x-all-sessions-token';
 export const MAX_SESSION_COUNT = 3;
+export const TWITTER_OG_SIZE = 2438;
 
 export enum CreatedBySystem {
   UI = 'UI',
@@ -124,4 +125,8 @@ export const getAdaHandleDomain = (): string => {
   if (isLocal() || isTesting()) return 'http://localhost:8888';
   if (isProduction()) return 'https://adahandle.com';
   return 'https://testnet.adahandle.com';
+}
+
+export const getWalletAddressPrefix = () => {
+  return isProduction() ? 'addr1' : 'addr_test1'
 }

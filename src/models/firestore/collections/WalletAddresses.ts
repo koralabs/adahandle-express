@@ -9,17 +9,23 @@ import { CreatedBySystem } from "../../../helpers/constants";
 export class WalletAddresses {
     static readonly collectionName = buildCollectionNameWithSuffix('walletAddresses');
 
-    static async getWalletAddressesUnsafe(): Promise<WalletAddress[]> {
-        const collection = await admin.firestore().collection(WalletAddresses.collectionName).limit(0).get();
-        return collection.docs.map(doc => doc.data() as WalletAddress);
+    private static getCollectionName(dynamoCollectionName?: string): string {
+        return dynamoCollectionName ? buildCollectionNameWithSuffix(dynamoCollectionName) : WalletAddresses.collectionName
     }
 
-    static async getFirstAvailableWalletAddress(createdBySystem?: CreatedBySystem): Promise<WalletAddress | null> {
+    static async getWalletAddressesUnsafe(dynamoCollectionName?: string): Promise<WalletAddress[]> {
+        const snapshot = await admin.firestore().collection(WalletAddresses.getCollectionName(dynamoCollectionName)).limit(0).get();
+        return snapshot.docs.map(doc => doc.data() as WalletAddress);
+    }
+
+    static async getFirstAvailableWalletAddress(createdBySystem?: CreatedBySystem, collection?: string): Promise<WalletAddress | null> {
         // Since we can't have more than one user at a time use an address
         // we need to get the first one then delete it
+        const nameOfCollection = WalletAddresses.getCollectionName(collection);
+        Logger.log(`Current wallet address collection: ${nameOfCollection}`);
         try {
             return admin.firestore().runTransaction(async (t) => {
-                const snapshot = await t.get(admin.firestore().collection(WalletAddresses.collectionName).orderBy('id').limit(1));
+                const snapshot = await t.get(admin.firestore().collection(nameOfCollection).orderBy('id').limit(1));
                 if (!snapshot.empty && snapshot.docs[0].exists) {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();

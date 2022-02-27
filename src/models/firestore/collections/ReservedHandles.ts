@@ -48,7 +48,7 @@ export interface HandleOptions {
     protected: ProtectedWord[];
     private: string[];
     spos: string[];
-    twitter: string[];
+    twitter: { handle: string; index?: number }[];
 }
 
 export interface HandleAvailabilityResponse {
@@ -58,6 +58,7 @@ export interface HandleAvailabilityResponse {
     link?: string; //`https://${process.env.CARDANOSCAN_DOMAIN}/token/${policyID}.${assetName}`
     reason?: string;
     duration?: number;
+    ogNumber?: number;
 }
 
 export class ReservedHandles {
@@ -80,7 +81,7 @@ export class ReservedHandles {
             protected: protectedWords.docs.map(doc => doc.data() as ProtectedWord),
             private: reservedHandlesPrivate.docs.map(doc => doc.id.toLowerCase()),
             spos: reservedHandlesSPOs.docs.map(doc => doc.id.toLowerCase()),
-            twitter: reservedHandlesTwitter.docs.map(doc => doc.id.toLowerCase()),
+            twitter: reservedHandlesTwitter.docs.map(doc => ({ handle: doc.id.toLowerCase(), index: doc.data().index })),
         } as HandleOptions
     }
 
@@ -163,11 +164,13 @@ export class ReservedHandles {
             };
         }
 
-        if (ReservedHandles.reservedHandles?.twitter.includes(handle)) {
+        const twitterHandle = ReservedHandles.reservedHandles?.twitter.find(({ handle: twitterHandle }) => twitterHandle === handle)
+        if (twitterHandle) {
             return {
                 available: false,
                 message: RESPONSE_UNAVAILABLE_TWITTER,
                 type: 'twitter',
+                ogNumber: twitterHandle.index ?? 0,
                 duration: getDuration(startTime, waitTime)
             };
         }
@@ -189,7 +192,7 @@ export class ReservedHandles {
             return allowedResponse;
         }
 
-        let handleMatches = handle.match(REGEX_SPLIT_ON_CHARS); 
+        let handleMatches = handle.match(REGEX_SPLIT_ON_CHARS);
 
         if (handleMatches) {
             for (let i = 0; i < handleMatches?.length; i++) {
@@ -468,6 +471,6 @@ export class ReservedHandles {
         let lastIndex = handle.length - 1;
         while (chars.includes(handle[startIndex])) { startIndex++; }
         while (chars.includes(handle[lastIndex])) { lastIndex--; }
-        return handle.substring(startIndex, lastIndex+1);
+        return handle.substring(startIndex, lastIndex + 1);
     }
 }
