@@ -5,7 +5,7 @@ import { HEADER_EMAIL, HEADER_EMAIL_AUTH } from "../../helpers/constants";
 import { removeAccessQueueData, getAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
 import { LogCategory, Logger } from "../../helpers/Logger";
-import { StateData } from "../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 
 interface VerifyResponseBody {
   error: boolean;
@@ -53,7 +53,8 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       } as VerifyResponseBody)
     }
 
-    if ((access.start ?? 0) < (Date.now() - ((await StateData.getStateData()).accessCodeTimeoutMinutes * 1000 * 60))) {
+    const settings = await SettingsRepo.getSettings();
+    if ((access.start ?? 0) < (Date.now() - (settings.accessCodeTimeoutMinutes * 1000 * 60))) {
       await removeAccessQueueData(email);
       return res.status(403).json({
         verified: false,
@@ -64,8 +65,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
       // Remove the number from the access queue.
       await removeAccessQueueData(email);
 
-      const stateData = await StateData.getStateData();
-      const expireDateInSeconds = stateData.accessWindowTimeoutMinutes * 60
+      const expireDateInSeconds = settings.accessWindowTimeoutMinutes * 60
 
       const secretKey = await getKey('access');
       token = secretKey && jwt.sign(

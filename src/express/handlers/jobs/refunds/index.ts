@@ -3,6 +3,7 @@ import * as express from "express";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { getMintWalletServer } from "../../../../helpers/wallet/cardano";
 import { StateData } from "../../../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../../../models/firestore/collections/SettingsRepo";
 import { UsedAddresses, UsedAddressUpdates } from "../../../../models/firestore/collections/UsedAddresses";
 import { verifyRefund } from "./verifyRefund";
 import { checkWalletBalance } from "./checkWalletBalance";
@@ -13,8 +14,8 @@ const buildLogMessage = (startTime: number, refundsCount: number) => ({ message:
 
 export const handleRefunds = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
-    const stateData = await StateData.getStateData();
-    const refundAddresses = await UsedAddresses.getRefundableAddresses(stateData.usedAddressesLimit);
+    const settings = await SettingsRepo.getSettings();
+    const refundAddresses = await UsedAddresses.getRefundableAddresses(settings.usedAddressesLimit);
 
     if (refundAddresses.length === 0) {
         return res.status(200).json({

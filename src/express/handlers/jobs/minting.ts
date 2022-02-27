@@ -6,6 +6,7 @@ import { MintingCache } from '../../../models/firestore/collections/MintingCache
 import { awaitForEach } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { MintingWallet, StateData } from "../../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../../models/ActiveSession";
 import { getMintingWallet } from "../../../helpers/constants";
@@ -22,7 +23,8 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintPaidSessions processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintPaidSessions.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
   const state = await StateData.getStateData();
-  if (state.chainLoad > state.chainLoadThresholdPercent) {
+  const settings = await SettingsRepo.getSettings();
+  if (state.chainLoad > settings.chainLoadThresholdPercent) {
     return {
       status: 200,
       error: false,
@@ -30,7 +32,7 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
     }
   }
 
-  const paidSessionsLimit = state.paidSessionsLimit;
+  const paidSessionsLimit = settings.paidSessionsLimit;
   const paidSessions: ActiveSession[] = await ActiveSessions.getPaidPendingSessions({ limit: paidSessionsLimit });
   if (paidSessions.length < 1) {
     return {

@@ -6,6 +6,7 @@ import { AllSessionsJWTPayload, getKey } from "../../helpers/jwt";
 
 import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 
 interface QueuePositionResponseBody {
     error: boolean;
@@ -45,9 +46,11 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
 
     const {
         mintingQueueSize,
+        lastMintingTimestamp } = await StateData.getStateData();
+    const {
         paidSessionsLimit,
         availableMintingServers,
-        lastMintingTimestamp } = await StateData.getStateData();
+    } = await SettingsRepo.getSettings();
 
     const sessions = sessionData.sessions.filter(session => session.dateAdded > lastMintingTimestamp);
     // sort user sessions by date added

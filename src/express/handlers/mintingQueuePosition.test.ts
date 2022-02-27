@@ -3,22 +3,19 @@
 import { Request, Response } from 'express';
 import * as jwt from "jsonwebtoken";
 
-import { StateData } from "../../models/firestore/collections/StateData";
-import { State } from "../../models/State";
 import { mintingQueuePositionHandler } from "./mintingQueuePosition";
 import * as jwtHelper from "../../helpers/jwt";
 import { HEADER_JWT_ALL_SESSIONS_TOKEN } from '../../helpers/constants';
+import * as StateFixtures from '../../tests/stateFixture'
 
-jest.mock('../../models/firestore/collections/StateData');
 jest.mock('../../helpers/jwt');
+StateFixtures.setupStateFixtures();
 
 describe('mintingQueuePositionHandler Tests', () => {
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
 
     beforeEach(() => {
-        jest.resetModules();
-        jest.restoreAllMocks();
         mockRequest = {};
         mockResponse = {
             // @ts-ignore
@@ -31,32 +28,11 @@ describe('mintingQueuePositionHandler Tests', () => {
         jest.clearAllMocks();
     });
 
-    const stateData: State = new State({
-        chainLoad: 0,
-        accessQueueSize: 7000,
-        mintingQueueSize: 3000,
-        updateActiveSessionsLock: false,
-        mintPaidSessionsLock: false,
-        sendAuthCodesLock: false,
-        saveStateLock: false,
-        mintConfirmLock: false,
-        mintConfirmPaidSessionsLimit: 0,
-        usedAddressesLimit: 0,
-        accessCodeTimeoutMinutes: 0,
-        accessWindowTimeoutMinutes: 0,
-        chainLoadThresholdPercent: 0,
-        ipfsRateDelay: 0,
-        lastMintingTimestamp: new Date().setMinutes(new Date().getMinutes() - 10), // 10 minutes ago
-        lastAccessTimestamp: 0,
-    });
-
     it('should send an 400 with no session token', async () => {
         mockRequest = {
             headers: {
             }
         }
-
-        jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
 
         await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
 
@@ -73,8 +49,6 @@ describe('mintingQueuePositionHandler Tests', () => {
                 [HEADER_JWT_ALL_SESSIONS_TOKEN]: 'test-session-token'
             }
         }
-
-        jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-expect-error
@@ -100,8 +74,6 @@ describe('mintingQueuePositionHandler Tests', () => {
                 [HEADER_JWT_ALL_SESSIONS_TOKEN]: 'test-session-token'
             }
         }
-
-        jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-expect-error
@@ -132,7 +104,6 @@ describe('mintingQueuePositionHandler Tests', () => {
             }
         }
 
-        jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-expect-error
         jest.spyOn(jwt, 'verify').mockReturnValue({ sessions });

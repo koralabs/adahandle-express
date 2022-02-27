@@ -72,8 +72,8 @@ export const getIPFSImage = async (handle: string): Promise<string> => {
   }
 
   try {
-    const pinataClient = Pinata(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
-    await pinataClient.pinByHash(res.ipfs_hash);
+    const pinataClient = Pinata(process.env.PINATA_API_KEY || '', process.env.PINATA_API_SECRET || '');
+    await pinataClient.pinByHash(res.ipfs_hash, {pinataMetadata:{name:handle}} );
   } catch (e) {
     Logger.log({ message: `Pinata errored for $${handle}. Log: ${JSON.stringify(e)}`, event: 'getIPFSImage.pinByHash', category: LogCategory.ERROR });
   }

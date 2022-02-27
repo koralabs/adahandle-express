@@ -5,7 +5,6 @@ import * as wallet from 'cardano-wallet-js';
 
 import { refundsHandler } from '.';
 import { StateData } from '../../../../models/firestore/collections/StateData';
-import { State } from '../../../../models/State';
 import { UsedAddresses } from '../../../../models/firestore/collections/UsedAddresses';
 import { UsedAddress, UsedAddressStatus } from '../../../../models/UsedAddress';
 import * as verifyRefund from "./verifyRefund";
@@ -13,15 +12,16 @@ import * as checkWalletBalance from "./checkWalletBalance";
 import * as processRefunds from "./processRefunds";
 import * as constants from "../../../../helpers/constants";
 import { Refund } from './processRefunds';
+import * as StateFixtures from "../../../../tests/stateFixture";
 
 jest.mock('express');
 jest.mock('../../../../helpers/wallet/cardano');
 jest.mock('../../../../helpers/graphql');
 jest.mock('../../../../models/firestore/collections/UsedAddresses');
-jest.mock('../../../../models/firestore/collections/StateData');
 jest.mock('./verifyRefund');
 jest.mock('./checkWalletBalance');
 jest.mock('./processRefunds');
+StateFixtures.setupStateFixtures();
 
 describe('Refund Cron Tests', () => {
     let mockRequest: Partial<Request>;
@@ -74,7 +74,7 @@ describe('Refund Cron Tests', () => {
     describe('updateSessionsHandler tests', () => {
         it('should return 200 if cron is locked', async () => {
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue(usedAddressesFixture);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, mintingQueueSize: 10, accessQueueSize: 10, refundsLock: true, totalHandles: 171 }));
+            StateFixtures.state.refundsLock = true;
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(false);
             await refundsHandler(mockRequest as Request, mockResponse as Response);
 
@@ -84,7 +84,7 @@ describe('Refund Cron Tests', () => {
 
         it('should return 200 no refundable sessions are found', async () => {
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue([]);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, mintingQueueSize: 10, accessQueueSize: 10, refundsLock: false, totalHandles: 171 }));
+            StateFixtures.state.refundsLock = false;
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
             await refundsHandler(mockRequest as Request, mockResponse as Response);
 
@@ -98,8 +98,6 @@ describe('Refund Cron Tests', () => {
             } as unknown as wallet.ShelleyWallet;
 
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue(usedAddressesFixture);
-            jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, mintingQueueSize: 10, accessQueueSize: 10, refundsLock: false, totalHandles: 171 }));
-            jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
             jest.spyOn(cardano, 'getMintWalletServer').mockResolvedValue(mockShellyWallet);
             jest.spyOn(constants, 'getMintingWalletId').mockReturnValue('minting_wallet_id');
             jest.spyOn(verifyRefund, 'verifyRefund')

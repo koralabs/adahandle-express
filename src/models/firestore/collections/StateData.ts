@@ -23,21 +23,14 @@ export class StateData {
         const doc = await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).get();
         return doc.data() as State;
     }
-
-    private static isKeyStatic = (key: string): boolean => {
-        return key.endsWith('Lock') || key.endsWith('Limit') || key.endsWith('Minutes') || key.endsWith('Name')
-    }
-
     public static async upsertStateData(state: State): Promise<void> {
         const stateObj = Object.keys(state).reduce((acc, key) => {
-            if (StateData.isKeyStatic(key)) {
+            if (key.endsWith('Lock')) {
                 return acc;
             }
-
             if (!acc[key]) {
                 acc[key] = state[key];
             }
-
             return acc;
         }, {});
 

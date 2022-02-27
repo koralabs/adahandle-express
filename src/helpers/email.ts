@@ -2,7 +2,7 @@ import { getAdaHandleDomain } from "./constants";
 import * as fs from 'fs';
 import * as path from 'path';
 import { LogCategory, Logger } from './Logger';
-import { StateData } from "../models/firestore/collections/StateData";
+import { SettingsRepo } from "../models/firestore/collections/SettingsRepo";
 import * as nodemailer from "nodemailer"
 import * as SMTPConnection from "nodemailer/lib/smtp-connection";
 
@@ -21,7 +21,7 @@ export const createVerificationEmail = async (
 ): Promise<VerificationInstance> => {
   const template = fs.readFileSync(path.resolve(__dirname, '../htmlTemplates/email-main.html'), 'utf8');
   const preheader = 'Your activation code is here. Let\'s get started.';
-  const content = `It's time to get your Handles. <br/>Hurry up though, this link is only valid for ${(await StateData.getStateData()).accessCodeTimeoutMinutes} minutes.<br/> Once expired, you'll need to re-enter the queue.`;
+  const content = `It's time to get your Handles. <br/>Hurry up though, this link is only valid for ${(await SettingsRepo.getSettings()).accessCodeTimeoutMinutes} minutes.<br/> Once expired, you'll need to re-enter the queue.`;
   const fromAddress = 'ADA Handle <hello@adahandle.com>';
   const domain = getAdaHandleDomain();
   const authCode = Buffer.from(`${docRef}|${email}`).toString('base64');
