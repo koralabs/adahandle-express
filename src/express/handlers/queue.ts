@@ -6,6 +6,7 @@ import { appendAccessQueueData } from "../../helpers/firebase";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 import { createConfirmationEmail } from "../../helpers/email"
 
 interface VerifyClientAgentInfoResult {
@@ -78,7 +79,8 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
     }
 
     const { updated, alreadyExists, dateAdded } = await appendAccessQueueData({ email, clientAgentSha, clientIp });
-    const { accessQueueSize, accessQueueLimit, lastAccessTimestamp } = await StateData.getStateData();
+    const { accessQueueSize, lastAccessTimestamp } = await StateData.getStateData();
+    const { accessQueueLimit } = await SettingsRepo.getSettings();
     const accessQueuePosition = calculatePositionAndMinutesInQueue(accessQueueSize, lastAccessTimestamp, dateAdded, accessQueueLimit);
 
     if (updated && accessQueuePosition.minutes > 10) {

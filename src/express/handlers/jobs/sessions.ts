@@ -7,6 +7,7 @@ import { toLovelace } from "../../../helpers/utils";
 import { ActiveSession, Status, WorkflowStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { StateData } from "../../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
 import { StakePools } from "../../../models/firestore/collections/StakePools";
 import { CreatedBySystem } from '../../../helpers/constants';
 
@@ -18,7 +19,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `updateSessionsHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'updateSessionsHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
-  const stateData = await StateData.getStateData();
+  const settings = await SettingsRepo.getSettings();
   try {
     // TODO: Should we also be checking for duplicate handles here?
     const activeSessions: ActiveSession[] = await ActiveSessions.getPendingActiveSessions();
@@ -55,7 +56,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
           MAX_SESSION_LENGTH_CLI :
           (entry.createdBySystem == CreatedBySystem.SPO ?
             MAX_SESSION_LENGTH_SPO :
-            stateData.paymentWindowTimeoutMinutes * 1000 * 60);
+            settings.paymentWindowTimeoutMinutes * 1000 * 60);
 
         const matchingPayment = sessionPaymentStatuses[index];
 

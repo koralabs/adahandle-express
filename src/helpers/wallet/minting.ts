@@ -8,7 +8,8 @@ import { getIPFSImage, createNFTImages } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
-import { MintingWallet, StateData } from "../../models/firestore/collections/StateData";
+import { MintingWallet } from "../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 import { ActiveSession } from '../../models/ActiveSession';
 import { applyAxiosResponeInterceptor } from "../../helpers/http"
 
@@ -55,7 +56,7 @@ export const getPolicyScript = () => {
 
 export const generateMetadataFromPaidSessions = async (sessions: ActiveSession[]): Promise<Record<string, unknown>> => {
   Logger.log({ message: `Generating metadata for ${sessions.length} Handles.`, event: 'mintHandlesAndSend' });
-  const stateData = await StateData.getStateData();
+  const settings = await SettingsRepo.getSettings();
 
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
@@ -89,7 +90,7 @@ export const generateMetadataFromPaidSessions = async (sessions: ActiveSession[]
     }
 
     return metadata;
-  }, stateData.ipfsRateDelay); // <- 1 second delay between API calls
+  }, settings.ipfsRateDelay); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {

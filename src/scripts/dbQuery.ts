@@ -10,9 +10,9 @@ const dbQuery = async (trim:number=100) => {
     // **************************************************
     // MODIFY THIS QUERY AS YOU SEE FIT FOR YOUR PURPOSE
     const snapshot = await admin.firestore().collection("activeSessions_dev")
-    .where('status', '==', 'paid')
-    .where('workflowStatus', '==', 'pending')
-    .where('emailAddress', '==', 'testing@adahandle.com')
+    //.where('status', '==', 'paid')
+    //.where('workflowStatus', '==', 'processing')
+    //.where('email', '==', 's2per@hotmail.com')
     //.where('handle', '>=', 'xar').where('handle', '<=', 'xar' + '~') // This is a "startsWith" query
     //.orderBy('dateAdded', 'desc')
     //.select('id', 'handle', 'status', 'workflowStatus', 'createdBySystem')

@@ -24,14 +24,12 @@ export class StateData {
 
     public static async upsertStateData(state: State): Promise<void> {
         const stateObj = Object.keys(state).reduce((acc, key) => {
-            if (key.endsWith('Lock') || key.endsWith('Limit') || key.endsWith('Minutes')) {
+            if (key.endsWith('Lock')) {
                 return acc;
             }
-
             if (!acc[key]) {
                 acc[key] = state[key];
             }
-
             return acc;
         }, {});
 

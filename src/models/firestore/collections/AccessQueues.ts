@@ -5,6 +5,7 @@ import { createVerificationEmail, VerificationInstance } from "../../../helpers/
 import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
+import { SettingsRepo } from "./SettingsRepo";
 
 export class AccessQueues {
   public static readonly collectionName = buildCollectionNameWithSuffix('accessQueues');
@@ -46,8 +47,9 @@ export class AccessQueues {
 
   static async updateAccessQueue(createVerificationFunction?: (email: string) => Promise<VerificationInstance>): Promise<{ count: number }> {
     const stateData = await StateData.getStateData();
+    const settings = await SettingsRepo.getSettings();
 
-    const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(stateData.accessQueueLimit ?? 20).get();
+    const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(settings.accessQueueLimit ?? 20).get();
 
     await Promise.all(queuedSnapshot.docs.map(async doc => {
       const entry = doc.data();
@@ -101,7 +103,7 @@ export class AccessQueues {
 
     // delete expired entries
     const expired = await admin.firestore().collection(AccessQueues.collectionName)
-      .where('start', '<', Date.now() - (stateData.accessCodeTimeoutMinutes * 1000 * 60))
+      .where('start', '<', Date.now() - (settings.accessCodeTimeoutMinutes * 1000 * 60))
       .orderBy('start')
       .get();
 

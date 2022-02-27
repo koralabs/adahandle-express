@@ -3,6 +3,7 @@ import fetch from 'cross-fetch';
 
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { StateData } from "../../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
 import { awaitForEach } from "../../../helpers/utils";
 import { ApiTransactionStatusEnum } from "cardano-wallet-js";
 import { getWalletEndpoint } from "../../../helpers/constants";
@@ -20,9 +21,9 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     });
   }
 
-  const state = await StateData.getStateData();
+  const settings = await SettingsRepo.getSettings();
 
-  const limit = state.mintConfirmPaidSessionsLimit;
+  const limit = settings.mintConfirmPaidSessionsLimit;
   // get paid sessions with status 'submitted'
   const paidSessions = await ActiveSessions.getPaidSubmittedSessions({ limit });
   const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, ActiveSession[]>>((acc, session) => {
