@@ -1,5 +1,7 @@
-import htmlToImage from 'node-html-to-image';
-import Pinata from '@pinata/sdk';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const htmlToImage = require('node-html-to-image');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Pinata = require('@pinata/sdk');
 
 import { BlockFrostIPFS } from '@blockfrost/blockfrost-js';
 import { readFileSync } from 'fs';

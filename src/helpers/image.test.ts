@@ -1,11 +1,14 @@
-import htmlToImage from 'node-html-to-image';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const htmlToImage = require('node-html-to-image');
 
+import { mocked } from 'ts-jest/dist/utils/testing';
 import { ActiveSession } from '../models/ActiveSession';
 import { ReservedHandles } from '../models/firestore/collections/ReservedHandles';
 import { CreatedBySystem } from './constants';
 import { createNFTImages } from './image';
 
 jest.mock('../models/firestore/collections/ReservedHandles');
+jest.mock('node-html-to-image');
 
 describe('Image Helper Tests', () => {
 
@@ -29,7 +32,7 @@ describe('Image Helper Tests', () => {
   ]
 
   describe('createNFTImages', () => {
-    it.skip('should create NFT images', async () => {
+    it('should create NFT images', async () => {
       jest.spyOn(ReservedHandles, 'getReservedHandles').mockResolvedValue({
         twitter: [{ handle: 'burritos', index: 1 }, { handle: 'tacos' }],
         protected: [],
@@ -37,23 +40,30 @@ describe('Image Helper Tests', () => {
         spos: []
       });
 
-      const expected1 = {
+      const htmlToImageSpy = mocked(htmlToImage);
+
+      await createNFTImages(sessions);
+
+      // Test with index to see the og === true
+      expect(htmlToImageSpy).toHaveBeenNthCalledWith(1, {
         content: expect.arrayContaining([
           expect.objectContaining(
-          {
-            "handle": "burritos",
-            "og": true,
-            "ogNumber": 1,
-            "ogTotal": 2438,
-            "output": expect.stringContaining("burritos.jpg"),
-          })
+            {
+              "handle": "burritos",
+              "og": true,
+              "ogNumber": 1,
+              "ogTotal": 2438,
+              "output": expect.stringContaining("burritos.jpg"),
+            }
+          )
         ]),
         html: expect.any(String),
         quality: 100,
         type: 'jpeg'
-      }
+      });
 
-      const expected2 = {
+      // Test without index to see og removed
+      expect(htmlToImageSpy).toHaveBeenNthCalledWith(2, {
         content: expect.arrayContaining([
           expect.objectContaining(
             {
@@ -65,17 +75,7 @@ describe('Image Helper Tests', () => {
         html: expect.any(String),
         quality: 100,
         type: 'jpeg'
-      }
-
-      const htmlToImageSpy = jest.mock('node-html-to-image', () => jest.fn());//jest.spyOn(htmlToImage, 'default');
-
-      await createNFTImages(sessions);
-
-      // Test with index to see the og === true
-      expect(htmlToImageSpy).toHaveBeenNthCalledWith(1, expected1);
-
-      // Test without index to see og removed
-      expect(htmlToImageSpy).toHaveBeenNthCalledWith(2, expected2);
+      });
     });
   });
 });
