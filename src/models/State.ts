@@ -14,7 +14,6 @@ interface StateConstructor {
     lastMintingTimestamp?: number;
     lastAccessTimestamp?: number;
     handlePrices?: {basic: number, common: number, rare: number, ultraRare: number}
-    walletAddressCollectionName?: string;
 }
 
 export class State extends BaseModel {
@@ -31,7 +30,6 @@ export class State extends BaseModel {
     public lastMintingTimestamp: number;
     public lastAccessTimestamp: number;
     public handlePrices?: {basic: number, common: number, rare: number, ultraRare: number}
-    public walletAddressCollectionName?: string;
 
     constructor({
         updateActiveSessionsLock,
@@ -46,8 +44,7 @@ export class State extends BaseModel {
         mintingQueueSize,
         lastMintingTimestamp = Date.now(),
         lastAccessTimestamp = Date.now(),
-        handlePrices = {basic: 10, common: 50, rare: 100, ultraRare: 500},
-        walletAddressCollectionName = "walletAddresses"
+        handlePrices = {basic: 10, common: 50, rare: 100, ultraRare: 500}
     }: StateConstructor) {
         super();
         this.mintPaidSessionsLock = mintPaidSessionsLock ?? false;
@@ -63,6 +60,5 @@ export class State extends BaseModel {
         this.lastMintingTimestamp = lastMintingTimestamp;
         this.lastAccessTimestamp = lastAccessTimestamp;
         this.handlePrices = handlePrices;
-        this.walletAddressCollectionName = walletAddressCollectionName;
     }
 }

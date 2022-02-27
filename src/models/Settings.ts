@@ -29,6 +29,7 @@ interface SettingsConstructor {
         rare: HandlePrice,
         ultraRare: HandlePrice
     }
+    walletAddressCollectionName?: string;
 }
 
 export class Settings extends BaseModel {
@@ -51,6 +52,7 @@ export class Settings extends BaseModel {
         rare: HandlePrice,
         ultraRare: HandlePrice
     } 
+    public walletAddressCollectionName?: string;
 
     constructor({
         accessQueueLimit = 20,
@@ -66,7 +68,8 @@ export class Settings extends BaseModel {
         spoPageEnabled = true,
         dynamicPricingEnabled = false,
         fallBackAdaUsd = 1.25,
-        handlePriceSettings
+        handlePriceSettings,
+        walletAddressCollectionName = "walletAddresses"
     }: SettingsConstructor) {
         super();
         this.accessQueueLimit = accessQueueLimit;
@@ -83,5 +86,6 @@ export class Settings extends BaseModel {
         this.dynamicPricingEnabled = dynamicPricingEnabled;
         this.fallBackAdaUsd = fallBackAdaUsd;
         this.handlePriceSettings = handlePriceSettings;
+        this.walletAddressCollectionName = walletAddressCollectionName;
     }
 }

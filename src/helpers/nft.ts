@@ -67,17 +67,17 @@ export const getRarityHex = (handle: string): RarityHexTypes => {
 export const getRarityCost = async (handle: string): Promise<number | null> => {
   const rarity = getRarityFromLength(handle.length);
   const { handlePrices } = await StateData.getStateData();
-  const { dynamicPricingEnabled } = await SettingsRepo.getSettings();
+  const { dynamicPricingEnabled, handlePriceSettings } = await SettingsRepo.getSettings();
   switch (rarity) {
     case "Legendary":
       return null;
     case "Ultra Rare":
-      return dynamicPricingEnabled ? handlePrices?.ultraRare || null : 500;
+      return dynamicPricingEnabled ? handlePrices?.ultraRare || null : handlePriceSettings?.ultraRare.defaultPrice || 500;
     case "Rare":
-      return dynamicPricingEnabled ? handlePrices?.rare || null : 100;
+      return dynamicPricingEnabled ? handlePrices?.rare || null : handlePriceSettings?.rare.defaultPrice || 100;
     case "Common":
-      return dynamicPricingEnabled ? handlePrices?.common || null : 50;
+      return dynamicPricingEnabled ? handlePrices?.common || null : handlePriceSettings?.common.defaultPrice || 50;
     case "Basic":
-      return dynamicPricingEnabled ? handlePrices?.basic || null : 10;
+      return dynamicPricingEnabled ? handlePrices?.basic || null : handlePriceSettings?.basic.defaultPrice || 10;
   }
 };

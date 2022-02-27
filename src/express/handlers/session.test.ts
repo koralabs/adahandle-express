@@ -9,19 +9,19 @@ import { ActiveSessions } from "../../models/firestore/collections/ActiveSession
 import { StakePools } from "../../models/firestore/collections/StakePools";
 import { StakePool } from "../../models/StakePool";
 import { CreatedBySystem } from "../../helpers/constants";
-import { StateData } from "../../models/firestore/collections/StateData";
-import { State } from "../../models/State";
+import * as StateFixtures from "../../tests/stateFixture";
 
 jest.mock('jsonwebtoken');
 jest.mock('../../helpers/jwt');
 jest.mock('../../helpers/wallet');
 jest.mock('../../models/firestore/collections/ActiveSession');
 jest.mock('../../models/firestore/collections/StakePools');
-jest.mock('../../models/firestore/collections/StateData');
+StateFixtures.setupStateFixtures();
 
 describe('Session Tests', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
+
 
   beforeEach(() => {
     mockRequest = {};
@@ -34,25 +34,6 @@ describe('Session Tests', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-  });
-
-  const stateData: State = new State({
-    chainLoad: 0,
-    accessQueueSize: 7000,
-    mintingQueueSize: 3000,
-    updateActiveSessionsLock: false,
-    mintPaidSessionsLock: false,
-    sendAuthCodesLock: false,
-    saveStateLock: false,
-    mintConfirmLock: false,
-    mintConfirmPaidSessionsLimit: 0,
-    usedAddressesLimit: 0,
-    accessCodeTimeoutMinutes: 0,
-    accessWindowTimeoutMinutes: 0,
-    chainLoadThresholdPercent: 0,
-    ipfsRateDelay: 0,
-    lastMintingTimestamp: 0,
-    lastAccessTimestamp: 0,
   });
 
   it('should send an 400 response if auth token is not provided', async () => {
@@ -168,8 +149,6 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
-    // @ts-expect-error only adding one property
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(false);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
 
@@ -191,8 +170,6 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
-    // @ts-expect-error only adding one property
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue('validAddress');
     jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(false);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
@@ -241,11 +218,8 @@ describe('Session Tests', () => {
 
     // @ts-ignore
     jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 10 });
-    // @ts-expect-error only adding one property
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
     const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
     await sessionHandler(mockRequest as Request, mockResponse as Response);
@@ -275,10 +249,7 @@ describe('Session Tests', () => {
 
       // @ts-ignore
       jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
-      // @ts-expect-error only adding one property
-      jest.spyOn(StateData, 'getStateData').mockResolvedValue({ walletAddressCollectionName: 'walletAddresses' });
       jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('1', validHandle, 'stakeKey_1', ['owner1', 'owner2'])]);
-      jest.spyOn(StateData, 'getStateData').mockResolvedValue(stateData);
       const getNewAddressSpy = jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
       const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 

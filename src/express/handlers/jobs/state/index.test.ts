@@ -7,14 +7,15 @@ import { ActiveSessions } from '../../../../models/firestore/collections/ActiveS
 import { StateData } from '../../../../models/firestore/collections/StateData';
 import * as updateMintingWalletBalances from "./updateMintingWalletBalances";
 import { stateHandler } from './';
+import * as StateFixtures from "../../../../tests/stateFixture";
 
 jest.mock('express');
 jest.mock('../../../../helpers/cardano');
 jest.mock('../../../../models/ActiveSession');
 jest.mock('../../../../models/firestore/collections/AccessQueues');
 jest.mock('../../../../models/firestore/collections/ActiveSession');
-jest.mock('../../../../models/firestore/collections/StateData');
 jest.mock('./updateMintingWalletBalances');
+StateFixtures.setupStateFixtures();
 
 describe('State Cron Tests', () => {
     let mockRequest: Partial<Request>;
@@ -59,7 +60,7 @@ describe('State Cron Tests', () => {
         const getChainLoadSpy = jest.spyOn(caradnoHelper, 'getChainLoad').mockResolvedValue(1);
         const getTotalHandlesSpy = jest.spyOn(caradnoHelper, 'getTotalHandles').mockResolvedValue(1);
         const upsertStateDataSpy = jest.spyOn(StateData, 'upsertStateData');
-        const updateMintingWalletBalancesApy = jest.spyOn(updateMintingWalletBalances, 'updateMintingWalletBalances');
+        const updateMintingWalletBalancesSpy = jest.spyOn(updateMintingWalletBalances, 'updateMintingWalletBalances');
 
         await stateHandler(mockRequest as Request, mockResponse as Response);
 
@@ -68,7 +69,7 @@ describe('State Cron Tests', () => {
         expect(getChainLoadSpy).toHaveBeenCalledTimes(1);
         expect(getTotalHandlesSpy).toHaveBeenCalledTimes(1);
         expect(upsertStateDataSpy).toHaveBeenCalledTimes(1);
-        expect(updateMintingWalletBalancesApy).toHaveBeenCalledTimes(1);
+        expect(updateMintingWalletBalancesSpy).toHaveBeenCalledTimes(1);
 
         expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({ "accessQueueSize": 1, "chainLoad": 1, "error": false, "mintingQueueSize": 2, "totalHandles": 1 });

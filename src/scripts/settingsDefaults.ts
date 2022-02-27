@@ -48,9 +48,8 @@ const defaultSettings = {
             minimum: 4,
             maximum: 1500
         }
-    }
-
-
+    },
+    walletAddressCollectionName: 'walletAddreses'
 }
 
 const setDefaults = async () => {

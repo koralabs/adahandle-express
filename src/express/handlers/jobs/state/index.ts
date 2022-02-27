@@ -5,6 +5,7 @@ import { ActiveSessions } from "../../../../models/firestore/collections/ActiveS
 import { StateData } from "../../../../models/firestore/collections/StateData";
 import { State } from "../../../../models/State";
 import { updateMintingWalletBalances } from "./updateMintingWalletBalances";
+import { getHandlePrices } from "../../../../helpers/adausd"
 
 interface StateResponseBody {
   error: boolean;
@@ -33,7 +34,8 @@ export const stateHandler = async (req: express.Request, res: express.Response) 
       chainLoad,
       accessQueueSize,
       mintingQueueSize,
-      totalHandles
+      totalHandles,
+      handlePrices
     } as StateResponseBody);
   } catch (e) {
     return res.status(500).json({

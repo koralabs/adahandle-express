@@ -1,10 +1,10 @@
 import * as admin from "firebase-admin";
 import { VerificationInstance } from "../../../helpers/email";
 import { delay } from "../../../helpers/utils";
-import { State } from "../../State";
 import { AccessQueues } from "./AccessQueues";
-import { StateData } from "./StateData";
+import * as StateFixtures from "../../../tests/stateFixture";
 
+StateFixtures.setupStateFixtures();
 describe('AccessQueues Tests', () => {
   let app: admin.app.App;
 
@@ -18,8 +18,6 @@ describe('AccessQueues Tests', () => {
       host: "localhost:8080",
       ssl: false
     });
-
-    await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).set(new State({ chainLoad: 1, accessQueueSize: 2, mintingQueueSize: 2, totalHandles: 3, updateActiveSessionsLock: false, accessQueueLimit: 20 }).toJSON());
   });
 
   afterEach(async () => {
