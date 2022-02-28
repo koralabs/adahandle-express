@@ -14,7 +14,7 @@ export class WalletAddresses {
     }
 
     static async getWalletAddressesUnsafe(dynamoCollectionName?: string): Promise<WalletAddress[]> {
-        const snapshot = await admin.firestore().collection(WalletAddresses.getCollectionName(dynamoCollectionName)).limit(0).get();
+        const snapshot = await admin.firestore().collection(WalletAddresses.getCollectionName(dynamoCollectionName)).orderBy('index', 'desc').limit(0).get();
         return snapshot.docs.map(doc => doc.data() as WalletAddress);
     }
 
@@ -25,7 +25,7 @@ export class WalletAddresses {
         Logger.log(`Current wallet address collection: ${nameOfCollection}`);
         try {
             return admin.firestore().runTransaction(async (t) => {
-                const snapshot = await t.get(admin.firestore().collection(nameOfCollection).orderBy('id').limit(1));
+                const snapshot = await t.get(admin.firestore().collection(nameOfCollection).orderBy('index', 'desc').limit(1));
                 if (!snapshot.empty && snapshot.docs[0].exists) {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();
@@ -51,11 +51,14 @@ export class WalletAddresses {
         const walletAddressesChunks = chunk(walletAddresses, 500);
         const updatedWalletAddresses = startAtBatch !== 0 ? walletAddressesChunks.slice(startAtBatch) : walletAddressesChunks;
 
+        let i = 0;
+
         await awaitForEach(updatedWalletAddresses, async (walletAddresses, index) => {
             const batch = db.batch();
             walletAddresses.forEach(address => {
+                i++;
                 const collectionRef = db.collection(WalletAddresses.collectionName).doc(address.id);
-                batch.create(collectionRef, address.toJSON());
+                batch.create(collectionRef, { ...address.toJSON(), index: i });
             });
 
             await batch.commit();
