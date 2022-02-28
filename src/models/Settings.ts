@@ -30,6 +30,7 @@ interface SettingsConstructor {
         ultraRare: HandlePrice
     }
     walletAddressCollectionName?: string;
+    minimumWalletAddressAmount: number;
 }
 
 export class Settings extends BaseModel {
@@ -51,8 +52,9 @@ export class Settings extends BaseModel {
         common: HandlePrice,
         rare: HandlePrice,
         ultraRare: HandlePrice
-    } 
+    }
     public walletAddressCollectionName?: string;
+    public minimumWalletAddressAmount: number;
 
     constructor({
         accessQueueLimit = 20,
@@ -69,7 +71,8 @@ export class Settings extends BaseModel {
         dynamicPricingEnabled = false,
         fallBackAdaUsd = 1.25,
         handlePriceSettings,
-        walletAddressCollectionName = "walletAddresses"
+        walletAddressCollectionName = "walletAddresses",
+        minimumWalletAddressAmount = 10000
     }: SettingsConstructor) {
         super();
         this.accessQueueLimit = accessQueueLimit;
@@ -87,5 +90,6 @@ export class Settings extends BaseModel {
         this.fallBackAdaUsd = fallBackAdaUsd;
         this.handlePriceSettings = handlePriceSettings;
         this.walletAddressCollectionName = walletAddressCollectionName;
+        this.minimumWalletAddressAmount = minimumWalletAddressAmount;
     }
 }

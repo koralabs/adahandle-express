@@ -22,7 +22,7 @@ describe('Wallet Index Tests', () => {
      * Format: "functionName Tests"
      */
     describe('getNewAddress Tests', () => {
-        const WalletAddressesFixture = new WalletAddress('abc123');
+        const WalletAddressesFixture = new WalletAddress('abc123', 10);
 
         it('should return a new address', async () => {
             /**

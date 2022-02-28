@@ -18,6 +18,11 @@ export class WalletAddresses {
         return snapshot.docs.map(doc => doc.data() as WalletAddress);
     }
 
+    static async getLatestWalletAddressIndex(dynamoCollectionName?: string): Promise<number> {
+        const snapshot = await admin.firestore().collection(WalletAddresses.getCollectionName(dynamoCollectionName)).orderBy('index', 'desc').limit(1).get();
+        return (snapshot.docs[0].data() as WalletAddress).index;
+    }
+
     static async getFirstAvailableWalletAddress(createdBySystem?: CreatedBySystem, collection?: string): Promise<WalletAddress | null> {
         // Since we can't have more than one user at a time use an address
         // we need to get the first one then delete it
