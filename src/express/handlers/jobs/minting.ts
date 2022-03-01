@@ -1,9 +1,11 @@
 import * as express from "express";
-
+import { readFile, unlinkSync } from 'fs';
+import { resolve } from 'path';
+import { getS3 } from "../../../helpers/aws";
 import { mintHandlesAndSend } from "../../../helpers/wallet";
 import { handleExists } from "../../../helpers/graphql";
 import { MintingCache } from '../../../models/firestore/collections/MintingCache';
-import { awaitForEach } from "../../../helpers/utils";
+import { asyncForEach, awaitForEach } from "../../../helpers/utils";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { MintingWallet, StateData } from "../../../models/firestore/collections/StateData";
 import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
@@ -103,6 +105,8 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
   try {
     const txId = await mintHandlesAndSend(sanitizedSessions, availableWallet);
 
+    await backupNftsToS3(sanitizedSessions);
+
     await StateData.updateMintingWalletTxId(availableWallet, txId);
 
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
@@ -194,3 +198,19 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   }
 
 };
+
+const backupNftsToS3 = async (sessions: ActiveSession[]) => {
+  await asyncForEach<ActiveSession, void>(sessions, async (session) => {
+
+    const outputPath = resolve(__dirname, '../../../../bin');
+    const outputSlug = `${outputPath}/${session.handle}.jpg`;
+    const s3 = getS3();
+    readFile(outputSlug, function (err, data) {
+      if (err) throw err;
+      s3.putObject({ Bucket: 'arn:aws:s3:::adahandle-nfts', Key: `${session.handle}.jpg`, Body: data, Metadata: {ipfsHash: session.ipfsHash || ''}}, (err, data) => {
+        if (err) throw err;
+        unlinkSync(outputSlug);
+      });
+    });
+  });
+}

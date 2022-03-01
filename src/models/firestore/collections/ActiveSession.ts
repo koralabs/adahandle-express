@@ -16,17 +16,11 @@ export class ActiveSessions {
   }
 
   static async getPaidPendingSessions({ limit }: { limit: number; }): Promise<ActiveSession[]> {
-    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PAID).where('workflowStatus', '==', WorkflowStatus.PENDING).limit(limit).get();
-    return collection.docs.map(doc => new ActiveSession({
-      ...doc.data() as ActiveSessionInput
-    }));
+    return ActiveSessions.getByStatusAndWorkflow(Status.PAID, WorkflowStatus.PENDING, limit)
   }
 
   static async getPaidSubmittedSessions({ limit }: { limit: number; }): Promise<ActiveSession[]> {
-    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PAID).where('workflowStatus', '==', WorkflowStatus.SUBMITTED).limit(limit).get();
-    return collection.docs.map(doc => new ActiveSession({
-      ...doc.data() as ActiveSessionInput
-    }));
+    return ActiveSessions.getByStatusAndWorkflow(Status.PAID, WorkflowStatus.SUBMITTED, limit)
   }
 
   public static async getActiveSessionByHandle(handle: string): Promise<ActiveSession | null> {
@@ -55,6 +49,17 @@ export class ActiveSessions {
 
   static async getByStatus({ statusType, limit, }: { statusType: Status; limit?: number; }): Promise<ActiveSession[]> {
     let query = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', statusType);
+    if (limit) {
+      query = query.limit(limit);
+    }
+    const collection = await query.get();
+    return collection.docs.map(doc => new ActiveSession({
+      ...doc.data() as ActiveSessionInput
+    }));
+  }
+
+  static async getByStatusAndWorkflow( status: Status, workflowStatus: WorkflowStatus, limit: number): Promise<ActiveSession[]> {
+    let query = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', status).where('workflowStatus', '==', workflowStatus);
     if (limit) {
       query = query.limit(limit);
     }
