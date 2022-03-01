@@ -127,25 +127,36 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
     }
   }
   
-  await backupNftsToS3(sanitizedSessions);
-  await StateData.updateMintingWalletTxId(availableWallet, txId);
-  const { walletId } = getMintingWallet(availableWallet.index);
-  
-  await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
+  try {
+    await backupNftsToS3(sanitizedSessions);
+    await StateData.updateMintingWalletTxId(availableWallet, txId);
+    const { walletId } = getMintingWallet(availableWallet.index);
+    
+    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
 
-  const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
-  if (lastSessionDateAdded) {
-    state.lastMintingTimestamp = lastSessionDateAdded;
-    StateData.upsertStateData(state)
+    const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
+    if (lastSessionDateAdded) {
+      state.lastMintingTimestamp = lastSessionDateAdded;
+      StateData.upsertStateData(state)
+    }
+
+    Logger.log(getLogMessage(startTime, paidSessions.length));
+
+    return {
+      status: 200,
+      error: false,
+      message: 'Handles submitted successfully',
+      txId
+    }
   }
-
-  Logger.log(getLogMessage(startTime, paidSessions.length));
-
-  return {
-    status: 200,
-    error: false,
-    message: 'Handles submitted successfully',
-    txId
+  catch (e) {
+    Logger.log({message: `Post-minting processing failed: ${JSON.stringify(e)}`, category: LogCategory.ERROR, event: 'mintPaidSessions.postMintProcessing'});
+    return {
+      status: 500,
+      error: true,
+      message: 'Transaction completed, but post-mint processing failed',
+      txId
+    }
   }
 }
 
@@ -170,6 +181,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     }
 
     if (!await StateData.checkAndLockCron('mintPaidSessionsLock')) {
+      await StateData.unlockMintingWallet(availableWallet);
       return res.status(200).json({
         error: false,
         message: 'Mint Paid Sessions cron is locked. Try again later.'

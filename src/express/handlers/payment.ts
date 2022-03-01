@@ -81,7 +81,7 @@ export const paymentConfirmedHandler = async (req: express.Request, res: express
     const paymentResponse = splitAddresses.map(address => buildPaymentConfirmResponses(address));
     const items = await Promise.all(paymentResponse);
 
-    Logger.log(getLogMessage(startTime))
+    //Logger.log(getLogMessage(startTime)) // Commenting this out since it is called every 5 seconds and makes logs too chatty
     return res.status(200).json({ error: false, items } as PaymentConfirmedResponse);
   } catch (e) {
     Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'paymentConfirmedHandler.run' })
