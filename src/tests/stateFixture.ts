@@ -1,5 +1,5 @@
 
-import { State } from "../models/State";
+import { CronState, State } from "../models/State";
 import { Settings } from "../models/Settings";
 import { StateData } from "../models/firestore/collections/StateData";
 import { SettingsRepo } from "../models/firestore/collections/SettingsRepo";
@@ -8,11 +8,11 @@ export const state: State = new State({
   chainLoad: 0,
   accessQueueSize: 7000,
   mintingQueueSize: 3000,
-  updateActiveSessionsLock: false,
-  mintPaidSessionsLock: false,
-  sendAuthCodesLock: false,
-  saveStateLock: false,
-  mintConfirmLock: false,
+  updateActiveSessionsLock: CronState.UNLOCKED,
+  mintPaidSessionsLock: CronState.UNLOCKED,
+  sendAuthCodesLock: CronState.UNLOCKED,
+  saveStateLock: CronState.UNLOCKED,
+  mintConfirmLock: CronState.UNLOCKED,
   lastMintingTimestamp: new Date().setMinutes(new Date().getMinutes() - 10), // 10 minutes ago,
   lastAccessTimestamp: 0,
 });
@@ -34,7 +34,8 @@ export const mintingWallet = {
   index: 1,
   locked: false,
   balance: 1000,
-  minBalance: 100
+  minBalance: 100,
+  updatedTimestamp: new Date(Date.now()).toISOString()
 }
 
 export const setupStateFixtures = () => {

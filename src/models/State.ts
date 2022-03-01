@@ -61,12 +61,12 @@ export class State extends BaseModel {
         handlePrices = { basic: 10, common: 50, rare: 100, ultraRare: 500 }
     }: StateConstructor) {
         super();
-        this.mintPaidSessionsLock = mintPaidSessionsLock ?? false;
-        this.updateActiveSessionsLock = updateActiveSessionsLock ?? false;
-        this.refundsLock = refundsLock ?? false;
-        this.sendAuthCodesLock = sendAuthCodesLock ?? false;
-        this.saveStateLock = saveStateLock ?? false;
-        this.mintConfirmLock = mintConfirmLock ?? false;
+        this.mintPaidSessionsLock = mintPaidSessionsLock ?? CronState.UNLOCKED;
+        this.updateActiveSessionsLock = updateActiveSessionsLock ?? CronState.UNLOCKED;
+        this.refundsLock = refundsLock ?? CronState.UNLOCKED;
+        this.sendAuthCodesLock = sendAuthCodesLock ?? CronState.UNLOCKED;
+        this.saveStateLock = saveStateLock ?? CronState.UNLOCKED;
+        this.mintConfirmLock = mintConfirmLock ?? CronState.UNLOCKED;
         this.chainLoad = chainLoad ?? 0;
         this.totalHandles = totalHandles;
         this.accessQueueSize = accessQueueSize;
