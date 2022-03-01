@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
-import { State } from "../../State";
+import { CronState, State } from "../../State";
 import { LogCategory, Logger } from "../../../helpers/Logger";
 
 export type CronJobLockName = "mintPaidSessionsLock" | "saveStateLock" | "sendAuthCodesLock" | "updateActiveSessionsLock" | "mintConfirmLock" | "refundsLock";
@@ -13,6 +13,7 @@ export interface MintingWallet {
     txId?: string;
     balance?: number;
     minBalance: number;
+    updatedTimestamp: string;
 }
 
 export class StateData {
@@ -44,8 +45,16 @@ export class StateData {
 
     public static async checkAndLockCron(name: CronJobLockName): Promise<boolean> {
         const state = await StateData.getStateData();
-        if (state[name] == true) {
-            Logger.log({ message: `Cron job ${name} is locked`, event: `${name}.locked`, category: LogCategory.NOTIFY });
+        if (state[name] == CronState.EXECUTING) {
+            Logger.log({ message: `Cron job ${name} is delayed in execution`, event: `${name}.locked`, category: LogCategory.NOTIFY });
+            return false;
+        }
+        if (state[name] == CronState.DEPLOYING) {
+            Logger.log({ message: `Cron job ${name} is DEPLOYING`, event: `${name}.locked`, category: LogCategory.INFO });
+            return false;
+        }
+        if (state[name] == CronState.LOCKED) {
+            Logger.log({ message: `Cron job ${name} is manually locked`, event: `${name}.locked`, category: LogCategory.INFO });
             return false;
         }
         await StateData.lockCron(name);
@@ -55,13 +64,13 @@ export class StateData {
 
     public static async lockCron(name: CronJobLockName) {
         await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).update({
-            [name]: true
+            [name]: CronState.EXECUTING
         });
     }
 
     public static async unlockCron(name: CronJobLockName) {
         await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).update({
-            [name]: false
+            [name]: CronState.UNLOCKED
         });
     }
 
