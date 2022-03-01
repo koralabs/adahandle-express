@@ -181,6 +181,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
     }
 
     if (!await StateData.checkAndLockCron('mintPaidSessionsLock')) {
+      await StateData.unlockMintingWallet(availableWallet);
       return res.status(200).json({
         error: false,
         message: 'Mint Paid Sessions cron is locked. Try again later.'
