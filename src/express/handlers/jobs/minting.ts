@@ -131,14 +131,14 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
     await StateData.updateMintingWalletTxId(availableWallet, txId);
     const { walletId } = getMintingWallet(availableWallet.index);
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
-    
-    await backupNftsToS3(sanitizedSessions);
 
     const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
     if (lastSessionDateAdded) {
       state.lastMintingTimestamp = lastSessionDateAdded;
       StateData.upsertStateData(state)
     }
+
+    await backupNftsToS3(sanitizedSessions);
 
     Logger.log(getLogMessage(startTime, paidSessions.length));
 
