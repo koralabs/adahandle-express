@@ -1,6 +1,5 @@
 import * as express from "express";
 import fetch from 'cross-fetch';
-
 import { LogCategory, Logger } from "../../../helpers/Logger";
 import { StateData } from "../../../models/firestore/collections/StateData";
 import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
