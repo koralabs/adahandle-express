@@ -207,7 +207,7 @@ const backupNftsToS3 = async (sessions: ActiveSession[]) => {
     const s3 = getS3();
     readFile(outputSlug, function (err, data) {
       if (err) throw err;
-      s3.putObject({ Bucket: 'arn:aws:s3:::adahandle-nfts', Key: `${session.handle}.jpg`, Body: data, Metadata: {ipfsHash: session.ipfsHash || ''}}, (err, data) => {
+      s3.putObject({ Bucket: 'adahandle-nfts', Key: `${session.handle}.jpg`, Body: data, Metadata: {ipfsHash: session.ipfsHash || ''}}, (err, data) => {
         if (err) throw err;
         unlinkSync(outputSlug);
       });
