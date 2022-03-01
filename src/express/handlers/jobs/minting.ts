@@ -128,10 +128,8 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
   }
   
   try {
-    await backupNftsToS3(sanitizedSessions);
     await StateData.updateMintingWalletTxId(availableWallet, txId);
     const { walletId } = getMintingWallet(availableWallet.index);
-    
     await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
 
     const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
@@ -139,6 +137,8 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
       state.lastMintingTimestamp = lastSessionDateAdded;
       StateData.upsertStateData(state)
     }
+
+    await backupNftsToS3(sanitizedSessions);
 
     Logger.log(getLogMessage(startTime, paidSessions.length));
 
@@ -150,6 +150,8 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
     }
   }
   catch (e) {
+    // Since we already minted, it's safe to unlock the cron
+    await StateData.unlockCron('mintPaidSessionsLock');
     Logger.log({message: `Post-minting processing failed: ${JSON.stringify(e)}`, category: LogCategory.ERROR, event: 'mintPaidSessions.postMintProcessing'});
     return {
       status: 500,
