@@ -101,34 +101,14 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
     }
   }
 
+  let txId: string;
   // Mint the handles!
   try {
-    const txId = await mintHandlesAndSend(sanitizedSessions, availableWallet);
-
-    await backupNftsToS3(sanitizedSessions);
-
-    await StateData.updateMintingWalletTxId(availableWallet, txId);
+    txId = await mintHandlesAndSend(sanitizedSessions, availableWallet);
 
     Logger.log({ message: `Minted batch with transaction ID: ${txId}`, event: 'mintPaidSessionsHandler.mintHandlesAndSend' });
     Logger.log({ message: `Submitting ${sanitizedSessions.length} minted Handles for confirmation.`, event: 'mintPaidSessionsHandler.mintHandlesAndSend', count: sanitizedSessions.length, category: LogCategory.METRIC });
 
-    const { walletId } = getMintingWallet(availableWallet.index);
-    await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
-
-    const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
-    if (lastSessionDateAdded) {
-      state.lastMintingTimestamp = lastSessionDateAdded;
-      StateData.upsertStateData(state)
-    }
-
-    Logger.log(getLogMessage(startTime, paidSessions.length));
-
-    return {
-      status: 200,
-      error: false,
-      message: 'Handles submitted successfully',
-      txId
-    }
   } catch (e) {
     // Log the failed transaction submission (will try again on next round).
     Logger.log({
@@ -145,6 +125,27 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
       error: true,
       message: 'Transaction submission failed.'
     }
+  }
+  
+  await backupNftsToS3(sanitizedSessions);
+  await StateData.updateMintingWalletTxId(availableWallet, txId);
+  const { walletId } = getMintingWallet(availableWallet.index);
+  
+  await ActiveSessions.updateWorkflowStatusAndTxIdForSessions(txId, walletId, sanitizedSessions, WorkflowStatus.SUBMITTED);
+
+  const lastSessionDateAdded = Math.max(...sanitizedSessions.map(sess => sess.dateAdded ?? 0));
+  if (lastSessionDateAdded) {
+    state.lastMintingTimestamp = lastSessionDateAdded;
+    StateData.upsertStateData(state)
+  }
+
+  Logger.log(getLogMessage(startTime, paidSessions.length));
+
+  return {
+    status: 200,
+    error: false,
+    message: 'Handles submitted successfully',
+    txId
   }
 }
 
@@ -207,7 +208,7 @@ const backupNftsToS3 = async (sessions: ActiveSession[]) => {
     const s3 = getS3();
     readFile(outputSlug, function (err, data) {
       if (err) throw err;
-      s3.putObject({ Bucket: 'adahandle-nfts', Key: `${session.handle}.jpg`, Body: data, Metadata: {ipfsHash: session.ipfsHash || ''}}, (err, data) => {
+      s3.putObject({ Bucket: 'adahandle-nfts', Key: `${session.handle}.jpg`, Body: data, Metadata: { ipfsHash: session.ipfsHash || '' } }, (err, data) => {
         if (err) throw err;
         unlinkSync(outputSlug);
       });
