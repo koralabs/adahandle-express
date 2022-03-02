@@ -7,6 +7,8 @@ import { AllSessionsJWTPayload, getKey } from "../../helpers/jwt";
 import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";
 import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
+import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
+import { ActiveSession, Status, WorkflowStatus } from "../../models/ActiveSession";
 
 interface QueuePositionResponseBody {
     error: boolean;
@@ -44,6 +46,15 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
         })
     }
 
+    // Bounce out
+    if (!sessionData.session || sessionData.sessions.length === 0) {
+        return res.status(200).json({
+            error: false,
+            mintingQueuePosition: 0,
+            minutes: 0
+        })
+    }
+
     const {
         mintingQueueSize,
         lastMintingTimestamp } = await StateData.getStateData();
@@ -52,22 +63,35 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
         availableMintingServers,
     } = await SettingsRepo.getSettings();
 
-    const sessions = sessionData.sessions.filter(session => session.dateAdded > lastMintingTimestamp);
-    // sort user sessions by date added
-    sessions.sort((a, b) => a.dateAdded - b.dateAdded);
+    // get all session handles
+    const activeSessions = await Promise.all(sessionData.sessions.map(session => ActiveSessions.getByHandle(session.handle)));
 
-    const [session] = sessions;
+    // figure out what sessions are
+    // - waiting to be paid
+    // - paid but waiting to be minted
+    // - minted but not yet confirmed
+    // - confirmed
+    const sessionStatuses = activeSessions.flat().reduce((memo, session) => {
+        if (session.status === Status.PENDING) {
+            memo.waitingForPayment.push(session);
+        } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.PENDING) {
+            memo.waitingForMinting.push(session);
+        } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.SUBMITTED) {
+            memo.waitingForConfirmation.push(session);
+        } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.CONFIRMED) {
+            memo.confirmed.push(session);
+        }
+        return memo;
+    }, {
+        waitingForPayment: [] as ActiveSession[],
+        waitingForMinting: [] as ActiveSession[],
+        waitingForConfirmation: [] as ActiveSession[],
+        confirmed: [] as ActiveSession[]
+    });
 
-    if (!session) {
-        return res.status(200).json({
-            error: false,
-            mintingQueuePosition: 0,
-            minutes: 0
-        })
-    }
+    // figure out if we can 
 
-
-    const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
+    // const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
 
     return res.status(200).json({
         error: false,
