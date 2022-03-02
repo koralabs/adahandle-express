@@ -24,13 +24,8 @@ const setDynamicPriceByTier = async (tier: HandlePrice, fallBackAdaUsd: number) 
     let avergeAdaUsd = fallBackAdaUsd;
     //Get API endpoints here
     const adaUsd: number[] = [];
-    try {
-        const coingeckoRes = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd');
-        if (coingeckoRes.status == 200) {
-            adaUsd.push(coingeckoRes.data.cardano.usd);
-        }
-    }
-    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coingecko' }) }
+
+    getAdaUsdQuotes(adaUsd);
 
     if (adaUsd.length>0){
         avergeAdaUsd = (adaUsd.reduce((a, b) => a + b) / adaUsd.length);
@@ -64,3 +59,14 @@ const setDynamicPriceByTier = async (tier: HandlePrice, fallBackAdaUsd: number) 
     return rounded;
     
 } 
+
+const getAdaUsdQuotes = async (adaUsd: number[]) =>{
+    try {
+        const coingeckoRes = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd');
+        if (coingeckoRes.status == 200) {
+            adaUsd.push(coingeckoRes.data.cardano.usd);
+        }
+    }
+    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coingecko' }) }
+}
+
