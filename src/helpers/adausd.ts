@@ -44,7 +44,7 @@ const setDynamicPriceByTier = async (tier: HandlePrice, fallBackAdaUsd: number) 
     }
     else {
         // Round up to nearest 5
-        rounded = Math.ceil(adjustedPrice / 5) * 5;
+        rounded = Math.round(adjustedPrice / 5) * 5;
     }
 
     if (rounded > tier.maximum)
