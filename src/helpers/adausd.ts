@@ -33,7 +33,7 @@ const setDynamicPriceByTier = async (tier: HandlePrice, fallBackAdaUsd: number) 
 
     const differenceDollars = 1.25 - avergeAdaUsd;
     const differenceAda = differenceDollars / avergeAdaUsd;
-    const changePercent = differenceDollars < 0 ? tier.underPercent : tier.overPercent;
+    const changePercent = differenceDollars > 0 ? tier.underPercent : tier.overPercent;
     const adjustedPrice = (differenceAda * changePercent * tier.defaultPrice) / tier.weight
 
     let rounded = 0;
