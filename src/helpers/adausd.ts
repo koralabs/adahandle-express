@@ -38,7 +38,7 @@ const setDynamicPriceByTier = async (tier: HandlePrice, fallBackAdaUsd: number) 
 
     let rounded = 0;
 
-    if (differenceDollars < 0) {
+    if (differenceDollars > 0) {
         // Round down to nearest 5
         rounded = Math.floor(adjustedPrice / 5) * 5;
     }
