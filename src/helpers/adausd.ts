@@ -101,5 +101,18 @@ export const getCurrentAdaUsdQuotes = async (adaUsd: number[]) => {
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinbase' }) }
-    return adaUsd;
+    return filterOutliers(adaUsd);
+}
+
+export const filterOutliers = (someArray: number[]) => {  
+    const mid = Math.floor(someArray.length / 2);
+    const nums = [...someArray].sort((a, b) => a - b);
+    const median = someArray.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+    const filtered: number[] = []
+    console.log(median);
+    someArray.forEach(num => {
+        if (Math.abs((num-median) / median) <= .1) {
+            filtered.push(num)
+        }});
+    return filtered;
 }
