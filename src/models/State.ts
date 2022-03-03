@@ -27,7 +27,9 @@ interface StateConstructor {
     totalHandles?: number;
     lastMintingTimestamp?: number;
     lastAccessTimestamp?: number;
-    handlePrices?: { basic: number, common: number, rare: number, ultraRare: number }
+    handlePrices?: { basic: number, common: number, rare: number, ultraRare: number };
+    adaUsdQuoteHistory: number[];
+    lastQuoteTimestamp: number;
 }
 
 export class State extends BaseModel {
@@ -43,7 +45,9 @@ export class State extends BaseModel {
     public mintingQueueSize: number;
     public lastMintingTimestamp: number;
     public lastAccessTimestamp: number;
-    public handlePrices?: { basic: number, common: number, rare: number, ultraRare: number }
+    public handlePrices?: { basic: number, common: number, rare: number, ultraRare: number };
+    public adaUsdQuoteHistory: number[];
+    public lastQuoteTimestamp: number;
 
     constructor({
         updateActiveSessionsLock,
@@ -58,7 +62,9 @@ export class State extends BaseModel {
         mintingQueueSize,
         lastMintingTimestamp = Date.now(),
         lastAccessTimestamp = Date.now(),
-        handlePrices = { basic: 10, common: 50, rare: 100, ultraRare: 500 }
+        handlePrices = { basic: 10, common: 50, rare: 100, ultraRare: 500 },
+        adaUsdQuoteHistory,
+        lastQuoteTimestamp
     }: StateConstructor) {
         super();
         this.mintPaidSessionsLock = mintPaidSessionsLock ?? CronState.UNLOCKED;
@@ -74,5 +80,7 @@ export class State extends BaseModel {
         this.lastMintingTimestamp = lastMintingTimestamp;
         this.lastAccessTimestamp = lastAccessTimestamp;
         this.handlePrices = handlePrices;
+        this.adaUsdQuoteHistory = adaUsdQuoteHistory;
+        this.lastQuoteTimestamp = lastQuoteTimestamp;
     }
 }

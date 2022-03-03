@@ -5,33 +5,43 @@ import { HandlePrice } from "../models/Settings"
 import { Logger, LogCategory } from "./Logger";
 
 
-export const getHandlePrices = async () => {
-    const { fallBackAdaUsd, handlePriceSettings } = await SettingsRepo.getSettings();
+export const getHandlePrices = async (priceParams: { adaUsdQuoteHistory: number[], lastQuoteTimestamp: number }) => {
+    const { handlePriceSettings } = await SettingsRepo.getSettings();
 
     if (!handlePriceSettings) {
         return;
     }
 
+    let avergeAdaUsd: number | undefined;
+    if (priceParams.lastQuoteTimestamp < (Date.now() - (6 * 60 * 1000))) {
+        let adaUsd: number[] = [];
+
+        adaUsd = await getCurrentAdaUsdQuotes(adaUsd);
+
+        if (adaUsd.length > 0) {
+            avergeAdaUsd = (adaUsd.reduce((a, b) => a + b, 0) / (adaUsd.length || 1));
+            // save every 6 minutes (times 20 entries = 2 hours of quotes)
+            priceParams.lastQuoteTimestamp = Date.now();
+            priceParams.adaUsdQuoteHistory.push(avergeAdaUsd);
+            if (priceParams.adaUsdQuoteHistory.length > 20) {
+                priceParams.adaUsdQuoteHistory = priceParams.adaUsdQuoteHistory.slice(1, 20);
+            }
+        }
+    }
+
+    avergeAdaUsd = (priceParams.adaUsdQuoteHistory.reduce((a, b) => a + b, 0) / (priceParams.adaUsdQuoteHistory.length || 1));
+
     return {
-        basic: await setDynamicPriceByTier(handlePriceSettings.basic, fallBackAdaUsd),
-        common: await setDynamicPriceByTier(handlePriceSettings.common, fallBackAdaUsd),
-        rare: await setDynamicPriceByTier(handlePriceSettings.rare, fallBackAdaUsd),
-        ultraRare: await setDynamicPriceByTier(handlePriceSettings.ultraRare, fallBackAdaUsd)
+        basic: await setDynamicPriceByTier(handlePriceSettings.basic, avergeAdaUsd),
+        common: await setDynamicPriceByTier(handlePriceSettings.common, avergeAdaUsd),
+        rare: await setDynamicPriceByTier(handlePriceSettings.rare, avergeAdaUsd),
+        ultraRare: await setDynamicPriceByTier(handlePriceSettings.ultraRare, avergeAdaUsd)
     }
 }
 
-const setDynamicPriceByTier = async (tier: HandlePrice, fallBackAdaUsd: number) => {
-    let avergeAdaUsd = fallBackAdaUsd;
-    //Get API endpoints here
-    const adaUsd: number[] = [];
+const setDynamicPriceByTier = async (tier: HandlePrice, avergeAdaUsd: number) => {
 
-    getAdaUsdQuotes(adaUsd);
-
-    if (adaUsd.length>0){
-        avergeAdaUsd = (adaUsd.reduce((a, b) => a + b) / adaUsd.length);
-    }
-
-    const differenceDollars = 1.25 - avergeAdaUsd;
+    const differenceDollars = 1.24 - avergeAdaUsd;
     const differenceAda = differenceDollars / avergeAdaUsd;
     const changePercent = differenceDollars > 0 ? tier.underPercent : tier.overPercent;
     let adjustedPrice = ((differenceAda * changePercent * tier.defaultPrice) / tier.weight) + tier.defaultPrice
@@ -52,10 +62,10 @@ const setDynamicPriceByTier = async (tier: HandlePrice, fallBackAdaUsd: number) 
     if (rounded < tier.minimum) return tier.minimum;
 
     return rounded;
-    
-} 
 
-const getAdaUsdQuotes = async (adaUsd: number[]) =>{
+}
+
+export const getCurrentAdaUsdQuotes = async (adaUsd: number[]) => {
     try {
         const coingeckoRes = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd');
         if (coingeckoRes.status == 200) {
@@ -63,5 +73,33 @@ const getAdaUsdQuotes = async (adaUsd: number[]) =>{
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coingecko' }) }
+    try {
+        const coinMarketCap = await axios.get('https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=ADA&CMC_PRO_API_KEY=a6bfa301-8025-45f4-8fbf-c8b39fee5579');
+        if (coinMarketCap.status == 200) {
+            adaUsd.push(coinMarketCap.data.ADA.quote.USD.price);
+        }
+    }
+    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinMarketCap' }) }
+    try {
+        const lunarcrush = await axios.get('https://api.lunarcrush.com/v2?data=assets&symbol=ADA');
+        if (lunarcrush.status == 200) {
+            adaUsd.push(lunarcrush.data.price);
+        }
+    }
+    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.lunarcrush' }) }
+    try {
+        const messari = await axios.get('https://data.messari.io/api/v1/assets/ada/metrics');
+        if (messari.status == 200) {
+            adaUsd.push(messari.data.price);
+        }
+    }
+    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.messari' }) }
+    try {
+        const coinbase = await axios.get('https://api.coinbase.com/v2/exchange-rates?currency=ada');
+        if (coinbase.status == 200) {
+            adaUsd.push(coinbase.data.rates.USD);
+        }
+    }
+    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinbase' }) }
+    return adaUsd;
 }
-

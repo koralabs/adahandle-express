@@ -34,15 +34,15 @@ const defaultSettings = {
         },
         rare: {
             defaultPrice: 100,
-            weight: .13,
+            weight: .13438,
             underPercent: .40,
             overPercent: .125,
             minimum: 3,
-            maximum: 495
+            maximum: 445
         },
         ultraRare: {
             defaultPrice: 500,
-            weight: .27,
+            weight: .26772,
             underPercent: .30,
             overPercent: .265,
             minimum: 5,

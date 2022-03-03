@@ -15,6 +15,8 @@ export const state: State = new State({
   mintConfirmLock: CronState.UNLOCKED,
   lastMintingTimestamp: new Date().setMinutes(new Date().getMinutes() - 10), // 10 minutes ago,
   lastAccessTimestamp: 0,
+  adaUsdQuoteHistory: [],
+  lastQuoteTimestamp: 0
 });
 
 export const settings: Settings = new Settings({
