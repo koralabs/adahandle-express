@@ -1,6 +1,7 @@
 import { StateData } from "../../../models/firestore/collections/StateData";
 import { mintPaidSessionsHandler } from "./minting";
 import * as StateFixtures from "../../../tests/stateFixture";
+import { CronState } from "../../../models/State";
 
 jest.mock('../../../models/firestore/collections/ActiveSession');
 jest.mock('../../../helpers/cardano');
@@ -24,7 +25,7 @@ describe('mintPaidSessionsHandler Tests', () => {
   });
 
   it('should not proceed if locked', async () => {
-    StateFixtures.state.mintPaidSessionsLock = true;
+    StateFixtures.state.mintPaidSessionsLock = CronState.LOCKED;
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
@@ -33,7 +34,7 @@ describe('mintPaidSessionsHandler Tests', () => {
   });
 
   it('should not proceed if minting wallet balance is lower than minimum balance', async () => {
-    StateFixtures.state.mintPaidSessionsLock = false;
+    StateFixtures.state.mintPaidSessionsLock = CronState.UNLOCKED;
     StateFixtures.mintingWallet.balance = 99;
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
