@@ -76,7 +76,7 @@ export const getCurrentAdaUsdQuotes = async (adaUsd: number[]) => {
     try {
         const coinMarketCap = await axios.get('https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=ADA&CMC_PRO_API_KEY=a6bfa301-8025-45f4-8fbf-c8b39fee5579');
         if (coinMarketCap.status == 200) {
-            adaUsd.push(coinMarketCap.data.ADA.quote.USD.price);
+            adaUsd.push(coinMarketCap.data.ADA[0].quote.USD.price);
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinMarketCap' }) }
@@ -97,7 +97,7 @@ export const getCurrentAdaUsdQuotes = async (adaUsd: number[]) => {
     try {
         const coinbase = await axios.get('https://api.coinbase.com/v2/exchange-rates?currency=ada');
         if (coinbase.status == 200) {
-            adaUsd.push(coinbase.data.rates.USD);
+            adaUsd.push(Number(coinbase.data.rates.USD));
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinbase' }) }
