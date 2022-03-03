@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import { ActiveSessions } from "../collections/ActiveSession"
 import { Status } from "../../ActiveSession"
-import { isValid } from "../../../helpers/nft"
+import { getRarityCost, isValid } from "../../../helpers/nft"
 import * as pluralize from "pluralize";
 import { delay } from "../../../helpers/utils"
 
@@ -53,6 +53,7 @@ export interface HandleOptions {
 
 export interface HandleAvailabilityResponse {
     available: boolean;
+    cost?: number;
     message?: string;
     type?: 'twitter' | 'spo' | 'private' | 'pending' | 'notallowed' | 'invalid';
     link?: string; //`https://${process.env.CARDANOSCAN_DOMAIN}/token/${policyID}.${assetName}`
@@ -181,9 +182,13 @@ export class ReservedHandles {
             type: 'notallowed'
         };
 
+        const cost = await getRarityCost(handle);
+        if (!cost) throw new Error('Could not get rarity cost');
+
         const allowedResponse: HandleAvailabilityResponse = {
             available: true,
-            message: RESPONSE_AVAILABLE_DEFAULT
+            message: RESPONSE_AVAILABLE_DEFAULT,
+            cost
         };
 
         // if it is all numbers or non-alphas, we don't care

@@ -13,6 +13,7 @@ import * as processRefunds from "./processRefunds";
 import * as constants from "../../../../helpers/constants";
 import { Refund } from './processRefunds';
 import * as StateFixtures from "../../../../tests/stateFixture";
+import { CronState } from '../../../../models/State';
 
 jest.mock('express');
 jest.mock('../../../../helpers/wallet/cardano');
@@ -74,7 +75,7 @@ describe('Refund Cron Tests', () => {
     describe('updateSessionsHandler tests', () => {
         it('should return 200 if cron is locked', async () => {
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue(usedAddressesFixture);
-            StateFixtures.state.refundsLock = true;
+            StateFixtures.state.refundsLock = CronState.LOCKED;
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(false);
             await refundsHandler(mockRequest as Request, mockResponse as Response);
 
@@ -84,7 +85,7 @@ describe('Refund Cron Tests', () => {
 
         it('should return 200 no refundable sessions are found', async () => {
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue([]);
-            StateFixtures.state.refundsLock = false;
+            StateFixtures.state.refundsLock = CronState.UNLOCKED;
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
             await refundsHandler(mockRequest as Request, mockResponse as Response);
 

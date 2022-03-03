@@ -9,6 +9,7 @@ import { CreatedBySystem } from '../../../helpers/constants';
 import { toLovelace } from '../../../helpers/utils';
 import { StakePools } from '../../../models/firestore/collections/StakePools';
 import * as StateFixtures from "../../../tests/stateFixture";
+import { CronState } from '../../../models/State';
 
 
 jest.mock('express');
@@ -189,7 +190,7 @@ describe('Job Sessions Tets', () => {
     describe('updateSessionsHandler tests', () => {
         it('should return 200 if cron is locked', async () => {
             jest.spyOn(ActiveSessions, 'getPendingActiveSessions').mockResolvedValue(ActiveSessionsFixture);
-            StateFixtures.state.updateActiveSessionsLock = true;
+            StateFixtures.state.updateActiveSessionsLock = CronState.LOCKED;
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(false);
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
 
@@ -199,7 +200,7 @@ describe('Job Sessions Tets', () => {
 
         it('should return no active sessions', async () => {
             jest.spyOn(ActiveSessions, 'getPendingActiveSessions').mockResolvedValue([]);
-            StateFixtures.state.updateActiveSessionsLock = false;
+            StateFixtures.state.updateActiveSessionsLock = CronState.UNLOCKED;
             jest.spyOn(StateData, 'checkAndLockCron').mockResolvedValue(true);
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
 
