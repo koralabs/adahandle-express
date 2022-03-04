@@ -3,6 +3,7 @@ import { SettingsRepo } from "../models/firestore/collections/SettingsRepo";
 import { HandlePrice } from "../models/Settings"
 import { isProduction } from "./constants";
 import { Logger, LogCategory } from "./Logger";
+import { isNumeric } from "./utils";
 
 
 export const getHandlePrices = async (priceParams: { adaUsdQuoteHistory: number[], lastQuoteTimestamp: number }) => {
@@ -73,53 +74,52 @@ const setDynamicPriceByTier = async (tier: HandlePrice, avergeAdaUsd: number) =>
 }
 
 export const getCurrentAdaUsdQuotes = async (adaUsd: number[]) => {
-    try {
-        const coingeckoRes = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd');
-        if (coingeckoRes.status == 200) {
-            adaUsd.push(Number(coingeckoRes.data.cardano.usd));
+    const apis = [
+        {url: 'https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd', jsonPath: 'cardano.usd'},
+        {url: `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=ADA&CMC_PRO_API_KEY=${process.env.CMC_PRO_API_KEY}`, jsonPath: 'data.ADA.0.quote.USD.price'},
+        {url: 'https://api.lunarcrush.com/v2?data=assets&symbol=ADA', jsonPath: 'data.0.price'},
+        {url: 'https://data.messari.io/api/v1/assets/ada/metrics', jsonPath: 'data.market_data.price_usd'},
+        {url: 'https://api.coinbase.com/v2/exchange-rates?currency=ada', jsonPath: 'data.rates.USD'},
+    ]
+    for (let i=0;i<apis.length;i++){
+        const priceQuote = await priceQuoteApiRequest(apis[i].url, apis[i].jsonPath);
+        if (priceQuote) {
+            adaUsd.push(typeof priceQuote == 'string' ? Number(priceQuote) : priceQuote);
         }
     }
-    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coingecko' }) }
-    try {
-        const coinMarketCap = await axios.get('https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=ADA&CMC_PRO_API_KEY=a6bfa301-8025-45f4-8fbf-c8b39fee5579');
-        if (coinMarketCap.status == 200) {
-            adaUsd.push(Number(coinMarketCap.data.data.ADA[0].quote.USD.price));
-        }
-    }
-    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinMarketCap' }) }
-    try {
-        const lunarcrush = await axios.get('https://api.lunarcrush.com/v2?data=assets&symbol=ADA');
-        if (lunarcrush.status == 200) {
-            adaUsd.push(Number(lunarcrush.data.data.price));
-        }
-    }
-    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.lunarcrush' }) }
-    try {
-        const messari = await axios.get('https://data.messari.io/api/v1/assets/ada/metrics');
-        if (messari.status == 200) {
-            adaUsd.push(Number(messari.data.market_data.price_usd));
-        }
-    }
-    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.messari' }) }
-    try {
-        const coinbase = await axios.get('https://api.coinbase.com/v2/exchange-rates?currency=ada');
-        if (coinbase.status == 200) {
-            adaUsd.push(Number(coinbase.data.data.rates.USD));
-        }
-    }
-    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinbase' }) }
     return filterOutliers(adaUsd);
 }
 
-export const filterOutliers = (someArray: number[]) => {  
+export const filterOutliers = (someArray: number[]) => {
     const mid = Math.floor(someArray.length / 2);
     const nums = [...someArray].sort((a, b) => a - b);
     const median = someArray.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
     const filtered: number[] = []
-    console.log(median);
     someArray.forEach(num => {
         if (Math.abs((num-median) / median) <= .1) {
             filtered.push(num)
         }});
     return filtered;
 }
+
+const priceQuoteApiRequest = async (url: string, jsonPath: string) => {
+    try {
+        const priceQuote = await axios.get(url);
+        if (priceQuote.status == 200) {
+            const parts = jsonPath.split('.');
+            let result = priceQuote.data;
+            for (let i=0;i<parts.length;i++){
+                result = isNumeric(parts[i]) ? result[parseInt(parts[i])] : result[parts[i]];
+            }
+            return result;
+        }
+        else {
+            Logger.log({ category: LogCategory.INFO, message: `Price quote: non-200 HTTP Response on ${url} ${priceQuote.status}: ${priceQuote.statusText} - ${priceQuote.data}`, event: 'adausd.priceQuoteRequest' });
+        }
+    }
+    catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.priceQuoteRequest' }) }
+}
+
+// Leave this hear to test APIs locally
+// if (process.env.NODE_ENV == 'test')
+//     (async () => {console.log(await getCurrentAdaUsdQuotes([]));})();

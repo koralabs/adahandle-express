@@ -53,3 +53,7 @@ export const calculatePositionAndMinutesInQueue = (queueSize: number, lastTimest
     const minutes = Math.round(position / queueLimit);
     return { position, minutes };
 }
+
+export const isNumeric = (n: string) => {
+    return !isNaN(parseFloat(n)) && isFinite(parseFloat(n));
+}
