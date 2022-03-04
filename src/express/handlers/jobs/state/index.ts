@@ -21,18 +21,18 @@ interface StateResponseBody {
 
 export const stateHandler = async (req: express.Request, res: express.Response) => {
   try {
-    Logger.log("SettingsCron started");
     const settings = await SettingsRepo.getSettings();
     const accessQueueSize = await AccessQueues.getAccessQueueCount();
     const mintingQueueSize = (await ActiveSessions.getPaidPendingSessions({ limit: 20000 })).length;
     const chainLoad = await getChainLoad() ?? 0;
     const totalHandles = await getTotalHandles() || 0;
-    Logger.log("Before handlePrices");
-    const handlePrices = await getHandlePrices();
-    Logger.log("After handlePrices");
+    const state = await StateData.getStateData();
+    const priceParams = { adaUsdQuoteHistory: state.adaUsdQuoteHistory, lastQuoteTimestamp: state.lastQuoteTimestamp };
+    const handlePrices = await getHandlePrices(priceParams);
 
-    const state = new State({ chainLoad, accessQueueSize, mintingQueueSize, totalHandles, handlePrices });
-    await StateData.upsertStateData(state);
+
+    const updatedState = new State({ chainLoad, accessQueueSize, mintingQueueSize, totalHandles, handlePrices, adaUsdQuoteHistory: priceParams.adaUsdQuoteHistory, lastQuoteTimestamp: priceParams.lastQuoteTimestamp });
+    await StateData.upsertStateData(updatedState);
 
     await updateMintingWalletBalances();
 

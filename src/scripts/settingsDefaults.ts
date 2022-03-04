@@ -20,33 +20,33 @@ const defaultSettings = {
             defaultPrice: 10,
             weight: .16,
             underPercent: .10,
-            overPercent: .19,
+            overPercent: .14,
             minimum: 1,
-            maximum: 20
+            maximum: 15
         },
         common: {
             defaultPrice: 50,
             weight: .44,
             underPercent: .20,
-            overPercent: .42,
+            overPercent: .47,
             minimum: 2,
-            maximum: 200
+            maximum: 95
         },
         rare: {
             defaultPrice: 100,
-            weight: .13,
+            weight: .13438,
             underPercent: .40,
-            overPercent: .13,
+            overPercent: .125,
             minimum: 3,
-            maximum: 500
+            maximum: 445
         },
         ultraRare: {
             defaultPrice: 500,
-            weight: .27,
+            weight: .26772,
             underPercent: .30,
-            overPercent: .26,
-            minimum: 4,
-            maximum: 1500
+            overPercent: .265,
+            minimum: 5,
+            maximum: 995
         }
     },
     walletAddressCollectionName: 'walletAddreses'
