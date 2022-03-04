@@ -1,12 +1,12 @@
-
 import axios from "axios";
 import { SettingsRepo } from "../models/firestore/collections/SettingsRepo";
 import { HandlePrice } from "../models/Settings"
+import { isProduction } from "./constants";
 import { Logger, LogCategory } from "./Logger";
 
 
 export const getHandlePrices = async (priceParams: { adaUsdQuoteHistory: number[], lastQuoteTimestamp: number }) => {
-    const { handlePriceSettings } = await SettingsRepo.getSettings();
+    const { handlePriceSettings, priceTestMode, priceAdaUsdTest } = await SettingsRepo.getSettings();
 
     if (!handlePriceSettings) {
         return;
@@ -20,6 +20,9 @@ export const getHandlePrices = async (priceParams: { adaUsdQuoteHistory: number[
 
         if (adaUsd.length > 0) {
             avergeAdaUsd = (adaUsd.reduce((a, b) => a + b, 0) / (adaUsd.length || 1));
+            if (!isProduction() && priceTestMode=='SKIP_APIS') {
+                avergeAdaUsd = priceAdaUsdTest;
+            }
             // save every 6 minutes (times 20 entries = 2 hours of quotes)
             priceParams.lastQuoteTimestamp = Date.now();
             priceParams.adaUsdQuoteHistory.push(avergeAdaUsd);
@@ -30,6 +33,10 @@ export const getHandlePrices = async (priceParams: { adaUsdQuoteHistory: number[
     }
 
     avergeAdaUsd = (priceParams.adaUsdQuoteHistory.reduce((a, b) => a + b, 0) / (priceParams.adaUsdQuoteHistory.length || 1));
+    
+    if (!isProduction() && priceTestMode=='SKIP_MA') {
+        avergeAdaUsd = priceAdaUsdTest;
+    }
 
     return {
         basic: await setDynamicPriceByTier(handlePriceSettings.basic, avergeAdaUsd),

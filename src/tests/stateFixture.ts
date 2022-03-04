@@ -28,7 +28,9 @@ export const settings: Settings = new Settings({
   ipfsRateDelay: 0,
   spoPageEnabled: false,
   walletAddressCollectionName: 'walletAddresses',
-  minimumWalletAddressAmount: 10000
+  minimumWalletAddressAmount: 10000,
+  priceAdaUsdTest: 0,
+  priceTestMode: 'OFF'
 });
 
 export const mintingWallet = {

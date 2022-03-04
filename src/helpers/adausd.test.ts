@@ -40,22 +40,22 @@ describe('Pricing Tests', () => {
     
     it('Should return correct prices', async () => {
         let priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [.01] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [0.01] })
         let prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:15,common:95,rare:445,ultraRare:995});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [.1] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [0.10] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:15,common:95,rare:445,ultraRare:995});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [.5] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [0.50] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:15,common:80,rare:445,ultraRare:995});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [1] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [1.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:10,common:55,rare:170,ultraRare:630});
 
@@ -75,37 +75,37 @@ describe('Pricing Tests', () => {
         expect(prices).toEqual({basic:10,common:50,rare:100,ultraRare:495});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [2] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [2.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:5,common:30,rare:65,ultraRare:310});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [5] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [5.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:5,common:10,rare:30,ultraRare:130});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [10] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [10.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:1,common:5,rare:20,ultraRare:65});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [15] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [15.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:1,common:2,rare:15,ultraRare:45});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [20] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [20.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:1,common:2,rare:15,ultraRare:35});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [50] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [50.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:1,common:2,rare:10,ultraRare:15});
 
         priceParams = { adaUsdQuoteHistory: [], lastQuoteTimestamp: (Date.now() - (7 * 60 * 1000))}
-        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [100] })
+        getCurrentAdaUsdQuotesSpy.mockImplementation(async () => { return [100.00] })
         prices = await adaUsd.getHandlePrices(priceParams);
         expect(prices).toEqual({basic:1,common:2,rare:10,ultraRare:10});
     });

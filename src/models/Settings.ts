@@ -31,6 +31,8 @@ interface SettingsConstructor {
     }
     walletAddressCollectionName?: string;
     minimumWalletAddressAmount: number;
+    priceTestMode: 'OFF'  | 'SKIP_APIS' | 'SKIP_MA';
+    priceAdaUsdTest: number;
 }
 
 export class Settings extends BaseModel {
@@ -55,6 +57,8 @@ export class Settings extends BaseModel {
     }
     public walletAddressCollectionName?: string;
     public minimumWalletAddressAmount: number;
+    public priceTestMode: 'OFF'  | 'SKIP_APIS' | 'SKIP_MA';
+    public priceAdaUsdTest: number;
 
     constructor({
         accessQueueLimit = 20,
@@ -72,7 +76,9 @@ export class Settings extends BaseModel {
         fallBackAdaUsd = 1.25,
         handlePriceSettings,
         walletAddressCollectionName = "walletAddresses",
-        minimumWalletAddressAmount = 10000
+        minimumWalletAddressAmount = 10000,
+        priceTestMode = 'OFF',
+        priceAdaUsdTest = 0
     }: SettingsConstructor) {
         super();
         this.accessQueueLimit = accessQueueLimit;
@@ -91,5 +97,7 @@ export class Settings extends BaseModel {
         this.handlePriceSettings = handlePriceSettings;
         this.walletAddressCollectionName = walletAddressCollectionName;
         this.minimumWalletAddressAmount = minimumWalletAddressAmount;
+        this.priceTestMode = priceTestMode;
+        this.priceAdaUsdTest = priceAdaUsdTest;
     }
 }
