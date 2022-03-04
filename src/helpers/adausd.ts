@@ -69,35 +69,35 @@ export const getCurrentAdaUsdQuotes = async (adaUsd: number[]) => {
     try {
         const coingeckoRes = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd');
         if (coingeckoRes.status == 200) {
-            adaUsd.push(coingeckoRes.data.cardano.usd);
+            adaUsd.push(Number(coingeckoRes.data.cardano.usd));
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coingecko' }) }
     try {
         const coinMarketCap = await axios.get('https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=ADA&CMC_PRO_API_KEY=a6bfa301-8025-45f4-8fbf-c8b39fee5579');
         if (coinMarketCap.status == 200) {
-            adaUsd.push(coinMarketCap.data.ADA[0].quote.USD.price);
+            adaUsd.push(Number(coinMarketCap.data.data.ADA[0].quote.USD.price));
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinMarketCap' }) }
     try {
         const lunarcrush = await axios.get('https://api.lunarcrush.com/v2?data=assets&symbol=ADA');
         if (lunarcrush.status == 200) {
-            adaUsd.push(lunarcrush.data.price);
+            adaUsd.push(Number(lunarcrush.data.data.price));
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.lunarcrush' }) }
     try {
         const messari = await axios.get('https://data.messari.io/api/v1/assets/ada/metrics');
         if (messari.status == 200) {
-            adaUsd.push(messari.data.price);
+            adaUsd.push(Number(messari.data.market_data.price_usd));
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.messari' }) }
     try {
         const coinbase = await axios.get('https://api.coinbase.com/v2/exchange-rates?currency=ada');
         if (coinbase.status == 200) {
-            adaUsd.push(Number(coinbase.data.rates.USD));
+            adaUsd.push(Number(coinbase.data.data.rates.USD));
         }
     }
     catch (e) { Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'adausd.coinbase' }) }
