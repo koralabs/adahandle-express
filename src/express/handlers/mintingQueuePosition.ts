@@ -10,10 +10,24 @@ import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../models/ActiveSession";
 
+interface SessionStatus extends ActiveSession {
+    dateAdded: number;
+    mintingPosition?: {
+        position: number;
+        minutes: number;
+    }
+}
+
+interface SessionsStatuses {
+    waitingForPayment: SessionStatus[];
+    waitingForMinting: SessionStatus[];
+    waitingForConfirmation: SessionStatus[];
+    confirmed: SessionStatus[];
+}
+
 interface QueuePositionResponseBody {
     error: boolean;
-    mintingQueuePosition: number;
-    minutes: number;
+    sessions: SessionsStatuses;
     message?: string;
 }
 
@@ -47,7 +61,7 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
     }
 
     // Bounce out
-    if (!sessionData.session || sessionData.sessions.length === 0) {
+    if (!sessionData.sessions || sessionData.sessions.length === 0) {
         return res.status(200).json({
             error: false,
             mintingQueuePosition: 0,
@@ -55,27 +69,34 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
         })
     }
 
-    const {
-        mintingQueueSize,
-        lastMintingTimestamp } = await StateData.getStateData();
-    const {
-        paidSessionsLimit,
-        availableMintingServers,
-    } = await SettingsRepo.getSettings();
-
     // get all session handles
-    const activeSessions = await Promise.all(sessionData.sessions.map(session => ActiveSessions.getByHandle(session.handle)));
+    const activeSessions = await Promise.all(sessionData.sessions.map(async session => {
+        const activeSession = await ActiveSessions.getByHandle(session.handle);
+        return {
+            ...activeSession[0],
+            dateAdded: session.dateAdded
+        } as SessionStatus;
+    }));
+
+    const [stateData, settingsData] = await Promise.all([
+        StateData.getStateData(),
+        SettingsRepo.getSettings()
+    ]);
+
+    const { mintingQueueSize, lastMintingTimestamp } = stateData;
+    const { paidSessionsLimit, availableMintingServers } = settingsData;
 
     // figure out what sessions are
     // - waiting to be paid
     // - paid but waiting to be minted
     // - minted but not yet confirmed
     // - confirmed
-    const sessionStatuses = activeSessions.flat().reduce((memo, session) => {
+    const sessionStatuses = activeSessions.flat().reduce<SessionsStatuses>((memo, session) => {
         if (session.status === Status.PENDING) {
             memo.waitingForPayment.push(session);
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.PENDING) {
-            memo.waitingForMinting.push(session);
+            const mintingPosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
+            memo.waitingForMinting.push({ ...session, mintingPosition } as SessionStatus);
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.SUBMITTED) {
             memo.waitingForConfirmation.push(session);
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.CONFIRMED) {
@@ -83,20 +104,15 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
         }
         return memo;
     }, {
-        waitingForPayment: [] as ActiveSession[],
-        waitingForMinting: [] as ActiveSession[],
-        waitingForConfirmation: [] as ActiveSession[],
-        confirmed: [] as ActiveSession[]
+        waitingForPayment: [],
+        waitingForMinting: [],
+        waitingForConfirmation: [],
+        confirmed: []
     });
-
-    // figure out if we can 
-
-    // const mintingQueuePosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
 
     return res.status(200).json({
         error: false,
-        mintingQueuePosition: mintingQueuePosition.position,
-        minutes: mintingQueuePosition.minutes
+        sessions: sessionStatuses
     } as QueuePositionResponseBody);
 
 }
