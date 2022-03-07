@@ -351,7 +351,12 @@ export class ReservedHandles {
                             && !s.exceptions?.some(exc => h.includes(exc));
                     }) || modifiers.some(mod => h.replaceSingularOrPlural(entry.word, ' ').includes(mod.word)
                         // If it can be a positive modifier, like "love", then vulnerable targets are OK
-                        && !(entry.algorithms.includes('vulnerable') && mod.canBePositive)
+                        && !(entry.algorithms.includes('vulnerable') && mod.canBePositive
+                            && !specialCaseVulnWords.some(spec => {
+                                // it's a modifier + `pp` - This is a hint that it's not a good phrase like "tinypreteenpp"
+                                foundWords = `${entry.word},${mod.word},${spec}`
+                                return h.replaceSingularOrPlural(entry.word, ' ').replaceSingularOrPlural(mod.word, ' ').includes(spec)
+                            }))
                         && specialCaseVulnWords.some(spec => {
                             // it's a modifier + `pp` - This is a hint that it's not a good phrase like "tinypreteenpp"
                             foundWords = `${entry.word},${mod.word},${spec}`
@@ -408,8 +413,8 @@ export class ReservedHandles {
             // possible impprovement needed here to catch more words
             // letting it slide for now since number replacements are less obvious
             // and this is the slowest part of the algorithm
-            for (let one of ['i', 'l']) {
-                for (let eight of ['ate', 'ait']) {
+            for (const one of ['i', 'l']) {
+                for (const eight of ['ate', 'ait']) {
                     const handleReplaced = handleReplacedTemp.replace(/1/g, one).replace(/8/g, eight)
                     const listed = this.isProtected(handleReplaced);
                     if (listed.protected) return { protected: true, words: listed.words };
