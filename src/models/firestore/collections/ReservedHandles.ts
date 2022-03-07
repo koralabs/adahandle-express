@@ -408,8 +408,8 @@ export class ReservedHandles {
             // possible impprovement needed here to catch more words
             // letting it slide for now since number replacements are less obvious
             // and this is the slowest part of the algorithm
-            for (let one of ['i', 'l']) {
-                for (let eight of ['ate', 'ait']) {
+            for (const one of ['i', 'l']) {
+                for (const eight of ['ate', 'ait']) {
                     const handleReplaced = handleReplacedTemp.replace(/1/g, one).replace(/8/g, eight)
                     const listed = this.isProtected(handleReplaced);
                     if (listed.protected) return { protected: true, words: listed.words };
