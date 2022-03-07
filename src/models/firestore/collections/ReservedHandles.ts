@@ -351,7 +351,12 @@ export class ReservedHandles {
                             && !s.exceptions?.some(exc => h.includes(exc));
                     }) || modifiers.some(mod => h.replaceSingularOrPlural(entry.word, ' ').includes(mod.word)
                         // If it can be a positive modifier, like "love", then vulnerable targets are OK
-                        && !(entry.algorithms.includes('vulnerable') && mod.canBePositive)
+                        && !(entry.algorithms.includes('vulnerable') && mod.canBePositive
+                            && !specialCaseVulnWords.some(spec => {
+                                // it's a modifier + `pp` - This is a hint that it's not a good phrase like "tinypreteenpp"
+                                foundWords = `${entry.word},${mod.word},${spec}`
+                                return h.replaceSingularOrPlural(entry.word, ' ').replaceSingularOrPlural(mod.word, ' ').includes(spec)
+                            }))
                         && specialCaseVulnWords.some(spec => {
                             // it's a modifier + `pp` - This is a hint that it's not a good phrase like "tinypreteenpp"
                             foundWords = `${entry.word},${mod.word},${spec}`

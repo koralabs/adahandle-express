@@ -50,6 +50,7 @@ const smallList = [
     "n1gg3r", // bad
     "pu55y", // bad
     "tinypreteenpp", // bad
+    "tinypreteen", // questionable, but passes
     "goodtoeat", // good
  ]
 
