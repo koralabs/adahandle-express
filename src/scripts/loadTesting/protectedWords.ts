@@ -47,6 +47,10 @@ const smallList = [
     "1pussy", // bad
     "pussyx", // bad
     "xpussy", // bad
-]
+    "n1gg3r", // bad
+    "pu55y", // bad
+    "tinypreteenpp", // bad
+    "goodtoeat", // good
+ ]
 
 run();

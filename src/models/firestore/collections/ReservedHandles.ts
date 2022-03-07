@@ -112,7 +112,7 @@ export class ReservedHandles {
             };
         }
 
-        // //Now we can start hitting the db
+        //Now we can start hitting the db
         const activeSessions = await ActiveSessions.getByHandle(handle);
 
         if (activeSessions.some(session => session.status == Status.PENDING)) {
@@ -388,11 +388,6 @@ export class ReservedHandles {
     }
 
     static isNumberReplacementsProtected(handle: string, checkIfMatches?: (h: string) => { protected: boolean, words?: string[] }): { protected: boolean, words?: string[] } {
-        if (checkIfMatches) {
-            const matches = checkIfMatches(handle);
-            if (matches.protected) return { protected: true, words: matches.words };
-        }
-
         // 8's can be problematic (because they are replaced with 'ate' or 'ait').
         // When combined with multiple numbers they are probably not a bad word anyway
         let handleReplacedTemp = handle;
@@ -413,8 +408,8 @@ export class ReservedHandles {
             // possible impprovement needed here to catch more words
             // letting it slide for now since number replacements are less obvious
             // and this is the slowest part of the algorithm
-            for (const one in ['i', 'l']) {
-                for (const eight in ['ate', 'ait']) {
+            for (let one of ['i', 'l']) {
+                for (let eight of ['ate', 'ait']) {
                     const handleReplaced = handleReplacedTemp.replace(/1/g, one).replace(/8/g, eight)
                     const listed = this.isProtected(handleReplaced);
                     if (listed.protected) return { protected: true, words: listed.words };
@@ -424,6 +419,12 @@ export class ReservedHandles {
                     }
                 }
             }
+        }
+        const listed = this.isProtected(handleReplacedTemp);
+        if (listed.protected) return { protected: true, words: listed.words };
+        if (checkIfMatches) {
+            const matches = checkIfMatches(handleReplacedTemp);
+            if (matches.protected) return { protected: true, words: matches.words };
         }
         return { protected: false };
     }
