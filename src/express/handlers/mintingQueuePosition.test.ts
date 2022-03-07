@@ -5,10 +5,13 @@ import * as jwt from "jsonwebtoken";
 
 import { mintingQueuePositionHandler } from "./mintingQueuePosition";
 import * as jwtHelper from "../../helpers/jwt";
-import { HEADER_JWT_ALL_SESSIONS_TOKEN } from '../../helpers/constants';
+import { CreatedBySystem, HEADER_JWT_ALL_SESSIONS_TOKEN } from '../../helpers/constants';
 import * as StateFixtures from '../../tests/stateFixture'
+import { ActiveSessions } from '../../models/firestore/collections/ActiveSession';
+import { ActiveSession, Status, WorkflowStatus } from '../../models/ActiveSession';
 
 jest.mock('../../helpers/jwt');
+jest.mock('../../models/firestore/collections/ActiveSession');
 StateFixtures.setupStateFixtures();
 
 describe('mintingQueuePositionHandler Tests', () => {
@@ -75,6 +78,7 @@ describe('mintingQueuePositionHandler Tests', () => {
             }
         }
 
+        jest.spyOn(ActiveSessions, 'getByHandle').mockResolvedValue([]);
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-expect-error
         jest.spyOn(jwt, 'verify').mockReturnValue({ sessions });
@@ -82,11 +86,7 @@ describe('mintingQueuePositionHandler Tests', () => {
         await mintingQueuePositionHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(200);
-        expect(mockResponse.json).toHaveBeenCalledWith({
-            error: false,
-            mintingQueuePosition: 0,
-            minutes: 0
-        });
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "sessions": [] });
     });
 
     it('should send an 200 with no userTimestamp', async () => {
@@ -104,6 +104,18 @@ describe('mintingQueuePositionHandler Tests', () => {
             }
         }
 
+        jest.spyOn(ActiveSessions, 'getByHandle')
+            .mockResolvedValueOnce([
+                new ActiveSession({ handle: 'burrito', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PENDING }),
+            ]).mockResolvedValueOnce([
+                new ActiveSession({ handle: 'taco', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }),
+            ]).mockResolvedValueOnce([
+                new ActiveSession({ handle: 'enchilada', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.SUBMITTED, txId: 'txId1' }),
+            ]).mockResolvedValueOnce([
+                new ActiveSession({ handle: 'salsa', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.CONFIRMED, txId: 'txId2' }),
+            ]).mockResolvedValueOnce([
+                new ActiveSession({ handle: 'guacamole', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.REFUNDABLE }),
+            ]);
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-expect-error
         jest.spyOn(jwt, 'verify').mockReturnValue({ sessions });
@@ -112,9 +124,13 @@ describe('mintingQueuePositionHandler Tests', () => {
 
         expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({
-            error: false,
-            mintingQueuePosition: expect.any(Number),
-            minutes: expect.any(Number)
+            "error": false, "sessions": [
+                { "handle": "burrito", "type": "WAITING_FOR_PAYMENT" },
+                { "handle": "taco", "mintingPosition": { "minutes": 150, "position": 3000 }, "type": "WAITING_FOR_MINING" },
+                { "handle": "enchilada", "txId": "txId1", "type": "WAITING_FOR_CONFIRMATION" },
+                { "handle": "salsa", "txId": "txId2", "type": "CONFIRMED" },
+                { "handle": "guacamole", "type": "REFUNDED" }
+            ]
         });
     });
 });

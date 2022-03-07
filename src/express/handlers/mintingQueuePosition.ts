@@ -10,24 +10,31 @@ import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../models/ActiveSession";
 
-interface SessionStatus extends ActiveSession {
+enum SessionStatusType {
+    WAITING_FOR_PAYMENT = "WAITING_FOR_PAYMENT",
+    WAITING_FOR_MINING = "WAITING_FOR_MINING",
+    WAITING_FOR_CONFIRMATION = "WAITING_FOR_CONFIRMATION",
+    CONFIRMED = "CONFIRMED",
+    REFUNDED = "REFUNDED",
+}
+
+interface ActiveSessionWithDateAdded extends ActiveSession {
     dateAdded: number;
+}
+
+interface SessionStatus {
     mintingPosition?: {
         position: number;
         minutes: number;
     }
-}
-
-interface SessionsStatuses {
-    waitingForPayment: SessionStatus[];
-    waitingForMinting: SessionStatus[];
-    waitingForConfirmation: SessionStatus[];
-    confirmed: SessionStatus[];
+    handle: string;
+    txId?: string;
+    type: SessionStatusType;
 }
 
 interface QueuePositionResponseBody {
     error: boolean;
-    sessions: SessionsStatuses;
+    sessions: SessionStatus[];
     message?: string;
 }
 
@@ -72,10 +79,10 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
     // get all session handles
     const activeSessions = await Promise.all(sessionData.sessions.map(async session => {
         const activeSession = await ActiveSessions.getByHandle(session.handle);
-        return {
+        return activeSession.map(session => ({
             ...activeSession[0],
             dateAdded: session.dateAdded
-        } as SessionStatus;
+        })) as ActiveSessionWithDateAdded[];
     }));
 
     const [stateData, settingsData] = await Promise.all([
@@ -91,24 +98,39 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
     // - paid but waiting to be minted
     // - minted but not yet confirmed
     // - confirmed
-    const sessionStatuses = activeSessions.flat().reduce<SessionsStatuses>((memo, session) => {
+    const sessionStatuses = activeSessions.flat().reduce<SessionStatus[]>((memo, session) => {
         if (session.status === Status.PENDING) {
-            memo.waitingForPayment.push(session);
+            memo.push({
+                handle: session.handle,
+                type: SessionStatusType.WAITING_FOR_PAYMENT
+            });
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.PENDING) {
             const mintingPosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
-            memo.waitingForMinting.push({ ...session, mintingPosition } as SessionStatus);
+            memo.push({
+                handle: session.handle,
+                type: SessionStatusType.WAITING_FOR_MINING,
+                mintingPosition
+            });
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.SUBMITTED) {
-            memo.waitingForConfirmation.push(session);
+            memo.push({
+                handle: session.handle,
+                txId: session.txId,
+                type: SessionStatusType.WAITING_FOR_CONFIRMATION
+            });
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.CONFIRMED) {
-            memo.confirmed.push(session);
+            memo.push({
+                handle: session.handle,
+                txId: session.txId,
+                type: SessionStatusType.CONFIRMED
+            });
+        } else if (session.status === Status.REFUNDABLE) {
+            memo.push({
+                handle: session.handle,
+                type: SessionStatusType.REFUNDED
+            });
         }
         return memo;
-    }, {
-        waitingForPayment: [],
-        waitingForMinting: [],
-        waitingForConfirmation: [],
-        confirmed: []
-    });
+    }, []);
 
     return res.status(200).json({
         error: false,
