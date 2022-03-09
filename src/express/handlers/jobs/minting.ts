@@ -44,7 +44,7 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
     }
   }
 
-  const results = await ActiveSessions.updateWorkflowStatusAndTxIdForSessions('', '', paidSessions, WorkflowStatus.PROCESSING);
+  const results = await ActiveSessions.setPendingWorkflowStatusToProcessing(paidSessions);
   if (results.some(result => !result)) {
     Logger.log({ message: 'Error setting "processing" status', event: 'mintPaidSessionsHandler.updateSessionStatuses.processing', category: LogCategory.NOTIFY });
     return {
@@ -126,7 +126,7 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
       message: 'Transaction submission failed.'
     }
   }
-  
+
   try {
     await StateData.updateMintingWalletTxId(availableWallet, txId);
     const { walletId } = getMintingWallet(availableWallet.index);
@@ -152,7 +152,7 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
   catch (e) {
     // Since we already minted, it's safe to unlock the cron
     await StateData.unlockCron('mintPaidSessionsLock');
-    Logger.log({message: `Post-minting processing failed: ${JSON.stringify(e)}`, category: LogCategory.ERROR, event: 'mintPaidSessions.postMintProcessing'});
+    Logger.log({ message: `Post-minting processing failed: ${JSON.stringify(e)}`, category: LogCategory.ERROR, event: 'mintPaidSessions.postMintProcessing' });
     return {
       status: 500,
       error: true,

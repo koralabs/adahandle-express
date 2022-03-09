@@ -58,7 +58,7 @@ export class ActiveSessions {
     }));
   }
 
-  static async getByStatusAndWorkflow( status: Status, workflowStatus: WorkflowStatus, limit: number): Promise<ActiveSession[]> {
+  static async getByStatusAndWorkflow(status: Status, workflowStatus: WorkflowStatus, limit: number): Promise<ActiveSession[]> {
     let query = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', status).where('workflowStatus', '==', workflowStatus);
     if (limit) {
       query = query.limit(limit);
@@ -114,6 +114,32 @@ export class ActiveSessions {
         return true;
       }).catch(error => {
         Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'ActiveSessions.updateStatus.error', category: LogCategory.ERROR });
+        return false;
+      });
+    }));
+  }
+
+  static setPendingWorkflowStatusToProcessing(sessions: ActiveSession[]): Promise<boolean[]> {
+    const filteredSessions = sessions.reduce<ActiveSession[]>((acc, session) => {
+      if (session.id) {
+        acc.push(session);
+      } else {
+        Logger.log({ message: `session: ${session.paymentAddress} is missing id`, event: 'ActiveSessions.setPendingWorkflowStatusToProcessing.missing_id', category: LogCategory.ERROR });
+      }
+      return acc;
+    }, []);
+
+    return Promise.all(filteredSessions.map(async session => {
+      return admin.firestore().runTransaction(async t => {
+        const snapshot = await t.get(admin.firestore().collection(ActiveSessions.collectionName).where('id', '==', session.id).where('workflowStatus', '==', Status.PENDING))
+        if (snapshot.empty || snapshot.size > 1) {
+          return false;
+        }
+
+        t.update(snapshot.docs[0].ref, { workflowStatus: WorkflowStatus.PROCESSING });
+        return true;
+      }).catch(error => {
+        Logger.log({ message: `error: ${JSON.stringify(error)} updating ${session.id}`, event: 'setPendingWorkflowStatusToProcessing.error', category: LogCategory.ERROR });
         return false;
       });
     }));
