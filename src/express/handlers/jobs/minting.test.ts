@@ -25,7 +25,7 @@ describe('mintPaidSessionsHandler Tests', () => {
   });
 
   it('should not proceed if locked', async () => {
-    StateFixtures.state.mintPaidSessionsLock = CronState.EXECUTING;
+    StateFixtures.state.mintPaidSessionsLock = CronState.LOCKED;
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
