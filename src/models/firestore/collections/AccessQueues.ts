@@ -6,6 +6,7 @@ import { AccessQueue } from "../../AccessQueue";
 import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
 import { StateData } from "./StateData";
 import { SettingsRepo } from "./SettingsRepo";
+import { asyncForEach } from "../../../helpers/utils";
 
 export class AccessQueues {
   public static readonly collectionName = buildCollectionNameWithSuffix('accessQueues');
@@ -32,7 +33,6 @@ export class AccessQueues {
         if (snapshot.empty) {
           return false;
         }
-
         snapshot.docs.forEach(doc => {
           t.delete(doc.ref);
         });
@@ -51,7 +51,7 @@ export class AccessQueues {
 
     const queuedSnapshot = await admin.firestore().collection(AccessQueues.collectionName).where('status', '==', 'queued').orderBy('dateAdded').limit(settings.accessQueueLimit ?? 20).get();
 
-    await Promise.all(queuedSnapshot.docs.map(async doc => {
+    await asyncForEach(queuedSnapshot.docs, async (doc) => {
       const entry = doc.data();
 
       let data: VerificationInstance | null = null;
@@ -68,7 +68,7 @@ export class AccessQueues {
           const failedAccessQueue = document.data() as AccessQueue;
 
           // If there are more than 2 attempts, we need to add to a DLQ and remove the entry from the current queue
-          if (failedAccessQueue.attempts >= 3) {
+          if (failedAccessQueue.attempts >= 10) {
             Logger.log({ message: `Removing ${failedAccessQueue.email} from queue and adding to DLQ`, event: 'updateAccessQueue.removeFromQueue.error' });
             t.create(admin.firestore().collection(AccessQueues.collectionNameDLQ).doc(), new AccessQueue({ ...failedAccessQueue }).toJSON());
             t.delete(document.ref);
@@ -94,7 +94,7 @@ export class AccessQueues {
           });
         });
       }
-    }));
+    }, 5);
 
     if (queuedSnapshot.size > 0) {
       stateData.lastAccessTimestamp = Math.max(...queuedSnapshot.docs.map(doc => doc.data().dateAdded || 0));
