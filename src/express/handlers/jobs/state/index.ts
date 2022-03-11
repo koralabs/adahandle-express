@@ -23,7 +23,7 @@ export const stateHandler = async (req: express.Request, res: express.Response) 
   try {
     const settings = await SettingsRepo.getSettings();
     const accessQueueSize = await AccessQueues.getAccessQueueCount();
-    const mintingQueueSize = (await ActiveSessions.getPaidPendingSessions({ limit: 20000 })).length;
+    const mintingQueueSize = (await ActiveSessions.getPaidPendingSessions({ limit: 0 })).length;
     const chainLoad = await getChainLoad() ?? 0;
     const totalHandles = await getTotalHandles() || 0;
     const state = await StateData.getStateData();
@@ -50,6 +50,7 @@ export const stateHandler = async (req: express.Request, res: express.Response) 
       handlePrices
     } as StateResponseBody);
   } catch (e) {
+    Logger.log({ message: JSON.stringify(e), event: 'stateHandler.run', category: LogCategory.ERROR });
     return res.status(500).json({
       error: true,
       message: e
