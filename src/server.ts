@@ -10,9 +10,9 @@ import { Firebase } from './helpers/firebase';
 
 const startApp = async () => {
   // If either is set to production, they both should be production or exit  
-  if (process.env.NODE_ENV?.trim() === 'production' || process.env.Machine_Environment?.trim() === 'production'){
-    if (process.env.NODE_ENV?.trim() != process.env.Machine_Environment?.trim()){
-      Logger.log({ message: `NODE_ENV is set to ${process.env.NODE_ENV?.trim() || '' } but Machine_Environment is '${process.env.Machine_Environment?.trim() || ''}'`, event: 'server.start', category: LogCategory.NOTIFY });
+  if (process.env.NODE_ENV?.trim() === 'production' || process.env.MAC_ENV?.trim() === 'production'){
+    if (process.env.NODE_ENV?.trim() != process.env.MAC_ENV?.trim()){
+      Logger.log({ message: `NODE_ENV is set to ${process.env.NODE_ENV?.trim() || '' } but Machine_Environment is '${process.env.MAC_ENV?.trim() || ''}'`, event: 'server.start', category: LogCategory.NOTIFY });
       return;
     }
   }
