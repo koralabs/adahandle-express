@@ -6,7 +6,7 @@ const defaultSettings = {
     dynamicPricingEnabled: false,
     paidSessionsLimit: 28,
     accessCodeTimeoutMinutes: 60,
-    availableMintingServers: 'testnet01,testnet02',
+    availableMintingServers: 'mainnet01,mainnet02',
     usedAddressesLimit: 50,
     accessQueueLimit: 10000,
     chainLoadThresholdPercent: 95,
@@ -49,13 +49,17 @@ const defaultSettings = {
             maximum: 995
         }
     },
-    walletAddressCollectionName: 'walletAddreses'
+    walletAddressCollectionName: 'walletAddreses',
+    priceTestMode: 'OFF',
+    minimumWalletAddressAmount: '10000',
+    mintingPageEnabled: true,
+    priceAdaUsdTest: 0
 }
 
 const setDefaults = async () => {
     await Firebase.init();
-    await admin.firestore().collection("stateData_dev").doc('settings').update(defaultSettings);
-    const doc = await admin.firestore().collection("stateData_dev")
+    await admin.firestore().collection("stateData").doc('settings').update(defaultSettings);
+    const doc = await admin.firestore().collection("stateData")
         .doc('settings')
         .get();
     console.log(doc.data());

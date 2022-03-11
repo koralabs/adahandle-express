@@ -12,6 +12,7 @@ import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, Status, WorkflowStatus } from "../../../models/ActiveSession";
 import { getMintingWallet } from "../../../helpers/constants";
+import { CronState, State } from "../../../models/State";
 
 interface MintSessionsResponse {
   status: number
@@ -20,11 +21,10 @@ interface MintSessionsResponse {
   txId?: string
 }
 
-const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSessionsResponse> => {
+const mintPaidSessions = async (availableWallet: MintingWallet, state: State): Promise<MintSessionsResponse> => {
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintPaidSessions processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintPaidSessions.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-  const state = await StateData.getStateData();
   const settings = await SettingsRepo.getSettings();
   if (state.chainLoad > settings.chainLoadThresholdPercent) {
     return {
@@ -163,6 +163,7 @@ const mintPaidSessions = async (availableWallet: MintingWallet): Promise<MintSes
 }
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
+  const state = await StateData.getStateData();
   let availableWallet: MintingWallet | null = null;
   try {
     availableWallet = await StateData.findAvailableMintingWallet();
@@ -182,7 +183,8 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
       });
     }
 
-    if (!await StateData.checkAndLockCron('mintPaidSessionsLock')) {
+    // This cron works slightly differently since multiple servers are allowed to call it.
+    if ([CronState.LOCKED, CronState.DEPLOYING].includes(state.mintPaidSessionsLock)) {
       await StateData.unlockMintingWallet(availableWallet);
       return res.status(200).json({
         error: false,
@@ -190,7 +192,9 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
       });
     }
 
-    const { status, error, message, txId } = await mintPaidSessions(availableWallet);
+    StateData.lockCron('mintPaidSessionsLock');
+
+    const { status, error, message, txId } = await mintPaidSessions(availableWallet, state);
 
     // Unlock the available wallet if there wasn't a transaction or an error occurred.
     if (!txId) {
