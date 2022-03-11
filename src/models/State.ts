@@ -1,50 +1,86 @@
 import { BaseModel } from "./BaseModel";
 
-export enum CollectionLimitName {
-    ACCESS_QUEUE_LIMIT = "accessQueue_limit",
-    PAID_SESSIONS_LIMIT = "paidSessions_limit",
-    MINT_CONFIRMED_PAID_SESSIONS_LIMIT = "mintConfirmPaidSessions_limit",
+export enum CronState {
+    LOCKED = 'LOCKED',
+    UNLOCKED = 'UNLOCKED',
+    EXECUTING = 'EXECUTING',
+    DEPLOYING = 'DEPLOYING'
+}
+
+export enum WalletState {
+    AVAILABLE = 'AVAILABLE',
+    RESERVED = 'RESERVED',
+    SUBMITTING = 'SUBMITTING',
+    CONFIRMING = 'CONFIRMING'
 }
 
 interface StateConstructor {
+    updateActiveSessionsLock?: CronState;
+    mintPaidSessionsLock?: CronState;
+    sendAuthCodesLock?: CronState;
+    saveStateLock?: CronState;
+    mintConfirmLock?: CronState;
+    refundsLock?: CronState;
     chainLoad?: number;
-    position: number;
-    totalHandles: number;
-    updateActiveSessions_lock?: boolean;
-    mintPaidSessions_lock?: boolean;
-    accessQueue_limit?: number;
-    paidSessions_limit?: number;
-    mintConfirmPaidSessions_limit?: number;
+    accessQueueSize: number;
+    mintingQueueSize: number;
+    totalHandles?: number;
+    lastMintingTimestamp?: number;
+    lastAccessTimestamp?: number;
+    handlePrices?: { basic: number, common: number, rare: number, ultraRare: number };
+    adaUsdQuoteHistory: number[];
+    lastQuoteTimestamp: number;
 }
 
 export class State extends BaseModel {
+    public updateActiveSessionsLock: CronState;
+    public mintPaidSessionsLock: CronState;
+    public sendAuthCodesLock: CronState;
+    public saveStateLock: CronState;
+    public mintConfirmLock: CronState;
+    public refundsLock?: CronState;
     public chainLoad: number;
-    public position: number;
-    public totalHandles: number;
-    public updateActiveSessions_lock: boolean;
-    public mintPaidSessions_lock: boolean;
-    public accessQueue_limit: number;
-    public paidSessions_limit: number;
-    public mintConfirmPaidSessions_limit: number;
+    public totalHandles?: number;
+    public accessQueueSize: number;
+    public mintingQueueSize: number;
+    public lastMintingTimestamp: number;
+    public lastAccessTimestamp: number;
+    public handlePrices?: { basic: number, common: number, rare: number, ultraRare: number };
+    public adaUsdQuoteHistory: number[];
+    public lastQuoteTimestamp: number;
 
     constructor({
+        updateActiveSessionsLock,
+        sendAuthCodesLock,
+        saveStateLock,
+        mintConfirmLock,
+        mintPaidSessionsLock,
+        refundsLock,
         chainLoad,
-        position,
         totalHandles,
-        updateActiveSessions_lock,
-        mintPaidSessions_lock,
-        accessQueue_limit = 20,
-        paidSessions_limit = 10,
-        mintConfirmPaidSessions_limit = 500,
+        accessQueueSize,
+        mintingQueueSize,
+        lastMintingTimestamp = Date.now(),
+        lastAccessTimestamp = Date.now(),
+        handlePrices = { basic: 10, common: 50, rare: 100, ultraRare: 500 },
+        adaUsdQuoteHistory,
+        lastQuoteTimestamp
     }: StateConstructor) {
         super();
+        this.mintPaidSessionsLock = mintPaidSessionsLock ?? CronState.UNLOCKED;
+        this.updateActiveSessionsLock = updateActiveSessionsLock ?? CronState.UNLOCKED;
+        this.refundsLock = refundsLock ?? CronState.UNLOCKED;
+        this.sendAuthCodesLock = sendAuthCodesLock ?? CronState.UNLOCKED;
+        this.saveStateLock = saveStateLock ?? CronState.UNLOCKED;
+        this.mintConfirmLock = mintConfirmLock ?? CronState.UNLOCKED;
         this.chainLoad = chainLoad ?? 0;
-        this.position = position;
         this.totalHandles = totalHandles;
-        this.mintPaidSessions_lock = mintPaidSessions_lock ?? false;
-        this.updateActiveSessions_lock = updateActiveSessions_lock ?? false;
-        this.accessQueue_limit = accessQueue_limit;
-        this.paidSessions_limit = paidSessions_limit;
-        this.mintConfirmPaidSessions_limit = mintConfirmPaidSessions_limit;
+        this.accessQueueSize = accessQueueSize;
+        this.mintingQueueSize = mintingQueueSize;
+        this.lastMintingTimestamp = lastMintingTimestamp;
+        this.lastAccessTimestamp = lastAccessTimestamp;
+        this.handlePrices = handlePrices;
+        this.adaUsdQuoteHistory = adaUsdQuoteHistory;
+        this.lastQuoteTimestamp = lastQuoteTimestamp;
     }
 }

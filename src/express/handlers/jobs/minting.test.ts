@@ -1,11 +1,11 @@
-import { mocked } from "ts-jest/utils";
-import { getChainLoad } from "../../../helpers/cardano";
 import { StateData } from "../../../models/firestore/collections/StateData";
-import { State } from "../../../models/State";
 import { mintPaidSessionsHandler } from "./minting";
+import * as StateFixtures from "../../../tests/stateFixture";
+import { CronState } from "../../../models/State";
 
-jest.mock('../../../models/firestore/collections/StateData');
+jest.mock('../../../models/firestore/collections/ActiveSession');
 jest.mock('../../../helpers/cardano');
+StateFixtures.setupStateFixtures();
 
 describe('mintPaidSessionsHandler Tests', () => {
   let mockRequest: Partial<Request>;
@@ -25,21 +25,40 @@ describe('mintPaidSessionsHandler Tests', () => {
   });
 
   it('should not proceed if locked', async () => {
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .77, position: 10, updateActiveSessions_lock: false, mintPaidSessions_lock: true, totalHandles: 171 }));
+    StateFixtures.state.mintPaidSessionsLock = CronState.LOCKED;
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Minting cron is locked. Try again later." });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Mint Paid Sessions cron is locked. Try again later." });
+  });
+
+  it('should not proceed if minting wallet balance is lower than minimum balance', async () => {
+    StateFixtures.state.mintPaidSessionsLock = CronState.UNLOCKED;
+    StateFixtures.mintingWallet.balance = 99;
+    // @ts-expect-error mocking response
+    await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Not enough balance in wallet." });
   });
 
   it('should not proceed if chain load is too high', async () => {
-    jest.spyOn(StateData, 'getStateData').mockResolvedValue(new State({ chainLoad: .90, position: 10, updateActiveSessions_lock: false, mintPaidSessions_lock: false, totalHandles: 171 }));
-    mocked(getChainLoad).mockResolvedValue(.90);
+    StateFixtures.state.chainLoad = .90;
+    StateFixtures.mintingWallet.balance = 1000;
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Chain load is too high." });
+  });
+
+  it('should not proceed if there are no available minting wallets', async () => {
+    jest.spyOn(StateData, 'findAvailableMintingWallet').mockResolvedValue(null);
+    // @ts-expect-error mocking response
+    await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(200);
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "No available minting wallets." });
   });
 });

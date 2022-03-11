@@ -1,39 +1,39 @@
 import { Firebase } from "../helpers/firebase";
-import { PaidSessions } from "../models/firestore/collections/PaidSessions";
-import { PaidSession } from "../models/PaidSession";
+import { ActiveSessions } from "../models/firestore/collections/ActiveSession";
+import { ActiveSession, Status } from "../models/ActiveSession";
+import { CreatedBySystem } from "../helpers/constants";
 
 
 const run = async () => {
     await Firebase.init();
 
-    const paidSession = new PaidSession({
+    const paidSession = new ActiveSession({
         emailAddress: '+12223334444',
         cost: 0,
         handle: 'burritos',
-        wallet: {
-            address: `addr_test${new Date().getTime()}`
-        },
+        paymentAddress: `addr_test${new Date().getTime()}`,
         start: 1234,
+        createdBySystem: CreatedBySystem.UI
     });
 
-    const paidSession2 = new PaidSession({
+    const paidSession2 = new ActiveSession({
         emailAddress: '+12223334444',
         cost: 0,
         handle: 'tacos',
-        wallet: {
-            address: `addr_test${new Date().getTime() + 1}`
-        },
+        paymentAddress: `addr_test${new Date().getTime() + 1}`,
         start: 1234,
+        createdBySystem: CreatedBySystem.UI
     });
 
-    await PaidSessions.addPaidSessions([paidSession, paidSession2]);
+    await ActiveSessions.addActiveSessions([paidSession, paidSession2]);
 
-    const paidSessions = await PaidSessions.getPaidSessionsUnsafe();
+    const paidSessions = await ActiveSessions.getByStatus({statusType: Status.PAID });
     console.log('paidSessions', paidSessions);
 
-    await PaidSessions.removeAndAddToDLQ([paidSession]);
+    paidSession.status = Status.DLQ;
+    await ActiveSessions.updateSessions([paidSession]);
 
-    const allPaidSessions = await PaidSessions.getPaidSessionsUnsafe();
+    const allPaidSessions = await ActiveSessions.getByStatus({statusType: Status.PAID });
     console.log('allPaidSessions', allPaidSessions);
 
     process.exit();

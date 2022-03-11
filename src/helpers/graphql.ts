@@ -5,22 +5,8 @@ import { getFingerprint } from './utils';
 export interface WalletSimplifiedBalance {
   address: string;
   amount: number;
-}
-
-interface GraphqlGenesisSettings {
-  genesis: {
-    shelley: {
-      protocolParams: {
-        maxTxSize: number;
-        minUTxOValue: number;
-        minFeeA: number;
-        minFeeB: number;
-        poolDeposit: number;
-        keyDeposit: number;
-        maxValSize: number;
-      }
-    }
-  }
+  txHash?: string;
+  index?: number;
 }
 
 export interface GraphqlCardanoPaymentAddress {
@@ -57,6 +43,9 @@ export interface GraphqlCardanoSenderAddress {
   }[],
   outputs: {
     address: string;
+    index: number;
+    txHash: string;
+    value?: string;
   }[]
 }
 
@@ -82,41 +71,16 @@ interface GraphqlCardanoAssetExistsResult {
   }
 }
 
-interface GraphqlCardanoReturnAddress {
-  address: string;
+export interface StakePoolDetails {
+  url: string;
+  id: string;
+  rewardAddress: string;
+  owners: { hash: string }[];
 }
 
-interface GraphqlCardanoSpecifications {
-  tip: {
-    slotNo: number;
-  }
-  currentEpoch: {
-    protocolParams: {
-      maxBlockBodySize: number;
-      maxTxSize: number;
-    }
-  }
-}
-
-interface GraphqlResponse {
+interface GraphqlStakePoolsResult {
   data: {
-    cardano: GraphqlCardanoSpecifications;
-    paymentAddresses: GraphqlCardanoPaymentAddress[];
-    genesis: GraphqlGenesisSettings;
-  }
-}
-
-interface GraphqlPaymentAddressResponse {
-  data: {
-    address: string;
-    summary: {
-      assetBalances: {
-        quantity: string;
-        asset: {
-          assetName: string;
-        }
-      }[]
-    }
+    stakePools: StakePoolDetails[]
   }
 }
 
@@ -202,15 +166,25 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
     if (!ada) {
       return {
         address: paymentAddress.address,
-        amount: 0
-      };
+        amount: 0,
+      } as WalletSimplifiedBalance;
     }
 
     return {
       address: paymentAddress.address,
-      amount: parseInt(ada.quantity)
-    };
+      amount: parseInt(ada.quantity),
+    } as WalletSimplifiedBalance;
   });
+
+  const addressesWithPayments = checkedAddresses.filter(address => address.amount && address.amount > 0)
+  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address || ''));
+  if (returnAddresses) {
+    addressesWithPayments.forEach((address, index) => {
+      address.address = returnAddresses[index].address;
+      address.index = returnAddresses[index].index;
+      address.txHash = returnAddresses[index].txHash;
+    });
+  }
 
   return checkedAddresses;
 }
@@ -269,7 +243,7 @@ export const handleExists = async (handle: string): Promise<GraphqlHandleExistsR
 
 export const lookupReturnAddresses = async (
   receiverAddresses: string[]
-): Promise<string[] | null> => {
+): Promise<WalletSimplifiedBalance[] | null> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
     method: 'POST',
@@ -291,11 +265,14 @@ export const lookupReturnAddresses = async (
               }
             }
           ) {
+            includedAt
             outputs(
               order_by:{
                 index:asc
               }
             ){
+              index
+              txHash
               address
             }
 
@@ -314,14 +291,96 @@ export const lookupReturnAddresses = async (
     return null;
   }
 
+  // TODO: check includedAt to make sure valid transaction
+
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
     const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
-    return [cleanedOutputs[0].address, tx.inputs[0].address]
+    return [cleanedOutputs[0].address, {address: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index}];
   }));
-  const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as string[];
-
+  const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as WalletSimplifiedBalance[];
   return orderedTransactions;
+}
+
+export const lookupTransaction = async (
+  address: string
+): Promise<{
+  totalPayments: number;
+  returnAddress?: string;
+  txHash?: string;
+  index?: number;
+}> => {
+  const url = getGraphqlEndpoint();
+  const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      variables: {
+        address,
+      },
+      query: `
+        query ($address: String!) {
+          transactions(
+            where:{
+              outputs:{
+                address:{
+                  _eq: $address
+                }
+              }
+            }
+          ) {
+            includedAt
+            outputs(
+              order_by:{
+                index:asc
+              }
+            ){
+              address
+              value
+              txHash
+              index
+            }
+
+            inputs(
+              limit:1,
+            ) {
+              address
+            }
+          }
+        }
+      `,
+    })
+  }).then(res => res.json())
+
+  let totalPayments = 0
+  let returnAddress, txHash, index;
+  res?.data?.transactions?.forEach(t => {
+    const outputSum = t.outputs.reduce((acc, output) => {
+      if (output.address === address && output.value) {
+        txHash = output.txHash
+        index = output.index
+        return acc + parseFloat(output.value);
+      }
+
+      return acc;
+    }, 0);
+
+    totalPayments += outputSum;
+
+    const returnInput = t.inputs.find(input => input.address != address);
+    if (returnInput) {
+      returnAddress = returnInput.address;
+    }
+  });
+
+  return {
+    totalPayments,
+    returnAddress,
+    txHash,
+    index
+  };
 }
 
 export const lookupLocation = async (
@@ -418,4 +477,44 @@ export const getCurrentSlotNumberFromTip = async (): Promise<number> => {
   } = res.data;
 
   return slotNo;
+}
+
+export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolDetails[]> => {
+  const url = getGraphqlEndpoint();
+  const res: GraphqlStakePoolsResult = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      variables: {
+        addresses,
+      },
+      query: `
+      query ($addresses: [String!]!) {
+        stakePools(where: {
+            id: {
+              _in: $addresses
+            }
+          }) {
+          url
+          id
+          rewardAddress
+          owners {
+            hash
+          }
+        }
+      `,
+    })
+  }).then(res => res.json())
+
+  if (!res?.data) {
+    throw new Error('Unable to query stake pools.');
+  }
+
+  const {
+    stakePools
+  } = res.data;
+
+  return stakePools;
 }

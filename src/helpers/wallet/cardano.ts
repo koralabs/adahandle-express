@@ -1,9 +1,5 @@
 import * as wallet from "cardano-wallet-js";
-import { getMintingWalletId, getWalletEndpoint } from "../constants";
-
-export interface NewAddress {
-    address: string;
-}
+import { getPaymentWalletId, getWalletEndpoint } from "../constants";
 
 export const getWalletServer = () => {
     return wallet.WalletServer.init(
@@ -11,7 +7,12 @@ export const getWalletServer = () => {
     );
 }
 
-export const getMintWalletServer = async (): Promise<wallet.ShelleyWallet> => {
+export const getMintWalletServer = async (mintingWalletId: string): Promise<wallet.ShelleyWallet> => {
     const walletServer = getWalletServer();
-    return walletServer.getShelleyWallet(getMintingWalletId());
+    return walletServer.getShelleyWallet(mintingWalletId);
+}
+
+export const getPaymentWalletServer = async (): Promise<wallet.ShelleyWallet> => {
+    const walletServer = getWalletServer();
+    return walletServer.getShelleyWallet(getPaymentWalletId());
 }

@@ -1,7 +1,7 @@
 import * as express from "express";
 import * as compression from 'compression';
 import * as helmet from 'helmet';
-import * as sgMail from '@sendgrid/mail';
+import * as cookieParser from 'cookie-parser';
 import { urlencoded, json } from 'body-parser'
 import Router from 'express-promise-router';
 
@@ -12,16 +12,18 @@ import { sessionHandler } from "./handlers/session";
 import { handleExistsHandler } from "./handlers/exists";
 import { paymentConfirmedHandler } from "./handlers/payment";
 import { locationHandler } from './handlers/location';
-import { stateHandler } from './handlers/jobs/state';
 
 // Jobs
+import { stateHandler } from './handlers/jobs/state';
 import { sendAuthCodesHandler } from './handlers/jobs/auth';
 import { mintPaidSessionsHandler } from './handlers/jobs/minting';
 import { updateSessionsHandler } from './handlers/jobs/sessions';
 import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
+import { refundsHandler } from "./handlers/jobs/refunds";
+import { searchHandler } from "./handlers/search";
+import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
 
 export const startServer = async () => {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
   const app = express();
   const router = Router();
 
@@ -30,6 +32,7 @@ export const startServer = async () => {
   app.use(compression());
   app.use(helmet());
   app.use(router);
+  app.use(cookieParser());
 
   // Set headers.
   app.use(function (req, res, next) {
@@ -43,11 +46,13 @@ export const startServer = async () => {
 
   // Handlers
   app.post("/queue", postToQueueHandler);
+  app.post("/mintingQueuePosition", mintingQueuePositionHandler);
   app.get("/payment", paymentConfirmedHandler);
   app.get("/exists", handleExistsHandler);
   app.get("/verify", verifyHandler);
   app.get("/session", sessionHandler);
   app.get("/location", locationHandler);
+  app.get('/search', searchHandler);
 
   // Jobs
   app.post("/state", stateHandler);
@@ -55,6 +60,7 @@ export const startServer = async () => {
   app.post('/updateActiveSessions', updateSessionsHandler);
   app.post('/mintPaidSessions', mintPaidSessionsHandler);
   app.post('/mintConfirm', mintConfirmHandler);
+  app.post('/refunds', refundsHandler);
 
   app.listen(3000);
 }

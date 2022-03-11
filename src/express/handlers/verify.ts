@@ -1,11 +1,11 @@
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
 
-import { HEADER_EMAIL, HEADER_EMAIL_AUTH, MAX_ACCESS_LENGTH } from "../../helpers/constants";
-import { removeAccessQueueData } from "../../helpers/firebase";
+import { HEADER_EMAIL, HEADER_EMAIL_AUTH } from "../../helpers/constants";
+import { removeAccessQueueData, getAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
-import { getTwilioClient, getTwilioVerify } from "../../helpers/twilo";
 import { LogCategory, Logger } from "../../helpers/Logger";
+import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 
 interface VerifyResponseBody {
   error: boolean;
@@ -25,7 +25,9 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
     } as VerifyResponseBody)
   }
 
-  if (!req.headers[HEADER_EMAIL_AUTH]) {
+  const authCode = req.headers[HEADER_EMAIL_AUTH];
+
+  if (!authCode) {
     return res.status(400).json({
       error: true,
       message: 'Missing email authentication code.'
@@ -34,27 +36,26 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
 
   let token: string | null;
   try {
-    const email = req.headers[HEADER_EMAIL] as string;
-    const client = getTwilioClient();
-    const service = await getTwilioVerify();
 
-    const status = await client
-      .verify
-      .services(service.sid)
-      .verificationChecks
-      .create({
-        to: email,
-        code: req.headers[HEADER_EMAIL_AUTH] as string,
-      })
-      .then(res => res.status)
-      .catch(e => Logger.log(JSON.stringify({
-        email,
-        auth: req.headers[HEADER_EMAIL_AUTH],
-        sid: service.sid,
-        e
-      })));
+    const decodedAuth = Buffer.from(authCode as string, 'base64').toString('utf8');
 
-    if ('approved' !== status) {
+    const ref = decodedAuth.split('|')[0];
+    const email = decodedAuth.split('|')[1];
+
+    const access = await getAccessQueueData(ref);
+
+    if (!access || email != access.email) {
+      await removeAccessQueueData(email);
+      return res.status(403).json({
+        verified: false,
+        error: true,
+        message: 'Invalid access code.'
+      } as VerifyResponseBody)
+    }
+
+    const settings = await SettingsRepo.getSettings();
+    if ((access.start ?? 0) < (Date.now() - (settings.accessCodeTimeoutMinutes * 1000 * 60))) {
+      await removeAccessQueueData(email);
       return res.status(403).json({
         verified: false,
         error: true,
@@ -63,6 +64,8 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
     } else {
       // Remove the number from the access queue.
       await removeAccessQueueData(email);
+
+      const expireDateInSeconds = settings.accessWindowTimeoutMinutes * 60
 
       const secretKey = await getKey('access');
       token = secretKey && jwt.sign(
@@ -74,11 +77,12 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
            * of the session lifecycle, and set a corresponding
            * expirey on the local cookie.
            */
-          emailAddress: email
+          emailAddress: email,
+          isSPO: false
         },
         secretKey,
         {
-          expiresIn: Math.floor(MAX_ACCESS_LENGTH / 1000)
+          expiresIn: expireDateInSeconds
         }
       );
     }
@@ -92,6 +96,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
 
   Logger.log(getLogMessage(startTime))
 
+  res.cookie('sessionTimestamp', Date.now());
   return token && res.status(200).json({
     error: false,
     verified: true,

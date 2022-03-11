@@ -1,25 +1,17 @@
 import * as wallet from 'cardano-wallet-js';
 import { AddressWallet } from 'cardano-wallet-js';
 import { ReservedHandles } from '../../models/firestore/collections/ReservedHandles';
-
-import { PaidSession } from "../../models/PaidSession";
-import { getMintingWalletSeedPhrase, getPolicyId, getPolicyPrivateKey } from '../constants';
-import { GraphqlCardanoSenderAddress, lookupReturnAddresses } from "../graphql";
-import { getIPFSImage } from '../image';
+import { ActiveSessions } from '../../models/firestore/collections/ActiveSession';
+import { getMintingWallet, getPolicyId, getPolicyPrivateKey } from '../constants';
+import { GraphqlCardanoSenderAddress } from "../graphql";
+import { getIPFSImage, createNFTImages } from '../image';
 import { LogCategory, Logger } from '../Logger';
 import { getMintWalletServer, getWalletServer } from './cardano';
 import { asyncForEach } from '../utils';
-
-export const getTransactionsFromPaidSessions = async (sessions: PaidSession[]): Promise<string[]> => {
-  const transactions = await lookupReturnAddresses(sessions.map(session => session.wallet.address));
-  if (!transactions || transactions.length < 1) {
-    throw new Error(
-      'Unable to find transactions.'
-    );
-  }
-
-  return transactions;
-}
+import { MintingWallet } from "../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
+import { ActiveSession } from '../../models/ActiveSession';
+import { applyAxiosResponeInterceptor } from "../../helpers/http"
 
 export const getAddressWalletsFromTransactions = async (txs: GraphqlCardanoSenderAddress[]): Promise<wallet.AddressWallet[]> => {
   return txs.map((tx, index) => {
@@ -62,44 +54,43 @@ export const getPolicyScript = () => {
   return script;
 }
 
-export const generateMetadataFromPaidSessions = async (sessions: PaidSession[]): Promise<Record<string, unknown>> => {
+export const generateMetadataFromPaidSessions = async (sessions: ActiveSession[]): Promise<Record<string, unknown>> => {
   Logger.log({ message: `Generating metadata for ${sessions.length} Handles.`, event: 'mintHandlesAndSend' });
+  const settings = await SettingsRepo.getSettings();
 
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
 
+  await createNFTImages(sessions);
+
   const handlesMetadata = await asyncForEach(sessions, async (session) => {
-      const og = twitterHandles.includes(session.handle);
-      let ipfs: string;
-      try {
-        ipfs = await getIPFSImage(
-          session.handle,
-          og,
-          twitterHandles.indexOf(session.handle),
-          twitterHandles.length
-        );
-      } catch(e) {
-        Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
-        throw e;
-      }
+    const og = twitterHandles.some(({ handle: twitterHandle, index }) => twitterHandle === session.handle && index);
+    let ipfs: string;
+    try {
+      ipfs = await getIPFSImage(session.handle);
+      session.ipfsHash = ipfs;
+    } catch (e) {
+      Logger.log({ message: `Generating metadata for ${JSON.stringify(session)} failed.`, event: 'generateMetadataFromPaidSessions.getIPFSImage', category: LogCategory.NOTIFY });
+      throw e;
+    }
 
-      const metadata = {
-        name: `$${session.handle}`,
-        description: "The Handle Standard",
-        website: "https://adahandle.com",
-        image: `ipfs://${ipfs}`,
-        core: {
-          og: +og,
-          termsofuse: "https://adahandle.com/tou",
-          handleEncoding: "utf-8",
-          prefix: '$',
-          version: 0,
-        },
-        augmentations: [],
-      }
+    const metadata = {
+      name: `$${session.handle}`,
+      description: "The Handle Standard",
+      website: "https://adahandle.com",
+      image: `ipfs://${ipfs}`,
+      core: {
+        og: +og,
+        termsofuse: "https://adahandle.com/tou",
+        handleEncoding: "utf-8",
+        prefix: '$',
+        version: 0,
+      },
+      augmentations: [],
+    }
 
-      return metadata;
-    }, 1000); // <- 1 second delay between API calls
+    return metadata;
+  }, settings.ipfsRateDelay); // <- 1 second delay between API calls
 
   // Setup our metadata JSON object.
   const data = {
@@ -154,15 +145,19 @@ export const consolidateChanges = (changes: wallet.ApiCoinSelectionChange[]): wa
   return newChange;
 }
 
-export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) => {
+export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[], mintingWalletDetails: MintingWallet) => {
   const networkConfig = getNetworkConfig();
 
   // Wallets.
-  const walletServer = getWalletServer();
-  const ourWallet = await getMintWalletServer();
+  const { walletId, seedPhrase } = getMintingWallet(mintingWalletDetails.index);
+  const ourWallet = await getMintWalletServer(walletId);
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  applyAxiosResponeInterceptor(ourWallet.coinSelectionsApi.axios);
 
   // Purchase data.
-  const returnAddresses = await getTransactionsFromPaidSessions(sessions);
+  const returnAddresses = sessions.map(session => session.returnAddress).filter(Boolean) as string[];
   const returnWallets = returnAddresses.map(addr => new AddressWallet(addr));
 
   // Policy data.
@@ -175,6 +170,9 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
   const tokens = assets.map(asset => new wallet.TokenWallet(asset, script, [keyPair]));
   const amounts = assets.map((_asset, index) => wallet.Seed.getMinUtxoValueWithAssets([assets[index]], networkConfig));
   const data = await generateMetadataFromPaidSessions(sessions);
+
+  // Update sessions with IPFS hashes
+  await ActiveSessions.updateSessions(sessions);
 
   // Get coin selection structure (without the assets).
   const coinSelection = await ourWallet.getCoinSelection(
@@ -193,7 +191,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
   }
 
   // Add signing keys.
-  const recoveryPhrase = getMintingWalletSeedPhrase();
+  const recoveryPhrase = seedPhrase;
   const rootKey = wallet.Seed.deriveRootKey(recoveryPhrase);
   const signingKeys = coinSelection.inputs.map((i) => {
     return wallet.Seed.deriveKey(rootKey, i.derivation_path).to_raw_key();
@@ -204,7 +202,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
     .filter((token) => token.scriptKeyPairs)
     .forEach((token) =>
       signingKeys.push(
-        ...token.scriptKeyPairs!.map((k) => k.privateKey.to_raw_key())
+        ...token.scriptKeyPairs!.map((k) => k.privateKey.to_raw_key()) // eslint-disable-line
       )
     );
 
@@ -230,6 +228,7 @@ export const buildTransactionFromPaidSessions = async (sessions: PaidSession[]) 
   coinSelection.change = consolidateChanges(coinSelection.change);
 
   // Time to live.
+  const walletServer = getWalletServer();
   const info = await walletServer.getNetworkInformation();
   const ttl = info.node_tip.absolute_slot_number + 12000;
 

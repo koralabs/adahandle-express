@@ -23,6 +23,7 @@
   "exclude": [
     "node_modules",
     "functions",
+    "src/scripts",
     "**/*.test.ts"
   ]
 }

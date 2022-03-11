@@ -1,37 +1,34 @@
 import * as express from "express";
 import fetch from 'cross-fetch';
-
-import { PaidSessions } from '../../../models/firestore/collections/PaidSessions';
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { CronJobLockName, StateData } from "../../../models/firestore/collections/StateData";
-import { getMintWalletServer } from "../../../helpers/wallet/cardano";
-import { PaidSession } from "../../../models/PaidSession";
+import { StateData } from "../../../models/firestore/collections/StateData";
+import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
 import { awaitForEach } from "../../../helpers/utils";
-import { ApiTransactionStatusEnum, TransactionWallet } from "cardano-wallet-js";
-import { getMintingWalletId, getWalletEndpoint } from "../../../helpers/constants";
-import { CollectionLimitName } from "../../../models/State";
-
-const CRON_JOB_LOCK_NAME = CronJobLockName.MINT_CONFIRM_LOCK;
+import { ApiTransactionStatusEnum } from "cardano-wallet-js";
+import { getWalletEndpoint } from "../../../helpers/constants";
+import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
+import { ActiveSession, WorkflowStatus } from "../../../models/ActiveSession";
 
 export const mintConfirmHandler = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintConfirmHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintConfirmHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
-  const stateData = await StateData.getStateData();
-  if (stateData[CRON_JOB_LOCK_NAME]) {
-    Logger.log({ message: `Cron job ${CRON_JOB_LOCK_NAME} is locked`, event: 'mintConfirmHandler.locked', category: LogCategory.NOTIFY });
+
+  if (!await StateData.checkAndLockCron('mintConfirmLock')) {
     return res.status(200).json({
       error: false,
-      message: 'Mint confirm cron is locked. Try again later.'
+      message: 'Mint Confirm cron is locked. Try again later.'
     });
   }
 
-  const limit = stateData[CollectionLimitName.MINT_CONFIRMED_PAID_SESSIONS_LIMIT];
+  const settings = await SettingsRepo.getSettings();
+
+  const limit = settings.mintConfirmPaidSessionsLimit;
   // get paid sessions with status 'submitted'
-  const paidSessions = await PaidSessions.getByStatus({ statusType: 'submitted', limit });
-  const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, PaidSession[]>>((acc, session) => {
+  const paidSessions = await ActiveSessions.getPaidSubmittedSessions({ limit });
+  const groupedPaidSessionsByTxIdMap = paidSessions.reduce<Map<string, ActiveSession[]>>((acc, session) => {
     if (session.txId) {
       const sessions = acc.get(session.txId) ?? [];
-      acc.set(session.txId, [...sessions, session as PaidSession]);
+      acc.set(session.txId, [...sessions, session]);
     }
     return acc;
   }, new Map());
@@ -39,9 +36,11 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
   await awaitForEach<string>([...groupedPaidSessionsByTxIdMap.keys()], async (txId) => {
     let transactionResponse: Response | undefined;
 
+    const sessions = groupedPaidSessionsByTxIdMap.get(txId) as ActiveSession[];
+    const mintingWalletID = sessions[0].walletId;
+
     try {
       const walletEndpoint = getWalletEndpoint();
-      const mintingWalletID = getMintingWalletId();
       transactionResponse = await fetch(
         `${walletEndpoint}/wallets/${mintingWalletID}/transactions/${txId}`,
         {
@@ -63,17 +62,19 @@ export const mintConfirmHandler = async (req: express.Request, res: express.Resp
     Logger.log({ message: `status: ${status} & depth: ${depth} for txId: ${txId}`, event: 'mintConfirmHandler.getTransaction.details' });
     // check the wallet for block depth (Assurance level) is >= 5 set to 'confirmed'
     if (status === ApiTransactionStatusEnum.InLedger && depth >= 5) {
-      await PaidSessions.updateSessionStatusesByTxId(txId, 'confirmed');
+      await ActiveSessions.updatePaidSessionsWorkflowStatusesByTxId(txId, WorkflowStatus.CONFIRMED);
+      await StateData.unlockMintingWalletByTxId(txId);
       return;
     }
 
     // if transaction is "expired", revert back to 'pending'
     if (status === ApiTransactionStatusEnum.Expired) {
       // if transaction attempts is > 3, move to DLQ and notify team
-      await PaidSessions.updateSessionStatusesByTxId(txId, 'expired');
+      await ActiveSessions.updatePaidSessionsWorkflowStatusesByTxId(txId, WorkflowStatus.EXPIRED);
     }
   });
 
+  await StateData.unlockCron('mintConfirmLock');
   Logger.log(getLogMessage(startTime, paidSessions.length));
 
   return res.status(200).json({
