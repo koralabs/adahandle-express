@@ -68,6 +68,13 @@ export class StateData {
         });
     }
 
+
+    public static async lockMintingCron() {
+        await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).update({
+            'mintPaidSessionsLock': CronState.LOCKED
+        });
+    }
+
     public static async unlockCron(name: CronJobLockName) {
         await admin.firestore().collection(StateData.collectionName).doc(StateData.docName).update({
             [name]: CronState.UNLOCKED

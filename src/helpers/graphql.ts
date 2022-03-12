@@ -1,5 +1,5 @@
 import { fetch } from 'cross-fetch';
-import { getGraphqlEndpoint } from "./constants";
+import { getGraphqlEndpoint, getPolicyId } from "./constants";
 import { getFingerprint } from './utils';
 
 export interface WalletSimplifiedBalance {
@@ -296,7 +296,7 @@ export const lookupReturnAddresses = async (
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
     const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
-    return [cleanedOutputs[0].address, {address: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index}];
+    return [cleanedOutputs[0].address, { address: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index }];
   }));
   const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as WalletSimplifiedBalance[];
   return orderedTransactions;
@@ -517,4 +517,42 @@ export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolD
   } = res.data;
 
   return stakePools;
+}
+
+export const hasDoubleMint = async (): Promise<boolean> => {
+  const url = getGraphqlEndpoint();
+  const res: { data: { assets: unknown[] } } = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: `
+      query {
+        assets(where:{
+          policyId:{
+            _eq:"${getPolicyId()}"
+          }
+          tokenMints:{
+            quantity:{
+              _gt:"1"
+            }
+          }
+        }) {
+          fingerprint
+        }
+      }
+      `,
+    })
+  }).then(res => res.json())
+
+  if (!res?.data) {
+    throw new Error('Unable to query double mint.');
+  }
+
+  const {
+    assets
+  } = res.data;
+
+  return assets.length > 0;
 }
