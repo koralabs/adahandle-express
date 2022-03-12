@@ -23,7 +23,7 @@ import { refundsHandler } from "./handlers/jobs/refunds";
 import { searchHandler } from "./handlers/search";
 import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
 
-export const startServer = async () => {
+export const startServer = async (port: number = 3000) => {
   const app = express();
   const router = Router();
 
@@ -62,5 +62,5 @@ export const startServer = async () => {
   app.post('/mintConfirm', mintConfirmHandler);
   app.post('/refunds', refundsHandler);
 
-  app.listen(3000);
+  app.listen(port);
 }

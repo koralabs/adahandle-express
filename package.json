@@ -68,6 +68,7 @@
     "@types/helmet": "^4.0.0",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^8.5.5",
+    "@types/minimist": "^1.2.2",
     "@types/node-cron": "^2.0.4",
     "@types/nodemailer": "^6.4.4",
     "@types/puppeteer": "^5.4.5",
