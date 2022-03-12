@@ -9,6 +9,7 @@ import { getHandlePrices } from "../../../../helpers/adausd"
 import { WalletAddresses } from "../../../../models/firestore/collections/WalletAddresses";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { SettingsRepo } from "../../../../models/firestore/collections/SettingsRepo";
+import { checkForDoubleMint } from "./checkForDoubleMint";
 
 interface StateResponseBody {
   error: boolean;
@@ -30,11 +31,12 @@ export const stateHandler = async (req: express.Request, res: express.Response) 
     const priceParams = { adaUsdQuoteHistory: state.adaUsdQuoteHistory, lastQuoteTimestamp: state.lastQuoteTimestamp };
     const handlePrices = await getHandlePrices(priceParams);
 
-
     const updatedState = new State({ chainLoad, accessQueueSize, mintingQueueSize, totalHandles, handlePrices, adaUsdQuoteHistory: priceParams.adaUsdQuoteHistory, lastQuoteTimestamp: priceParams.lastQuoteTimestamp });
     await StateData.upsertStateData(updatedState);
 
     await updateMintingWalletBalances();
+
+    await checkForDoubleMint();
 
     const walletAddressIndex = await WalletAddresses.getLatestWalletAddressIndex(settings.walletAddressCollectionName);
     if (walletAddressIndex <= settings.minimumWalletAddressAmount) {
