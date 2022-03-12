@@ -7,6 +7,10 @@ require('dotenv').config();
 import { startServer } from './express';
 import { Logger, LogCategory } from './helpers/Logger'
 import { Firebase } from './helpers/firebase';
+import * as minimist from 'minimist';
+
+const args = minimist(process.argv.slice(2))
+const port = args['port'] || 3000;
 
 const startApp = async () => {
   // If either is set to production, they both should be production or exit  
@@ -17,7 +21,7 @@ const startApp = async () => {
     }
   }
   await Firebase.init();
-  startServer();
+  startServer(port);
 }
 
 startApp();
