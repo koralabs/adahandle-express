@@ -49,7 +49,7 @@ export class WalletAddresses {
         }
     }
 
-    static async batchAddWalletAddresses(walletAddresses: WalletAddress[], startAtBatch = 0): Promise<void> {
+    static async batchAddWalletAddresses(walletAddresses: WalletAddress[], startAtBatch = 0, walletAddressCollectionName = WalletAddresses.collectionName): Promise<void> {
         const start = new Date().getTime();
         const db = admin.firestore();
 
@@ -62,7 +62,8 @@ export class WalletAddresses {
             const batch = db.batch();
             walletAddresses.forEach(address => {
                 i++;
-                const collectionRef = db.collection(WalletAddresses.collectionName).doc(address.id);
+                console.log(`index ${i} for ${address.id}`);
+                const collectionRef = db.collection(walletAddressCollectionName).doc(address.id);
                 batch.create(collectionRef, { ...address.toJSON(), index: i });
             });
 

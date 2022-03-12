@@ -126,7 +126,7 @@ describe('mintingQueuePositionHandler Tests', () => {
         expect(mockResponse.json).toHaveBeenCalledWith({
             "error": false, "sessions": [
                 { "handle": "burrito", "type": "WAITING_FOR_PAYMENT" },
-                { "handle": "taco", "mintingPosition": { "minutes": 150, "position": 3000 }, "type": "WAITING_FOR_MINING" },
+                { "handle": "taco", "mintingPosition": { "minutes": 150, "position": 3000 }, "type": "WAITING_FOR_MINTING" },
                 { "handle": "enchilada", "txId": "txId1", "type": "WAITING_FOR_CONFIRMATION" },
                 { "handle": "salsa", "txId": "txId2", "type": "CONFIRMED" },
                 { "handle": "guacamole", "type": "REFUNDED" }

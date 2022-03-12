@@ -7,10 +7,11 @@ interface RTDWallet {
     state: string
 }
 
-export const addWalletsToFirebase = async (wallets: RTDWallet[], startAtBatch = 0) => {
+export const addWalletsToFirebase = async (wallets: RTDWallet[], startAtBatch = 0, walletAddressCollectionName: string) => {
     const walletAddresses: WalletAddress[] = wallets.map(wallet => {
-        return new WalletAddress(wallet.id);
+        return new WalletAddress(wallet.id, 0);
     });
 
-    await WalletAddresses.batchAddWalletAddresses(walletAddresses, startAtBatch);
+    console.log(`importing to collection ${walletAddressCollectionName}`);
+    await WalletAddresses.batchAddWalletAddresses(walletAddresses, startAtBatch, walletAddressCollectionName);
 }

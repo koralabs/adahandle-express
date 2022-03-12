@@ -12,7 +12,7 @@ import { ActiveSession, Status, WorkflowStatus } from "../../models/ActiveSessio
 
 enum SessionStatusType {
     WAITING_FOR_PAYMENT = "WAITING_FOR_PAYMENT",
-    WAITING_FOR_MINING = "WAITING_FOR_MINING",
+    WAITING_FOR_MINTING = "WAITING_FOR_MINTING",
     WAITING_FOR_CONFIRMATION = "WAITING_FOR_CONFIRMATION",
     CONFIRMED = "CONFIRMED",
     REFUNDED = "REFUNDED",
@@ -108,7 +108,7 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
             const mintingPosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
             memo.push({
                 handle: session.handle,
-                type: SessionStatusType.WAITING_FOR_MINING,
+                type: SessionStatusType.WAITING_FOR_MINTING,
                 mintingPosition
             });
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.SUBMITTED) {
