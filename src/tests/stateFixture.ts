@@ -37,8 +37,8 @@ export const mintingWallet = {
   id: '1234',
   index: 1,
   locked: false,
-  balance: 1000,
-  minBalance: 100,
+  balance: 1000000000,
+  minBalance: 100000000,
   updatedTimestamp: new Date(Date.now()).toISOString()
 }
 
