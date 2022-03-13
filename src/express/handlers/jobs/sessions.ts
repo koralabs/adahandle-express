@@ -3,7 +3,7 @@ import * as express from "express";
 import { getWalletAddressPrefix, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
 import { checkPayments, WalletSimplifiedBalance } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { chunk, toLovelace } from "../../../helpers/utils";
+import { asyncForEach, chunk, toLovelace } from "../../../helpers/utils";
 import { ActiveSession, Status, WorkflowStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { StateData } from "../../../models/firestore/collections/StateData";
@@ -49,13 +49,14 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
     const allSessionPaymentStatuses: Map<string, WalletSimplifiedBalance> = new Map();
     const batchedWalletAddresses = chunk(walletAddresses, 50);
-    for (let index = 0; index < batchedWalletAddresses.length; index++) {
-      const walletAddressesChunk = batchedWalletAddresses[index];
-      const sessionPaymentStatuses = await checkPayments(walletAddressesChunk);
-      sessionPaymentStatuses.forEach((session) => {
+
+    await asyncForEach(batchedWalletAddresses, async addresses => {
+      const sessionPaymentStatuses = await checkPayments(addresses);
+      for (let index = 0; index < sessionPaymentStatuses.length; index++) {
+        const session = sessionPaymentStatuses[index];
         allSessionPaymentStatuses.set(session.address, session);
-      });
-    }
+      }
+    });
 
     Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
