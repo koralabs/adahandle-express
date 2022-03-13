@@ -18,7 +18,7 @@ import { ActiveSessions } from "../../models/firestore/collections/ActiveSession
 import { ActiveSession, Status } from "../../models/ActiveSession";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { StakePools } from "../../models/firestore/collections/StakePools";
-import { toLovelace } from "../../helpers/utils";
+import { isNumeric, toLovelace } from "../../helpers/utils";
 import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 
 interface SessionResponseBody {
@@ -78,6 +78,13 @@ export const sessionHandler = async (req: express.Request, res: express.Response
     return res.status(403).json({
       error: true,
       message: 'Invalid handle format.'
+    } as SessionResponseBody);
+  }
+
+  if (!isNumeric(cost.toString())) {
+    return res.status(400).json({
+      error: true,
+      message: 'Invalid cost.'
     } as SessionResponseBody);
   }
 
