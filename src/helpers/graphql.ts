@@ -166,25 +166,26 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
 
     if (!ada) {
       return {
-        address: paymentAddress.address,
+        address: '',
         amount: 0,
+        paymentAddress: paymentAddress.address
       } as WalletSimplifiedBalance;
     }
 
     return {
-      address: paymentAddress.address,
+      address: '',
       amount: parseInt(ada.quantity),
+      paymentAddress: paymentAddress.address
     } as WalletSimplifiedBalance;
   });
 
   const addressesWithPayments = checkedAddresses.filter(address => address.amount && address.amount > 0)
-  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address || ''));
+  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.paymentAddress || ''));
   if (returnAddresses) {
     addressesWithPayments.forEach((address, index) => {
       address.address = returnAddresses[index].address;
       address.index = returnAddresses[index].index;
       address.txHash = returnAddresses[index].txHash;
-      address.paymentAddress = returnAddresses[index].paymentAddress;
     });
   }
 
@@ -298,7 +299,7 @@ export const lookupReturnAddresses = async (
   const map = new Map(res.data.transactions.map(tx => {
     // Remove the payment address from output to avoid sending back to ourselves!
     const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
-    return [cleanedOutputs[0].address, { address: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index, paymentAddress: tx.inputs[0].address }];
+    return [cleanedOutputs[0].address, { address: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index }];
   }));
   const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as WalletSimplifiedBalance[];
   return orderedTransactions;
