@@ -29,8 +29,8 @@ export class WalletAddresses {
         const nameOfCollection = WalletAddresses.getCollectionName(collection);
         Logger.log(`Current wallet address collection: ${nameOfCollection}`);
         try {
-            const snapshot = await admin.firestore().collection(nameOfCollection).orderBy('index', 'desc').limit(1).get();
             return admin.firestore().runTransaction(async (t) => {
+                const snapshot = await t.get(admin.firestore().collection(nameOfCollection).orderBy('index', 'desc').limit(1));
                 if (!snapshot.empty && snapshot.docs[0].exists) {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();
