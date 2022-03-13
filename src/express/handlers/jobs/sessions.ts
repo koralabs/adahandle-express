@@ -54,7 +54,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
       const sessionPaymentStatuses = await checkPayments(addresses);
       for (let index = 0; index < sessionPaymentStatuses.length; index++) {
         const session = sessionPaymentStatuses[index];
-        allSessionPaymentStatuses.set(session.address, session);
+        allSessionPaymentStatuses.set(session.paymentAddress || '', session);
       }
     });
 
@@ -71,8 +71,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
         const matchingPayment = allSessionPaymentStatuses.get(entry.paymentAddress);
 
-        if (!matchingPayment || matchingPayment.address != entry.paymentAddress) {
-          Logger.log({ message: `Houston, We have a problem. No matching payment found for ${entry.paymentAddress}`, event: 'updateSessionsHandler.noMatchingPayment', category: LogCategory.ERROR });
+        if (!matchingPayment) {
           return;
         }
 
