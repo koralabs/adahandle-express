@@ -35,16 +35,20 @@ export class WalletAddresses {
                     const doc = snapshot.docs[0];
                     const walletAddress = doc.data();
                     if (walletAddress) {
-                        t.delete(doc.ref, { exists: true });
+                        try {
+                            t.delete(doc.ref, { exists: true });
+                        }
+                        catch (e) {
+                            Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e) });
+                            throw e;
+                        }
                         UsedAddresses.addUsedAddress({ address: walletAddress.id, createdBySystem });
                         return walletAddress as WalletAddress;
                     }
                 }
-
                 return null;
             });
         } catch (e) {
-            Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e) });
             throw new Error('Failed to get wallet address');
         }
     }
