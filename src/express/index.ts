@@ -23,7 +23,7 @@ import { refundsHandler } from "./handlers/jobs/refunds";
 import { searchHandler } from "./handlers/search";
 import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
 
-export const startServer = async (port: number = 3000) => {
+export const startServer = async (port = 3000) => {
   const app = express();
   const router = Router();
 
