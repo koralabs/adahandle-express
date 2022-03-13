@@ -18,7 +18,7 @@ import { ActiveSessions } from "../../models/firestore/collections/ActiveSession
 import { ActiveSession, Status } from "../../models/ActiveSession";
 import { LogCategory, Logger } from "../../helpers/Logger";
 import { StakePools } from "../../models/firestore/collections/StakePools";
-import { toLovelace } from "../../helpers/utils";
+import { isNumeric, toLovelace } from "../../helpers/utils";
 import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 
 interface SessionResponseBody {
@@ -73,6 +73,13 @@ export const sessionHandler = async (req: express.Request, res: express.Response
   const handle = sessionData?.handle && normalizeNFTHandle(sessionData.handle);
   const validHandle = handle && isValid(handle);
   const { emailAddress, cost, iat = Date.now(), isSPO = false } = sessionData;
+
+  if (!isNumeric(cost.toString())) {
+    return res.status(400).json({
+      error: true,
+      message: 'Invalid cost.'
+    } as SessionResponseBody);
+  }
 
   if (!handle || !validHandle) {
     return res.status(403).json({
