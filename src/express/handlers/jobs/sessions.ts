@@ -47,18 +47,20 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
     const startCheckPaymentsTime = Date.now();
 
-    let allSessionPaymentStatuses: WalletSimplifiedBalance[] = [];
+    const allSessionPaymentStatuses: Map<string, WalletSimplifiedBalance> = new Map();
     const batchedWalletAddresses = chunk(walletAddresses, 50);
     for (let index = 0; index < batchedWalletAddresses.length; index++) {
       const walletAddressesChunk = batchedWalletAddresses[index];
       const sessionPaymentStatuses = await checkPayments(walletAddressesChunk);
-      allSessionPaymentStatuses = [...allSessionPaymentStatuses, ...sessionPaymentStatuses];
+      sessionPaymentStatuses.forEach((session) => {
+        allSessionPaymentStatuses.set(session.address, session);
+      });
     }
 
     Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
     dedupeActiveSessions.forEach(
-      async (entry, index) => {
+      async (entry) => {
         const sessionAge = Date.now() - entry?.start;
         const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ?
           MAX_SESSION_LENGTH_CLI :
@@ -66,9 +68,10 @@ export const updateSessions = async (req: express.Request, res: express.Response
             MAX_SESSION_LENGTH_SPO :
             settings.paymentWindowTimeoutMinutes * 1000 * 60);
 
-        const matchingPayment = allSessionPaymentStatuses[index];
+        const matchingPayment = allSessionPaymentStatuses.get(entry.paymentAddress);
 
-        if (!matchingPayment) {
+        if (!matchingPayment || matchingPayment.address != entry.paymentAddress) {
+          Logger.log({ message: `Houston, We have a problem. No matching payment found for ${entry.paymentAddress}`, event: 'updateSessionsHandler.noMatchingPayment', category: LogCategory.ERROR });
           return;
         }
 
