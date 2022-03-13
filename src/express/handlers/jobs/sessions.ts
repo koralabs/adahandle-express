@@ -1,9 +1,9 @@
 import * as express from "express";
 
 import { getWalletAddressPrefix, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
-import { checkPayments } from '../../../helpers/graphql';
+import { checkPayments, WalletSimplifiedBalance } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { toLovelace } from "../../../helpers/utils";
+import { chunk, toLovelace } from "../../../helpers/utils";
 import { ActiveSession, Status, WorkflowStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { StateData } from "../../../models/firestore/collections/StateData";
@@ -46,11 +46,21 @@ export const updateSessions = async (req: express.Request, res: express.Response
     const walletAddresses = dedupeActiveSessions.map(s => s.paymentAddress)
 
     const startCheckPaymentsTime = Date.now();
-    const sessionPaymentStatuses = await checkPayments(walletAddresses);
+
+    const allSessionPaymentStatuses: Map<string, WalletSimplifiedBalance> = new Map();
+    const batchedWalletAddresses = chunk(walletAddresses, 50);
+    for (let index = 0; index < batchedWalletAddresses.length; index++) {
+      const walletAddressesChunk = batchedWalletAddresses[index];
+      const sessionPaymentStatuses = await checkPayments(walletAddressesChunk);
+      sessionPaymentStatuses.forEach((session) => {
+        allSessionPaymentStatuses.set(session.address, session);
+      });
+    }
+
     Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
     dedupeActiveSessions.forEach(
-      async (entry, index) => {
+      async (entry) => {
         const sessionAge = Date.now() - entry?.start;
         const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ?
           MAX_SESSION_LENGTH_CLI :
@@ -58,9 +68,10 @@ export const updateSessions = async (req: express.Request, res: express.Response
             MAX_SESSION_LENGTH_SPO :
             settings.paymentWindowTimeoutMinutes * 1000 * 60);
 
-        const matchingPayment = sessionPaymentStatuses[index];
+        const matchingPayment = allSessionPaymentStatuses.get(entry.paymentAddress);
 
-        if (!matchingPayment) {
+        if (!matchingPayment || matchingPayment.address != entry.paymentAddress) {
+          Logger.log({ message: `Houston, We have a problem. No matching payment found for ${entry.paymentAddress}`, event: 'updateSessionsHandler.noMatchingPayment', category: LogCategory.ERROR });
           return;
         }
 
