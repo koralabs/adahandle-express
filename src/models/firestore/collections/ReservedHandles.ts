@@ -4,6 +4,7 @@ import { Status } from "../../ActiveSession"
 import { getRarityCost, isValid } from "../../../helpers/nft"
 import * as pluralize from "pluralize";
 import { delay } from "../../../helpers/utils"
+import { Logger, LogCategory } from "../../../helpers/Logger";
 
 const RESPONSE_INVALID_HANDLE_FORMAT = 'Invalid handle. Only a-z, 0-9, dash (-), underscore (_), and period (.) are allowed.';
 const RESPONSE_UNAVAILABLE_PAID = 'Sorry! This Handle is pending mint or already minted.';
@@ -183,7 +184,11 @@ export class ReservedHandles {
         };
 
         const cost = await getRarityCost(handle);
-        if (!cost) throw new Error('Could not get rarity cost');
+        if (!cost) 
+        {
+            Logger.log({message: `Could not get rarity cost for "${handle}"`, category: LogCategory.ERROR});
+            throw new Error('Could not get rarity cost');
+        }
 
         const allowedResponse: HandleAvailabilityResponse = {
             available: true,
