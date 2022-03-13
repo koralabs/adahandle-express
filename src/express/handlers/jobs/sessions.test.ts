@@ -49,7 +49,8 @@ describe('Job Sessions Tets', () => {
                 handle: 'expired.unpaid',
                 start: expiredDate,
                 paymentAddress: 'addr_test1expired_unpaid',
-                createdBySystem: CreatedBySystem.UI
+                createdBySystem: CreatedBySystem.UI,
+                returnAddress: ""
             }
         )
     ]
@@ -175,16 +176,16 @@ describe('Job Sessions Tets', () => {
     ]
 
     const CheckPaymentsFixture = [
-        { address: 'addr_test1expired_unpaid', amount: 0, returnAddress: '', txHash: '', index: 0 },
-        { address: 'addr_test1paid', amount: toLovelace(50), returnAddress: 'addr_test1_returnpaid', txHash: '', index: 0 },
-        { address: 'addr_test1invalid_payment', amount: toLovelace(40), returnAddress: 'addr_test1_returninvalid', txHash: '', index: 0 },
-        { address: 'addr_test1expired_paid', amount: toLovelace(50), returnAddress: 'addr_test1_returnexpired', txHash: '', index: 0 },
-        { address: 'addr_test1handle_unavailable', amount: toLovelace(50), returnAddress: 'addr_test1_returnunavail', txHash: '', index: 0 },
-        { address: 'addr_test1spo_invalid_payment', amount: toLovelace(100), returnAddress: 'addr_test1_returnspo_invalid_payment', txHash: '', index: 0 },
-        { address: 'addr_test1zero_payment', amount: 0, returnAddress: '', txHash: '', index: 0 },
-        { address: 'byron_paid', amount: toLovelace(50), returnAddress: 'byron_paid_return', txHash: '', index: 0 },
-        { address: 'addr_test1spo_payment', amount: toLovelace(250), returnAddress: 'addr_test1_returnspo', txHash: '', index: 0 },
-        { address: 'addr_test1spo_not_owner', amount: toLovelace(250), returnAddress: 'addr_test1_returnspo_not_owner', txHash: '', index: 0 }
+        { address: '', amount: 0, paymentAddress: 'addr_test1expired_unpaid', txHash: '', index: 0 },
+        { address: 'addr_test1_returnpaid', amount: toLovelace(50), paymentAddress: 'addr_test1paid', txHash: '', index: 0 },
+        { address: 'addr_test1_returninvalid', amount: toLovelace(40), paymentAddress: 'addr_test1invalid_payment', txHash: '', index: 0 },
+        { address: 'addr_test1_returnexpired', amount: toLovelace(50), paymentAddress: 'addr_test1expired_paid', txHash: '', index: 0 },
+        { address: 'addr_test1_returnunavail', amount: toLovelace(50), paymentAddress: 'addr_test1handle_unavailable', txHash: '', index: 0 },
+        { address: 'addr_test1_returnspo_invalid_payment', amount: toLovelace(100), paymentAddress: 'addr_test1spo_invalid_payment', txHash: '', index: 0 },
+        { address: '', amount: 0, paymentAddress: 'addr_test1zero_payment', txHash: '', index: 0 },
+        { address: 'byron_paid_return', amount: toLovelace(50), paymentAddress: 'byron_paid', txHash: '', index: 0 },
+        { address: 'addr_test1_returnspo', amount: toLovelace(250), paymentAddress: 'addr_test1spo_payment', txHash: '', index: 0 },
+        { address: 'addr_test1_returnspo_not_owner', amount: toLovelace(250), paymentAddress: 'addr_test1spo_not_owner', txHash: '', index: 0 }
     ]
 
     describe('updateSessionsHandler tests', () => {

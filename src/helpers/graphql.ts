@@ -7,6 +7,7 @@ export interface WalletSimplifiedBalance {
   amount: number;
   txHash?: string;
   index?: number;
+  paymentAddress?: string;
 }
 
 export interface GraphqlCardanoPaymentAddress {
@@ -165,19 +166,21 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
 
     if (!ada) {
       return {
-        address: paymentAddress.address,
+        address: '',
         amount: 0,
+        paymentAddress: paymentAddress.address
       } as WalletSimplifiedBalance;
     }
 
     return {
-      address: paymentAddress.address,
+      address: '',
       amount: parseInt(ada.quantity),
+      paymentAddress: paymentAddress.address
     } as WalletSimplifiedBalance;
   });
 
   const addressesWithPayments = checkedAddresses.filter(address => address.amount && address.amount > 0)
-  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.address || ''));
+  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.paymentAddress || ''));
   if (returnAddresses) {
     addressesWithPayments.forEach((address, index) => {
       address.address = returnAddresses[index].address;
