@@ -88,9 +88,9 @@ export class StateData {
         return mintingWallets.map(doc => ({ ...doc.data(), id: doc.id } as MintingWallet));
     }
 
-    static updateMintingWalletBalance(id: string, walletBalance: number) {
+    static async updateMintingWalletBalance(id: string, walletBalance: number) {
+        const snapshot = await admin.firestore().collection(StateData.collectionName).doc(id).get();
         return admin.firestore().runTransaction(async t => {
-            const snapshot = await t.get(admin.firestore().collection(StateData.collectionName).doc(id));
             t.update(snapshot.ref, { balance: walletBalance });
             return true;
         });
@@ -119,15 +119,15 @@ export class StateData {
             return;
         }
 
+        const snapshot = await admin.firestore().collection(StateData.collectionName).doc(availableWallet.id).get();
         return admin.firestore().runTransaction(async t => {
-            const snapshot = await t.get(admin.firestore().collection(StateData.collectionName).doc(availableWallet.id));
             t.update(snapshot.ref, { locked: false });
         });
     }
 
     static async unlockMintingWalletByTxId(txId: string): Promise<void> {
+        const snapshot = await admin.firestore().collection(StateData.collectionName).where('txId', '==', txId).limit(1).get();
         return admin.firestore().runTransaction(async t => {
-            const snapshot = await t.get(admin.firestore().collection(StateData.collectionName).where('txId', '==', txId).limit(1));
             if (snapshot.empty) {
                 return;
             }
@@ -137,8 +137,8 @@ export class StateData {
     }
 
     static async updateMintingWalletTxId(availableWallet: MintingWallet, txId: string): Promise<void> {
+        const snapshot = await admin.firestore().collection(StateData.collectionName).doc(availableWallet.id).get();
         return admin.firestore().runTransaction(async t => {
-            const snapshot = await t.get(admin.firestore().collection(StateData.collectionName).doc(availableWallet.id));
             snapshot.ref.update({ txId });
         });
     }
