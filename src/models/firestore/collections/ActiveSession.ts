@@ -9,7 +9,7 @@ export class ActiveSessions {
   public static readonly collectionNameDLQ = buildCollectionNameWithSuffix('activeSessionsDLQ');
 
   public static async getPendingActiveSessions(): Promise<ActiveSession[]> {
-    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PENDING).limit(50).get();
+    const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('status', '==', Status.PENDING).get();
     return collection.docs.map(doc => new ActiveSession({
       ...doc.data() as ActiveSessionInput
     }));
