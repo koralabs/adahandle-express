@@ -27,9 +27,9 @@ export class AccessQueues {
   }
 
   static async removeAccessQueueByEmail(email: string): Promise<boolean> {
-    try {
+    try {        
+      const snapshot = await admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email).get();
       return admin.firestore().runTransaction(async t => {
-        const snapshot = await t.get(admin.firestore().collection(AccessQueues.collectionName).where('email', '==', email));
         if (snapshot.empty) {
           return false;
         }
@@ -61,22 +61,21 @@ export class AccessQueues {
         Logger.log({ message: `Error occurred verifying ${entry.email}`, event: 'updateAccessQueue.createVerification.error', category: LogCategory.ERROR });
         Logger.log({ message: JSON.stringify(e), event: 'updateAccessQueue.createVerification.error', category: LogCategory.ERROR });
 
-        // If Twilio throws an error, we are going to retry 2 more times
+        // If Email server throws an error, we are going to retry 2 more times
         // If we still fail, we will move the entry to the DLQ
         await admin.firestore().runTransaction(async t => {
-          const document = await t.get(doc.ref);
-          const failedAccessQueue = document.data() as AccessQueue;
+          const failedAccessQueue = doc.data() as AccessQueue;
 
           // If there are more than 2 attempts, we need to add to a DLQ and remove the entry from the current queue
           if (failedAccessQueue.attempts >= 10) {
             Logger.log({ message: `Removing ${failedAccessQueue.email} from queue and adding to DLQ`, event: 'updateAccessQueue.removeFromQueue.error' });
             t.create(admin.firestore().collection(AccessQueues.collectionNameDLQ).doc(), new AccessQueue({ ...failedAccessQueue }).toJSON());
-            t.delete(document.ref);
+            t.delete(doc.ref);
             return;
           }
 
           // otherwise increment the retries
-          t.update(document.ref, { attempts: admin.firestore.FieldValue.increment(1) });
+          t.update(doc.ref, { attempts: admin.firestore.FieldValue.increment(1) });
         });
 
         return;
@@ -85,8 +84,7 @@ export class AccessQueues {
       Logger.log({ message: `data: ${JSON.stringify(data)}`, event: 'updateAccessQueue.createVerification.data' });
       if (data) {
         await admin.firestore().runTransaction(async t => {
-          const document = await t.get(doc.ref);
-          t.update(document.ref, {
+          t.update(doc.ref, {
             email: entry.email,
             authCode: data?.authCode,
             status: data?.status,
@@ -112,8 +110,7 @@ export class AccessQueues {
     await Promise.all(expired.docs.map(async doc => {
       await admin.firestore().runTransaction(async t => {
         Logger.log(`deleting entry ${doc.id}`);
-        const document = await t.get(doc.ref);
-        t.delete(document.ref);
+        t.delete(doc.ref);
       });
     }));
 

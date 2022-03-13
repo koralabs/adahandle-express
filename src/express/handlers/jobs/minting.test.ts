@@ -35,17 +35,17 @@ describe('mintPaidSessionsHandler Tests', () => {
 
   it('should not proceed if minting wallet balance is lower than minimum balance', async () => {
     StateFixtures.state.mintPaidSessionsLock = CronState.UNLOCKED;
-    StateFixtures.mintingWallet.balance = 99;
+    StateFixtures.mintingWallet.balance = 99000000;
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Not enough balance in wallet." });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Not enough balance in wallet 1234" });
   });
 
   it('should not proceed if chain load is too high', async () => {
     StateFixtures.state.chainLoad = .90;
-    StateFixtures.mintingWallet.balance = 1000;
+    StateFixtures.mintingWallet.balance = 1000000000;
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
