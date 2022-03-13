@@ -68,7 +68,9 @@ export const searchHandler = async (req: express.Request, res: express.Response)
             if (activeSessions.length >= MAX_SESSION_COUNT) {
                 return res.status(403).json({
                     error: true,
-                    message: 'Too many sessions open! Try again after one expires.'
+                    message: 'Too many sessions open! Try again after one expires.',
+                    sessions: activeSessions.map(session => ({ cost: session.cost, handle: session.handle, paymentAddress: session.paymentAddress, emailAddress: session.emailAddress }))
+
                 } as SearchResponseBody);
             }
         }
