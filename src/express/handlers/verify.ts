@@ -5,6 +5,7 @@ import { HEADER_EMAIL, HEADER_EMAIL_AUTH } from "../../helpers/constants";
 import { removeAccessQueueData, getAccessQueueData } from "../../helpers/firebase";
 import { getKey } from "../../helpers/jwt";
 import { LogCategory, Logger } from "../../helpers/Logger";
+import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 
 interface VerifyResponseBody {
@@ -35,6 +36,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
   }
 
   let token: string | null;
+  let activeSessions = [];
   try {
 
     const decodedAuth = Buffer.from(authCode as string, 'base64').toString('utf8');
@@ -52,6 +54,10 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
         message: 'Invalid access code.'
       } as VerifyResponseBody)
     }
+
+
+    const sessions = await ActiveSessions.getActiveSessionsByEmail(email);
+    activeSessions = sessions.map(session => ({ cost: session.cost, handle: session.handle, paymentAddress: session.paymentAddress, emailAddress: session.emailAddress }))
 
     const settings = await SettingsRepo.getSettings();
     if ((access.start ?? 0) < (Date.now() - (settings.accessCodeTimeoutMinutes * 1000 * 60))) {
@@ -96,11 +102,13 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
 
   Logger.log(getLogMessage(startTime))
 
+
   res.cookie('sessionTimestamp', Date.now());
   return token && res.status(200).json({
     error: false,
     verified: true,
     token,
-    data: jwt.decode(token)
+    data: jwt.decode(token),
+    activeSessions
   });
 }
