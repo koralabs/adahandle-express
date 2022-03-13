@@ -148,7 +148,7 @@ describe('Session Tests', () => {
     jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle', cost: 60 });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(false);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
 
@@ -169,7 +169,7 @@ describe('Session Tests', () => {
     jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle', cost: 60 });
     jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue('validAddress');
     jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(false);
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
@@ -192,7 +192,7 @@ describe('Session Tests', () => {
     jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
 
     // @ts-ignore
-    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle' });
+    jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'validHandle', cost: 60 });
     const activeSessions = [{ handle: 'validHandle' }, { handle: 'validHandle' }, { handle: 'validHandle' }];
     // @ts-ignore
     jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue(activeSessions);
