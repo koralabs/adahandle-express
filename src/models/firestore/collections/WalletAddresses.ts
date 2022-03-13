@@ -27,27 +27,27 @@ export class WalletAddresses {
         // Since we can't have more than one user at a time use an address
         // we need to get the first one then delete it
         const nameOfCollection = WalletAddresses.getCollectionName(collection);
-        Logger.log(`Current wallet address collection: ${nameOfCollection}`);
         try {
-            return admin.firestore().runTransaction(async (t) => {
-                const snapshot = await t.get(admin.firestore().collection(nameOfCollection).orderBy('index', 'desc').limit(1));
-                if (!snapshot.empty && snapshot.docs[0].exists) {
-                    const doc = snapshot.docs[0];
-                    const walletAddress = doc.data();
-                    if (walletAddress) {
+            const snapshot = await admin.firestore().collection(nameOfCollection).orderBy('index', 'desc').limit(20).get();
+            if (!snapshot.empty && snapshot.size == 20) {
+                const randomIndex = Math.floor(Math.random() * 20);
+                const doc = snapshot.docs[randomIndex];
+                const walletAddress = doc.data();
+                if (walletAddress) {
+                    return admin.firestore().runTransaction(async (t) => {
                         try {
                             t.delete(doc.ref, { exists: true });
+                            UsedAddresses.addUsedAddress({ address: walletAddress.id, createdBySystem });
+                            return walletAddress as WalletAddress;
                         }
                         catch (e) {
                             Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e) });
                             throw e;
                         }
-                        UsedAddresses.addUsedAddress({ address: walletAddress.id, createdBySystem });
-                        return walletAddress as WalletAddress;
-                    }
+                    });
                 }
-                return null;
-            });
+            };
+            return null;
         } catch (e) {
             throw new Error('Failed to get wallet address');
         }
