@@ -46,7 +46,7 @@ export class WalletAddresses {
                         }
                     });
                 }
-            };
+            }
             return null;
         } catch (e) {
             throw new Error('Failed to get wallet address');
