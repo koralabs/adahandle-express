@@ -23,6 +23,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
   try {
     // TODO: Should we also be checking for duplicate handles here?
     const activeSessions: ActiveSession[] = await ActiveSessions.getPendingActiveSessions();
+
     const dedupeActiveSessionsMap = activeSessions.reduce<Map<string, ActiveSession>>((acc, session) => {
       if (acc.has(session.paymentAddress)) {
         Logger.log({ message: `Duplicate session found for ${session.paymentAddress}`, event: 'updateSessionsHandler.duplicate', category: LogCategory.NOTIFY });
@@ -60,8 +61,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
     Logger.log({ message: `check payment finished in ${Date.now() - startCheckPaymentsTime}ms and processed ${walletAddresses.length} addresses`, event: 'updateSessionsHandler.checkPayments', count: walletAddresses.length, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-    dedupeActiveSessions.forEach(
-      async (entry) => {
+    await asyncForEach(dedupeActiveSessions, async (entry) => {
+      {
         const sessionAge = Date.now() - entry?.start;
         const maxSessionLength = entry.createdBySystem == CreatedBySystem.CLI ?
           MAX_SESSION_LENGTH_CLI :
@@ -92,7 +93,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
         // Handle expired.
         if (sessionAge >= maxSessionLength) {
           if (matchingPayment && matchingPayment.amount !== 0) {
-            ActiveSessions.updateSessions([new ActiveSession({
+            await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               refundAmount: matchingPayment.amount,
@@ -106,7 +107,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
           }
 
           // If there is no amount, it's possible that a payment was made after the session expired.
-          ActiveSessions.updateSessions([new ActiveSession({
+          await ActiveSessions.updateSessions([new ActiveSession({
             ...entry,
             emailAddress: '',
             refundAmount: matchingPayment.amount,
@@ -121,7 +122,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
         // refund if return address is not from a shelly era wallet
         if (matchingPayment.address && matchingPayment.address !== '' && !matchingPayment.address.startsWith(getWalletAddressPrefix())) {
-          ActiveSessions.updateSessions([new ActiveSession({
+          await ActiveSessions.updateSessions([new ActiveSession({
             ...entry,
             emailAddress: '',
             refundAmount: matchingPayment.amount,
@@ -139,7 +140,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
           // If no return address, refund.
           if (!matchingPayment.address) {
-            ActiveSessions.updateSessions([new ActiveSession({
+            await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               refundAmount: matchingPayment.amount,
@@ -155,7 +156,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
           }
 
           if (matchingPayment.amount !== entry.cost) {
-            ActiveSessions.updateSessions([new ActiveSession({
+            await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               refundAmount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
@@ -173,7 +174,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
             // If already has a handle, refund.
             if (paidVal.some(e => e.handle === entry.handle)) {
-              ActiveSessions.updateSessions([new ActiveSession({
+              await ActiveSessions.updateSessions([new ActiveSession({
                 ...entry,
                 emailAddress: '',
                 refundAmount: matchingPayment.amount,
@@ -191,7 +192,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
               const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(matchingPayment.address, entry.handle);
               if (!returnAddressOwnsStakePool) {
                 // if not, refund cost plus fee
-                ActiveSessions.updateSessions([new ActiveSession({
+                await ActiveSessions.updateSessions([new ActiveSession({
                   ...entry,
                   emailAddress: '',
                   refundAmount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
@@ -206,7 +207,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
             }
 
             paidVal.push(entry);
-            ActiveSessions.updateSessions([new ActiveSession({
+            await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
               returnAddress: matchingPayment.address,
@@ -218,7 +219,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
           }
         }
       }
-    );
+    });
 
     Logger.log(getLogMessage(startTime, activeSessions.length));
 
