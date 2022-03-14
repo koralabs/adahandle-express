@@ -140,6 +140,16 @@ export const updateSessions = async (req: express.Request, res: express.Response
 
           // If no return address, refund.
           if (!matchingPayment.address) {
+            const attempts = entry.attempts ?? 0;
+            if (attempts < 10) {
+              await ActiveSessions.updateSessions([new ActiveSession({
+                ...entry,
+                attempts: attempts + 1,
+              })]);
+
+              return;
+            }
+
             await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
@@ -214,7 +224,8 @@ export const updateSessions = async (req: express.Request, res: express.Response
               txHash: matchingPayment.txHash,
               index: matchingPayment.index,
               status: Status.PAID,
-              workflowStatus: WorkflowStatus.PENDING
+              workflowStatus: WorkflowStatus.PENDING,
+              attempts: 0
             })]);
           }
         }
