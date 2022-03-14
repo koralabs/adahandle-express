@@ -1,5 +1,6 @@
 import { fetch } from 'cross-fetch';
 import { getGraphqlEndpoint, getPolicyId } from "./constants";
+import { LogCategory, Logger } from './Logger';
 import { getFingerprint } from './utils';
 
 export interface WalletSimplifiedBalance {
@@ -160,36 +161,45 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
     },
   } = res;
 
-  const checkedAddresses = paymentAddresses.map((paymentAddress) => {
-    const utxos = paymentAddress?.summary?.assetBalances || null;
+  const checkedAddresses = paymentAddresses.map((payment) => {
+    const utxos = payment?.summary?.assetBalances || null;
     const ada = utxos && utxos.find(({ asset }) => 'ada' === asset.assetName);
+
+    const paymentAddress = payment.address;
 
     if (!ada) {
       return {
         address: '',
         amount: 0,
-        paymentAddress: paymentAddress.address
+        paymentAddress
       } as WalletSimplifiedBalance;
     }
 
     return {
       address: '',
       amount: parseInt(ada.quantity),
-      paymentAddress: paymentAddress.address
+      paymentAddress
     } as WalletSimplifiedBalance;
   });
 
-  const addressesWithPayments = checkedAddresses.filter(address => address.amount && address.amount > 0)
-  const returnAddresses = await lookupReturnAddresses(addressesWithPayments.map(address => address.paymentAddress || ''));
-  if (returnAddresses) {
-    addressesWithPayments.forEach((address, index) => {
-      address.address = returnAddresses[index].address;
-      address.index = returnAddresses[index].index;
-      address.txHash = returnAddresses[index].txHash;
-    });
-  }
+  const addressesWithPayments = checkedAddresses.filter(address => address.amount && address.amount > 0).map(({ paymentAddress = '', amount }) => ({ paymentAddress, amount }));
+  const returnAddressesMap = await lookupReturnAddresses(addressesWithPayments);
 
-  return checkedAddresses;
+  const checkedAddressesWithReturnAddresses = checkedAddresses.map(item => {
+    const returnAddress = returnAddressesMap.get(item.paymentAddress as string);
+    if (returnAddress) {
+      return {
+        ...item,
+        address: returnAddress.address,
+        txHash: returnAddress.txHash,
+        index: returnAddress.index,
+      } as WalletSimplifiedBalance;
+    }
+
+    return item;
+  });
+
+  return checkedAddressesWithReturnAddresses;
 }
 
 export const handleExists = async (handle: string): Promise<GraphqlHandleExistsResponse> => {
@@ -245,8 +255,11 @@ export const handleExists = async (handle: string): Promise<GraphqlHandleExistsR
 }
 
 export const lookupReturnAddresses = async (
-  receiverAddresses: string[]
-): Promise<WalletSimplifiedBalance[] | null> => {
+  receiverAddresses: {
+    paymentAddress: string;
+    amount: number;
+  }[]
+): Promise<Map<string, WalletSimplifiedBalance>> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
     method: 'POST',
@@ -255,7 +268,7 @@ export const lookupReturnAddresses = async (
     },
     body: JSON.stringify({
       variables: {
-        addresses: receiverAddresses,
+        addresses: receiverAddresses.map(({ paymentAddress }) => paymentAddress),
       },
       query: `
         query ($addresses: [String!]!) {
@@ -291,17 +304,24 @@ export const lookupReturnAddresses = async (
   }).then(res => res.json())
 
   if (!res?.data) {
-    return null;
+    Logger.log({ message: 'No data from lookupReturnAddresses', event: 'lookupReturnAddresses.noData', category: LogCategory.ERROR });
+    return new Map();
   }
 
-  // TODO: check includedAt to make sure valid transaction
+  const orderedTransactions = receiverAddresses.reduce<Map<string, WalletSimplifiedBalance>>((agg, { paymentAddress, amount }) => {
+    const transaction = res.data.transactions.find(tx => tx.outputs.some(output => output.address === paymentAddress));
+    if (transaction) {
+      const paymentOutput = transaction.outputs.find(out => out.address === paymentAddress);
+      if (paymentOutput) {
+        agg.set(paymentAddress, { address: transaction.inputs[0].address, txHash: paymentOutput.txHash, index: paymentOutput.index, paymentAddress, amount });
+        return agg;
+      }
+    }
 
-  const map = new Map(res.data.transactions.map(tx => {
-    // Remove the payment address from output to avoid sending back to ourselves!
-    const cleanedOutputs = tx.outputs.filter(output => output.address !== tx.inputs[0].address);
-    return [cleanedOutputs[0].address, { address: tx.inputs[0].address, txHash: cleanedOutputs[0].txHash, index: cleanedOutputs[0].index }];
-  }));
-  const orderedTransactions = receiverAddresses.map((addr) => map.get(addr)) as WalletSimplifiedBalance[];
+    Logger.log({ message: `Unable to find transaction for address: ${paymentAddress}`, event: 'lookupReturnAddresses.noTransaction', category: LogCategory.ERROR });
+    return agg;
+  }, new Map());
+
   return orderedTransactions;
 }
 
