@@ -63,7 +63,7 @@ export class ActiveSessions {
     if (limit) {
       query = query.limit(limit);
     }
-    const collection = await query.get();
+    const collection = await query.orderBy('dateAdded').get();
     return collection.docs.map(doc => new ActiveSession({
       ...doc.data() as ActiveSessionInput
     }));
