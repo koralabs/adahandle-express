@@ -166,10 +166,17 @@ export class ReservedHandles {
             };
         }
 
+        const cost = await getRarityCost(handle);
+        if (!cost) {
+            Logger.log({ message: `Could not get rarity cost for "${handle}"`, category: LogCategory.ERROR });
+            throw new Error('Could not get rarity cost');
+        }
+
         const twitterHandle = ReservedHandles.reservedHandles?.twitter.find(({ handle: twitterHandle }) => twitterHandle === handle)
         if (twitterHandle) {
             return {
                 available: false,
+                cost,
                 message: RESPONSE_UNAVAILABLE_TWITTER,
                 type: 'twitter',
                 ogNumber: twitterHandle.index ?? 0,
@@ -182,13 +189,6 @@ export class ReservedHandles {
             message: RESPONSE_NOT_ALLOWED,
             type: 'notallowed'
         };
-
-        const cost = await getRarityCost(handle);
-        if (!cost) 
-        {
-            Logger.log({message: `Could not get rarity cost for "${handle}"`, category: LogCategory.ERROR});
-            throw new Error('Could not get rarity cost');
-        }
 
         const allowedResponse: HandleAvailabilityResponse = {
             available: true,
