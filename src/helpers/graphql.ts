@@ -318,7 +318,7 @@ export const lookupReturnAddresses = async (
       }
     }
 
-    Logger.log({ message: `Unable to find transaction for address: ${paymentAddress}`, event: 'lookupReturnAddresses.noTransaction', category: LogCategory.ERROR });
+    Logger.log({ message: `Unable to find transaction for address: ${paymentAddress}`, event: 'lookupReturnAddresses.noTransaction', category: LogCategory.INFO });
     return agg;
   }, new Map());
 

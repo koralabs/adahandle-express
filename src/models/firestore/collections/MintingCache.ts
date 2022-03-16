@@ -12,7 +12,6 @@ export class MintingCache {
         const handleWithBookends = this.getHandleWithBookends(handle);
         const handleMinted = await admin.firestore().collection(MintingCache.collectionName).doc(handleWithBookends).get();
         if (handleMinted.exists) {
-            Logger.log({ message: `Handle ${handleWithBookends} already exists in minting cache`, event: 'mintingCache.addHandleToMintCache', category: LogCategory.INFO });
             return false;
         }
 
