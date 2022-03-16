@@ -55,6 +55,8 @@ describe('mintPaidSessionsHandler Tests', () => {
 
   it('should not proceed if there are no available minting wallets', async () => {
     jest.spyOn(StateData, 'findAvailableMintingWallet').mockResolvedValue(null);
+    jest.spyOn(StateData, 'allMintingWalletsAreLockedWithNoTransactions').mockResolvedValue(false);
+    
     // @ts-expect-error mocking response
     await mintPaidSessionsHandler(mockRequest as Request, mockResponse as Response);
 
