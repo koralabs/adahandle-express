@@ -1,6 +1,7 @@
 import { Firebase } from "../helpers/firebase";
 import * as admin from "firebase-admin";
 import { Color } from "./scriptUtils"
+import { ActiveSession } from "../models/ActiveSession"
 
 
 const dbQuery = async (trim: number = 100) => {
@@ -65,7 +66,11 @@ const dbQuery = async (trim: number = 100) => {
             console.log(`|${row}`);
             color = (color == Color.Dim) ? Color.Reset : Color.Dim
         }
-        console.log(`${snapshot.size} records found`);
+        console.log(`|${header}`);
+        console.log(`${snapshot.size} records found`); 
+
+        // const filteredCount = snapshot.docs.reduce((acc, record) => {if (((record.data() as ActiveSession).dateAdded ?? 0) < (Date.now() - 36 * 60 * 60 * 1000)) return ++acc; else return acc}, 0);
+        // console.log(`refundables with a refundAmount ${filteredCount}`)
     }
     else {
         console.log("No records found");
