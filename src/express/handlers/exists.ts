@@ -22,7 +22,7 @@ export const handleExistsHandler = async (req: express.Request, res: express.Res
 
   try {
     const exists: GraphqlHandleExistsResponse = await handleExists(req.headers[HEADER_HANDLE] as string);
-    Logger.log(getLogMessage(startTime))
+    //Logger.log(getLogMessage(startTime))
     return res.status(200).json({
       error: false,
       ...exists
