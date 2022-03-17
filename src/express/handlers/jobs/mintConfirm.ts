@@ -8,15 +8,19 @@ import { ApiTransactionStatusEnum } from "cardano-wallet-js";
 import { getWalletEndpoint } from "../../../helpers/constants";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { ActiveSession, WorkflowStatus } from "../../../models/ActiveSession";
+import { CronState } from "../../../models/State";
 
 export const mintConfirmHandler = async (req: express.Request, res: express.Response) => {
   const startTime = Date.now();
   const getLogMessage = (startTime: number, recordCount: number) => ({ message: `mintConfirmHandler processed ${recordCount} records in ${Date.now() - startTime}ms`, event: 'mintConfirmHandler.run', count: recordCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-  if (!await StateData.checkAndLockCron('mintConfirmLock')) {
+  const state = await StateData.getStateData();
+
+  // This cron doesn't need to lock, but it shouldn't run if it is.
+  if ([CronState.LOCKED, CronState.DEPLOYING].includes(state.mintPaidSessionsLock)) {
     return res.status(200).json({
       error: false,
-      message: 'Mint Confirm cron is locked. Try again later.'
+      message: 'Mint confirm cron is locked. Try again later.'
     });
   }
 
