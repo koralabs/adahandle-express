@@ -165,7 +165,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
             return;
           }
 
-          if (matchingPayment.amount !== entry.cost) {
+          if (matchingPayment.amount < entry.cost) {
             await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
