@@ -26,7 +26,7 @@ describe('verifyRefund tests', () => {
 
     it('Should return refund', async () => {
         jest.spyOn(graphql, 'lookupTransaction').mockResolvedValue({ totalPayments: toLovelace(20), returnAddress: 'return_123' });
-        jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
+        jest.spyOn(ActiveSessions, 'getByPaymentAddress').mockResolvedValue(new ActiveSession({
             emailAddress: "",
             cost: toLovelace(10),
             handle: "",
@@ -40,12 +40,12 @@ describe('verifyRefund tests', () => {
         expect(refund).toEqual({
             refund: {
                 paymentAddress: 'addr_123',
-                returnAddress:  {
+                returnAddress: {
                     address: "return_123",
                     amount: toLovelace(10),
                     index: undefined,
                     txHash: undefined,
-                  }
+                }
             }
         });
     });
@@ -64,7 +64,7 @@ describe('verifyRefund tests', () => {
 
     it('should return null when paymentAddress cost and totalPayments match', async () => {
         jest.spyOn(graphql, 'lookupTransaction').mockResolvedValue({ totalPayments: toLovelace(10), returnAddress: 'return_123' });
-        jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
+        jest.spyOn(ActiveSessions, 'getByPaymentAddress').mockResolvedValue(new ActiveSession({
             emailAddress: "",
             cost: toLovelace(10),
             handle: "",
@@ -83,7 +83,7 @@ describe('verifyRefund tests', () => {
 
         it('Should not return refund when the SPO is the owner', async () => {
             jest.spyOn(graphql, 'lookupTransaction').mockResolvedValue({ totalPayments: toLovelace(250), returnAddress: 'return_123' });
-            jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
+            jest.spyOn(ActiveSessions, 'getByPaymentAddress').mockResolvedValue(new ActiveSession({
                 emailAddress: "",
                 cost: toLovelace(250),
                 handle: "",
@@ -101,36 +101,7 @@ describe('verifyRefund tests', () => {
 
         it('Should return refund with a fee deducted if payment is from an SPO and payment is the correct amount and is not the owner', async () => {
             jest.spyOn(graphql, 'lookupTransaction').mockResolvedValue({ totalPayments: toLovelace(250), returnAddress: 'return_123' });
-            jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
-                emailAddress: "",
-                start: 0,
-                cost: toLovelace(250),
-                handle: "",
-                paymentAddress: 'addr_123',
-                returnAddress: 'return_123',
-                createdBySystem: CreatedBySystem.SPO,
-                status: Status.REFUNDABLE,
-                workflowStatus: WorkflowStatus.PENDING
-            }));
-            jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValue(false);
-
-            const refund = await verifyRefund('addr_123');
-            expect(refund).toEqual({
-                refund: {
-                    paymentAddress: 'addr_123',
-                    returnAddress:  {
-                        address: "return_123",
-                        amount: toLovelace(200),
-                        index: undefined,
-                        txHash: undefined,
-                      }
-                }
-            });
-        });
-
-        it('Should return refund with a fee deducted if payment is incorrect', async () => {
-            jest.spyOn(graphql, 'lookupTransaction').mockResolvedValue({ totalPayments: toLovelace(200), returnAddress: 'return_123' });
-            jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
+            jest.spyOn(ActiveSessions, 'getByPaymentAddress').mockResolvedValue(new ActiveSession({
                 emailAddress: "",
                 start: 0,
                 cost: toLovelace(250),
@@ -148,10 +119,39 @@ describe('verifyRefund tests', () => {
                 refund: {
                     paymentAddress: 'addr_123',
                     returnAddress: {
-                      address: "return_123",
-                      amount: toLovelace(150),
-                      index: undefined,
-                      txHash: undefined,
+                        address: "return_123",
+                        amount: toLovelace(200),
+                        index: undefined,
+                        txHash: undefined,
+                    }
+                }
+            });
+        });
+
+        it('Should return refund with a fee deducted if payment is incorrect', async () => {
+            jest.spyOn(graphql, 'lookupTransaction').mockResolvedValue({ totalPayments: toLovelace(200), returnAddress: 'return_123' });
+            jest.spyOn(ActiveSessions, 'getByPaymentAddress').mockResolvedValue(new ActiveSession({
+                emailAddress: "",
+                start: 0,
+                cost: toLovelace(250),
+                handle: "",
+                paymentAddress: 'addr_123',
+                returnAddress: 'return_123',
+                createdBySystem: CreatedBySystem.SPO,
+                status: Status.REFUNDABLE,
+                workflowStatus: WorkflowStatus.PENDING
+            }));
+            jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValue(false);
+
+            const refund = await verifyRefund('addr_123');
+            expect(refund).toEqual({
+                refund: {
+                    paymentAddress: 'addr_123',
+                    returnAddress: {
+                        address: "return_123",
+                        amount: toLovelace(150),
+                        index: undefined,
+                        txHash: undefined,
                     }
                 }
             });
@@ -159,7 +159,7 @@ describe('verifyRefund tests', () => {
 
         it('Should not return refund if the payment is less than the deducted fee', async () => {
             jest.spyOn(graphql, 'lookupTransaction').mockResolvedValue({ totalPayments: toLovelace(50), returnAddress: 'return_123' });
-            jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
+            jest.spyOn(ActiveSessions, 'getByPaymentAddress').mockResolvedValue(new ActiveSession({
                 emailAddress: "",
                 cost: toLovelace(250),
                 handle: "",
