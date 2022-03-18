@@ -26,7 +26,7 @@ interface PaymentConfirmedResponse {
 }
 
 const buildPaymentConfirmResponses = async (address: string): Promise<PaymentConfirmedItem> => {
-  const session = await ActiveSessions.getByWalletAddress(address);
+  const session = await ActiveSessions.getByPaymentAddress(address);
   if (!session) {
     // if there is a transaction, we should always have a paid session
     Logger.log({ message: `No paid session found for ${address}`, event: 'buildPaymentConfirmResponses.noPaidSession', category: LogCategory.NOTIFY });
