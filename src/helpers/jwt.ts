@@ -17,7 +17,7 @@ export interface SessionJWTPayload extends jwt.JwtPayload {
 }
 
 export interface AllSessionsJWTPayload extends jwt.JwtPayload {
-  sessions: { handle: string; dateAdded: number }[]
+  sessions: { handle: string; dateAdded: number, address?: string }[]
 }
 
 type SecretContext = 'access' | 'session'

@@ -36,7 +36,7 @@ export const verifyRefund = async (address: string): Promise<VerifyRefundResults
         return { status: UsedAddressStatus.BAD_STATE };
     }
 
-    const session = await ActiveSessions.getByWalletAddress(address);
+    const session = await ActiveSessions.getByPaymentAddress(address);
 
     if (!session) {
         // There should never not be a session
@@ -78,7 +78,7 @@ export const verifyRefund = async (address: string): Promise<VerifyRefundResults
         return {
             refund: {
                 paymentAddress: address,
-                returnAddress: { 
+                returnAddress: {
                     amount: lovelaceBalance,
                     address: results.returnAddress,
                     txHash: results.txHash,

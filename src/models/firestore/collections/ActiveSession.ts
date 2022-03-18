@@ -38,7 +38,7 @@ export class ActiveSessions {
     }));
   }
 
-  public static async getByWalletAddress(address: string): Promise<ActiveSession | null> {
+  public static async getByPaymentAddress(address: string): Promise<ActiveSession | null> {
     const collection = await admin.firestore().collection(ActiveSessions.collectionName).where('paymentAddress', '==', address).limit(1).get();
     if (collection.empty) {
       return null;
