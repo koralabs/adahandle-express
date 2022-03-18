@@ -9,5 +9,676 @@
       "--port",
       "5001"
     ]
+  },
+  {
+    "uid": "app02",
+    "append": true,
+    "watch": false,
+    "port": 5002,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5002"
+    ]
+  },
+  {
+    "uid": "app03",
+    "append": true,
+    "watch": false,
+    "port": 5003,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5003"
+    ]
+  },
+  {
+    "uid": "app04",
+    "append": true,
+    "watch": false,
+    "port": 5004,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5004"
+    ]
+  },
+  {
+    "uid": "app05",
+    "append": true,
+    "watch": false,
+    "port": 5005,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5005"
+    ]
+  },
+  {
+    "uid": "app06",
+    "append": true,
+    "watch": false,
+    "port": 5006,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5006"
+    ]
+  },
+  {
+    "uid": "app07",
+    "append": true,
+    "watch": false,
+    "port": 5007,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5007"
+    ]
+  },
+  {
+    "uid": "app08",
+    "append": true,
+    "watch": false,
+    "port": 5008,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5008"
+    ]
+  },
+  {
+    "uid": "app09",
+    "append": true,
+    "watch": false,
+    "port": 5009,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5009"
+    ]
+  },
+  {
+    "uid": "app10",
+    "append": true,
+    "watch": false,
+    "port": 5010,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5010"
+    ]
+  },
+  {
+    "uid": "app11",
+    "append": true,
+    "watch": false,
+    "port": 5011,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5011"
+    ]
+  },
+  {
+    "uid": "app12",
+    "append": true,
+    "watch": false,
+    "port": 5012,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5012"
+    ]
+  },
+  {
+    "uid": "app13",
+    "append": true,
+    "watch": false,
+    "port": 5013,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5013"
+    ]
+  },
+  {
+    "uid": "app14",
+    "append": true,
+    "watch": false,
+    "port": 5014,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5014"
+    ]
+  },
+  {
+    "uid": "app15",
+    "append": true,
+    "watch": false,
+    "port": 5015,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5015"
+    ]
+  },
+  {
+    "uid": "app16",
+    "append": true,
+    "watch": false,
+    "port": 5016,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5016"
+    ]
+  },
+  {
+    "uid": "app17",
+    "append": true,
+    "watch": false,
+    "port": 5017,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5017"
+    ]
+  },
+  {
+    "uid": "app18",
+    "append": true,
+    "watch": false,
+    "port": 5018,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5018"
+    ]
+  },
+  {
+    "uid": "app19",
+    "append": true,
+    "watch": false,
+    "port": 5019,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5019"
+    ]
+  },
+  {
+    "uid": "app20",
+    "append": true,
+    "watch": false,
+    "port": 5020,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5020"
+    ]
+  },
+  {
+    "uid": "app21",
+    "append": true,
+    "watch": false,
+    "port": 5021,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5021"
+    ]
+  },
+  {
+    "uid": "app22",
+    "append": true,
+    "watch": false,
+    "port": 5022,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5022"
+    ]
+  },
+  {
+    "uid": "app23",
+    "append": true,
+    "watch": false,
+    "port": 5023,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5023"
+    ]
+  },
+  {
+    "uid": "app24",
+    "append": true,
+    "watch": false,
+    "port": 5024,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5024"
+    ]
+  },
+  {
+    "uid": "app25",
+    "append": true,
+    "watch": false,
+    "port": 5025,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5025"
+    ]
+  },
+  {
+    "uid": "app26",
+    "append": true,
+    "watch": false,
+    "port": 5026,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5026"
+    ]
+  },
+  {
+    "uid": "app27",
+    "append": true,
+    "watch": false,
+    "port": 5027,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5027"
+    ]
+  },
+  {
+    "uid": "app28",
+    "append": true,
+    "watch": false,
+    "port": 5028,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5028"
+    ]
+  },
+  {
+    "uid": "app29",
+    "append": true,
+    "watch": false,
+    "port": 5029,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5029"
+    ]
+  },
+  {
+    "uid": "app30",
+    "append": true,
+    "watch": false,
+    "port": 5030,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5030"
+    ]
+  },
+  {
+    "uid": "app31",
+    "append": true,
+    "watch": false,
+    "port": 5031,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5031"
+    ]
+  },
+  {
+    "uid": "app32",
+    "append": true,
+    "watch": false,
+    "port": 5032,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5032"
+    ]
+  },
+  {
+    "uid": "app33",
+    "append": true,
+    "watch": false,
+    "port": 5033,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5033"
+    ]
+  },
+  {
+    "uid": "app34",
+    "append": true,
+    "watch": false,
+    "port": 5034,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5034"
+    ]
+  },
+  {
+    "uid": "app35",
+    "append": true,
+    "watch": false,
+    "port": 5035,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5035"
+    ]
+  },
+  {
+    "uid": "app36",
+    "append": true,
+    "watch": false,
+    "port": 5036,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5036"
+    ]
+  },
+  {
+    "uid": "app37",
+    "append": true,
+    "watch": false,
+    "port": 5037,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5037"
+    ]
+  },
+  {
+    "uid": "app38",
+    "append": true,
+    "watch": false,
+    "port": 5038,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5038"
+    ]
+  },
+  {
+    "uid": "app39",
+    "append": true,
+    "watch": false,
+    "port": 5039,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5039"
+    ]
+  },
+  {
+    "uid": "app40",
+    "append": true,
+    "watch": false,
+    "port": 5040,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5040"
+    ]
+  },
+  {
+    "uid": "app41",
+    "append": true,
+    "watch": false,
+    "port": 5041,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5041"
+    ]
+  },
+  {
+    "uid": "app42",
+    "append": true,
+    "watch": false,
+    "port": 5042,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5042"
+    ]
+  },
+  {
+    "uid": "app43",
+    "append": true,
+    "watch": false,
+    "port": 5043,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5043"
+    ]
+  },
+  {
+    "uid": "app44",
+    "append": true,
+    "watch": false,
+    "port": 5044,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5044"
+    ]
+  },
+  {
+    "uid": "app45",
+    "append": true,
+    "watch": false,
+    "port": 5045,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5045"
+    ]
+  },
+  {
+    "uid": "app46",
+    "append": true,
+    "watch": false,
+    "port": 5046,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5046"
+    ]
+  },
+  {
+    "uid": "app47",
+    "append": true,
+    "watch": false,
+    "port": 5047,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5047"
+    ]
+  },
+  {
+    "uid": "app48",
+    "append": true,
+    "watch": false,
+    "port": 5048,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5048"
+    ]
+  },
+  {
+    "uid": "app49",
+    "append": true,
+    "watch": false,
+    "port": 5049,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5049"
+    ]
+  },
+  {
+    "uid": "app50",
+    "append": true,
+    "watch": false,
+    "port": 5050,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5050"
+    ]
+  },
+  {
+    "uid": "app51",
+    "append": true,
+    "watch": false,
+    "port": 5051,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5051"
+    ]
+  },
+  {
+    "uid": "app52",
+    "append": true,
+    "watch": false,
+    "port": 5052,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5052"
+    ]
+  },
+  {
+    "uid": "app53",
+    "append": true,
+    "watch": false,
+    "port": 5053,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5053"
+    ]
+  },
+  {
+    "uid": "app54",
+    "append": true,
+    "watch": false,
+    "port": 5054,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5054"
+    ]
+  },
+  {
+    "uid": "app55",
+    "append": true,
+    "watch": false,
+    "port": 5055,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5055"
+    ]
+  },
+  {
+    "uid": "app56",
+    "append": true,
+    "watch": false,
+    "port": 5056,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5056"
+    ]
+  },
+  {
+    "uid": "app57",
+    "append": true,
+    "watch": false,
+    "port": 5057,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5057"
+    ]
+  },
+  {
+    "uid": "app58",
+    "append": true,
+    "watch": false,
+    "port": 5058,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5058"
+    ]
+  },
+  {
+    "uid": "app59",
+    "append": true,
+    "watch": false,
+    "port": 5059,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5059"
+    ]
+  },
+  {
+    "uid": "app60",
+    "append": true,
+    "watch": false,
+    "port": 5060,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5060"
+    ]
+  },
+  {
+    "uid": "app61",
+    "append": true,
+    "watch": false,
+    "port": 5061,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5061"
+    ]
+  },
+  {
+    "uid": "app62",
+    "append": true,
+    "watch": false,
+    "port": 5062,
+    "script": "./dist/server.js",
+    "args": [
+      "--port",
+      "5062"
+    ]
   }
 ]
