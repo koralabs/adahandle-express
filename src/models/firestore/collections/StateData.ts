@@ -142,4 +142,9 @@ export class StateData {
             snapshot.ref.update({ txId });
         });
     }
+
+    static async allMintingWalletsAreLockedWithNoTransactions(): Promise<boolean> {
+        const snapshot = await admin.firestore().collection(StateData.collectionName).get();
+        return snapshot.docs.every((wallet) => (wallet.data() as MintingWallet).locked && !(wallet.data() as MintingWallet).txId);
+    }
 }

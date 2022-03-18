@@ -82,7 +82,7 @@ export const searchHandler = async (req: express.Request, res: express.Response)
             response,
         } as SearchResponseBody);
 
-        Logger.log(getLogMessage(startTime))
+        //Logger.log(getLogMessage(startTime))
     } catch (error) {
         return res.status(500).json({
             error: true,

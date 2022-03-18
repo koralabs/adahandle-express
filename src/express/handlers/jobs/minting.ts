@@ -168,7 +168,13 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   try {
     availableWallet = await StateData.findAvailableMintingWallet();
     if (!availableWallet) {
-      Logger.log({ message: 'No available wallet found', event: 'mintPaidSessionsHandler.availableWallet', category: LogCategory.NOTIFY });
+      if (await StateData.allMintingWalletsAreLockedWithNoTransactions()) {
+        Logger.log({ message: 'All wallets are locked with no transaction IDs', event: 'mintPaidSessionsHandler.availableWallet', category: LogCategory.NOTIFY });
+      }
+      else {
+        Logger.log('No available minting wallets.');
+      }
+      
       return res.status(200).json({
         error: false,
         message: 'No available minting wallets.'

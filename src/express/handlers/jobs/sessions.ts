@@ -165,7 +165,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
             return;
           }
 
-          if (matchingPayment.amount !== entry.cost) {
+          if (matchingPayment.amount < entry.cost) {
             await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
@@ -180,7 +180,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
           }
 
           // Move valid paid sessions to minting queue.
-          if (matchingPayment.amount === entry.cost) {
+          if (matchingPayment.amount >= entry.cost) {
 
             // If already has a handle, refund.
             if (paidVal.some(e => e.handle === entry.handle)) {
