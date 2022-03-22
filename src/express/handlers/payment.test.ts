@@ -51,7 +51,7 @@ describe('Payment Tests', () => {
       }
     }
 
-    jest.spyOn(ActiveSessions, 'getByWalletAddress').mockResolvedValue(new ActiveSession({
+    jest.spyOn(ActiveSessions, 'getByPaymentAddress').mockResolvedValue(new ActiveSession({
       emailAddress: '',
       cost: toLovelace(amount),
       handle: '',

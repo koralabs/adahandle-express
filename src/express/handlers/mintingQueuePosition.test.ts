@@ -91,11 +91,11 @@ describe('mintingQueuePositionHandler Tests', () => {
 
     it('should send an 200 with no userTimestamp', async () => {
         const sessions = [
-            { handle: 'burrito', dateAdded: new Date().setMinutes(new Date().getMinutes() - 1), },
-            { handle: 'taco', dateAdded: new Date().setMinutes(new Date().getMinutes() - 2), },
-            { handle: 'enchilada', dateAdded: new Date().setMinutes(new Date().getMinutes() - 3), },
-            { handle: 'salsa', dateAdded: new Date().setMinutes(new Date().getMinutes() - 4), },
-            { handle: 'guacamole', dateAdded: new Date().setMinutes(new Date().getMinutes() - 11), },
+            { handle: 'burrito', address: 'burrito_addr1', dateAdded: new Date().setMinutes(new Date().getMinutes() - 1), },
+            { handle: 'taco', address: 'taco_addr1', dateAdded: new Date().setMinutes(new Date().getMinutes() - 2), },
+            { handle: 'enchilada', address: 'enchilada_addr1', dateAdded: new Date().setMinutes(new Date().getMinutes() - 3), },
+            { handle: 'salsa', address: 'salsa_addr1', dateAdded: new Date().setMinutes(new Date().getMinutes() - 4), },
+            { handle: 'guacamole', address: 'guacamole_addr1', dateAdded: new Date().setMinutes(new Date().getMinutes() - 11), },
         ]
 
         mockRequest = {
@@ -104,18 +104,18 @@ describe('mintingQueuePositionHandler Tests', () => {
             }
         }
 
-        jest.spyOn(ActiveSessions, 'getByHandle')
-            .mockResolvedValueOnce([
-                new ActiveSession({ handle: 'burrito', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PENDING }),
-            ]).mockResolvedValueOnce([
-                new ActiveSession({ handle: 'taco', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }),
-            ]).mockResolvedValueOnce([
-                new ActiveSession({ handle: 'enchilada', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.SUBMITTED, txId: 'txId1' }),
-            ]).mockResolvedValueOnce([
-                new ActiveSession({ handle: 'salsa', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.CONFIRMED, txId: 'txId2' }),
-            ]).mockResolvedValueOnce([
-                new ActiveSession({ handle: 'guacamole', emailAddress: '', cost: 100, paymentAddress: '1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.REFUNDABLE }),
-            ]);
+        jest.spyOn(ActiveSessions, 'getByPaymentAddress')
+            .mockResolvedValueOnce(
+                new ActiveSession({ handle: 'burrito', emailAddress: '', cost: 100, paymentAddress: 'burrito_addr1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PENDING }),
+            ).mockResolvedValueOnce(
+                new ActiveSession({ handle: 'taco', emailAddress: '', cost: 100, paymentAddress: 'taco_addr1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }),
+            ).mockResolvedValueOnce(
+                new ActiveSession({ handle: 'enchilada', emailAddress: '', cost: 100, paymentAddress: 'enchilada_addr1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.SUBMITTED, txId: 'txId1' }),
+            ).mockResolvedValueOnce(
+                new ActiveSession({ handle: 'salsa', emailAddress: '', cost: 100, paymentAddress: 'salsa_addr1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.PAID, workflowStatus: WorkflowStatus.CONFIRMED, txId: 'txId2' }),
+            ).mockResolvedValueOnce(
+                new ActiveSession({ handle: 'guacamole', emailAddress: '', cost: 100, paymentAddress: 'guacamole_addr1', createdBySystem: CreatedBySystem.UI, start: Date.now(), status: Status.REFUNDABLE }),
+            );
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-expect-error
         jest.spyOn(jwt, 'verify').mockReturnValue({ sessions });
@@ -125,11 +125,11 @@ describe('mintingQueuePositionHandler Tests', () => {
         expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({
             "error": false, "sessions": [
-                { "handle": "burrito", "type": "WAITING_FOR_PAYMENT" },
-                { "handle": "taco", "mintingPosition": { "minutes": 150, "position": 3000 }, "type": "WAITING_FOR_MINTING" },
-                { "handle": "enchilada", "txId": "txId1", "type": "WAITING_FOR_CONFIRMATION" },
-                { "handle": "salsa", "txId": "txId2", "type": "CONFIRMED" },
-                { "handle": "guacamole", "type": "REFUNDED" }
+                { "handle": "burrito", "address": 'burrito_addr1', "type": "WAITING_FOR_PAYMENT" },
+                { "handle": "taco", "address": "taco_addr1", "mintingPosition": { "minutes": 120, "position": 2400 }, "type": "WAITING_FOR_MINTING" },
+                { "handle": "enchilada", "address": "enchilada_addr1", "txId": "txId1", "type": "WAITING_FOR_CONFIRMATION" },
+                { "handle": "salsa", "address": "salsa_addr1", "txId": "txId2", "type": "CONFIRMED" },
+                { "handle": "guacamole", "address": "guacamole_addr1", "type": "REFUNDED" }
             ]
         });
     });

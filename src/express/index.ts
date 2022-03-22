@@ -22,6 +22,7 @@ import { mintConfirmHandler } from "./handlers/jobs/mintConfirm";
 import { refundsHandler } from "./handlers/jobs/refunds";
 import { searchHandler } from "./handlers/search";
 import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
+import { stateDataHandler } from "./handlers/stateData";
 
 export const startServer = async (port = 3000) => {
   const app = express();
@@ -53,6 +54,7 @@ export const startServer = async (port = 3000) => {
   app.get("/session", sessionHandler);
   app.get("/location", locationHandler);
   app.get('/search', searchHandler);
+  app.get('/stateData', stateDataHandler);
 
   // Jobs
   app.post("/state", stateHandler);

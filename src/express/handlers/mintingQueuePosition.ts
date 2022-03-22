@@ -4,7 +4,7 @@ import * as jwt from "jsonwebtoken";
 import { HEADER_JWT_ALL_SESSIONS_TOKEN } from "../../helpers/constants";
 import { AllSessionsJWTPayload, getKey } from "../../helpers/jwt";
 
-import { calculatePositionAndMinutesInQueue } from "../../helpers/utils";
+import { asyncForEach, calculatePositionAndMinutesInQueue } from "../../helpers/utils";
 import { StateData } from "../../models/firestore/collections/StateData";
 import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
@@ -30,6 +30,7 @@ interface SessionStatus {
     handle: string;
     txId?: string;
     type: SessionStatusType;
+    address: string;
 }
 
 interface QueuePositionResponseBody {
@@ -76,14 +77,23 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
         })
     }
 
-    // get all session handles
-    const activeSessions = await Promise.all(sessionData.sessions.map(async session => {
-        const activeSession = await ActiveSessions.getByHandle(session.handle);
-        return activeSession.map(session => ({
-            ...activeSession[0],
+    const activeSessions: ActiveSessionWithDateAdded[] = [];
+
+    await asyncForEach(sessionData.sessions, async (session) => {
+        if (!session.address) {
+            return;
+        }
+
+        const activeSession = await ActiveSessions.getByPaymentAddress(session.address);
+        if (!activeSession) {
+            return;
+        }
+
+        activeSessions.push({
+            ...activeSession,
             dateAdded: session.dateAdded
-        })) as ActiveSessionWithDateAdded[];
-    }));
+        } as ActiveSessionWithDateAdded);
+    });
 
     const [stateData, settingsData] = await Promise.all([
         StateData.getStateData(),
@@ -98,16 +108,18 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
     // - paid but waiting to be minted
     // - minted but not yet confirmed
     // - confirmed
-    const sessionStatuses = activeSessions.flat().reduce<SessionStatus[]>((memo, session) => {
+    const sessionStatuses = activeSessions.reduce<SessionStatus[]>((memo, session) => {
         if (session.status === Status.PENDING) {
             memo.push({
                 handle: session.handle,
+                address: session.paymentAddress,
                 type: SessionStatusType.WAITING_FOR_PAYMENT
             });
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.PENDING) {
             const mintingPosition = calculatePositionAndMinutesInQueue(mintingQueueSize, lastMintingTimestamp, session.dateAdded, paidSessionsLimit * (availableMintingServers?.split(',').length || 1));
             memo.push({
                 handle: session.handle,
+                address: session.paymentAddress,
                 type: SessionStatusType.WAITING_FOR_MINTING,
                 mintingPosition
             });
@@ -115,17 +127,20 @@ export const mintingQueuePositionHandler = async (req: express.Request, res: exp
             memo.push({
                 handle: session.handle,
                 txId: session.txId,
+                address: session.paymentAddress,
                 type: SessionStatusType.WAITING_FOR_CONFIRMATION
             });
         } else if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.CONFIRMED) {
             memo.push({
                 handle: session.handle,
                 txId: session.txId,
+                address: session.paymentAddress,
                 type: SessionStatusType.CONFIRMED
             });
         } else if (session.status === Status.REFUNDABLE) {
             memo.push({
                 handle: session.handle,
+                address: session.paymentAddress,
                 type: SessionStatusType.REFUNDED
             });
         }
