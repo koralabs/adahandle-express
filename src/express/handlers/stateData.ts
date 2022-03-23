@@ -4,27 +4,6 @@ import { LogCategory, Logger } from "../../helpers/Logger";
 import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 import { StateData } from "../../models/firestore/collections/StateData";
 
-export interface StateResponseBody {
-    state?: {
-        chainLoad?: number | null;
-        totalHandles?: number;
-        spoPageEnabled?: boolean;
-        accessWindowTimeoutMinutes?: number;
-        paymentWindowTimeoutMinutes?: number;
-        accessQueueSize: number;
-        dynamicPricingEnabled: boolean;
-        mintingPageEnabled: boolean;
-        handlePrices: {
-            basic: number;
-            common: number;
-            rare: number;
-            ultraRare: number;
-        }
-    }
-    error: boolean;
-    message: string;
-}
-
 const getLogMessage = (startTime: number) => ({ message: `handleStateHandler processed in ${Date.now() - startTime}ms`, event: 'handleStateHandler.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
 export const stateDataHandler = async (req: express.Request, res: express.Response) => {
@@ -36,10 +15,10 @@ export const stateDataHandler = async (req: express.Request, res: express.Respon
             SettingsRepo.getSettings()
         ]);
 
-        const result: StateResponseBody = {
+        const result = {
             ...state, ...settings,
             error: false,
-            message: ""
+            message: "",
         };
 
         getLogMessage(startTime);

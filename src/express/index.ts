@@ -23,6 +23,7 @@ import { refundsHandler } from "./handlers/jobs/refunds";
 import { searchHandler } from "./handlers/search";
 import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
 import { stateDataHandler } from "./handlers/stateData";
+import { verifyIdTokenHandler } from "./handlers/verifyIdToken";
 
 export const startServer = async (port = 3000) => {
   const app = express();
@@ -55,6 +56,7 @@ export const startServer = async (port = 3000) => {
   app.get("/location", locationHandler);
   app.get('/search', searchHandler);
   app.get('/stateData', stateDataHandler);
+  app.get('/verifyIdToken', verifyIdTokenHandler);
 
   // Jobs
   app.post("/state", stateHandler);
