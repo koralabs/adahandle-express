@@ -52,6 +52,11 @@ const smallList = [
     "tinypreteenpp", // bad
     "tinypreteen", // questionable, but passes
     "goodtoeat", // good
+    "organigram",
+    "hail.hitler",
+    "heil-hitler",
+    "he1lh1tler",
+    "heil0hitler"
  ]
 
 run();

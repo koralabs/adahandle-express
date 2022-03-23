@@ -6,15 +6,14 @@ import { asyncForEach } from "../helpers/utils";
 import { ReservedHandles } from "../models/firestore/collections/ReservedHandles";
 import { GraphqlHandleExistsResponse, handleExists } from "../helpers/graphql";
 
-const mintCacheButNotOnChain = [
-    'ironman.'
+const paidButNotMinted = [
 ]
 
 const run = async () => {
     await Firebase.init();
     const db = admin.firestore();
 
-    await asyncForEach(mintCacheButNotOnChain, async (handle, index) => {
+    await asyncForEach(paidButNotMinted, async (handle, index) => {
         console.log(`index ${index} for ${handle}`);
         const exists: GraphqlHandleExistsResponse = await handleExists(handle);
         const response = await ReservedHandles.checkAvailability(handle)
@@ -23,7 +22,9 @@ const run = async () => {
                 await MintingCache.removeHandlesFromMintCache([handle]);
                 const snapshot = await t.get(admin.firestore().collection("activeSessions").where("handle", "==", handle));
                 if (snapshot && snapshot.size > 0) {
-                    const sessions = snapshot.docs.map(d => d.data() as ActiveSession).filter(s => s.returnAddress).sort((a, b) => ((b.dateAdded ?? 0) - (a.dateAdded ?? 0)));
+                    const sessions = snapshot.docs.map(d => d.data() as ActiveSession)
+                        .filter(s => s.returnAddress && s.status == Status.REFUNDABLE && s.refundAmount || 0 >= s.cost)
+                        .sort((a, b) => ((b.dateAdded ?? 0) - (a.dateAdded ?? 0)));
                     if (sessions && sessions.length > 0) {
                         const handleReservation = sessions[0];
                         const ref = snapshot.docs.find(d => (d.data() as ActiveSession).id == handleReservation.id)?.ref;
@@ -36,6 +37,9 @@ const run = async () => {
                         });
                         }
                         console.log(`${handle} updated`);
+                    }
+                    else {
+                        console.log(`Couldn't find a viable record for handle ${handle}`);
                     }
                 }
             });
