@@ -17,10 +17,10 @@ export class UsedAddresses {
         return collection.docs.map(doc => doc.data() as UsedAddress);
     }
 
-    static async getRefundableAddresses(limit = 50): Promise<UsedAddress[]> {
+    static async getRefundableAddresses(limit = 50, status = UsedAddressStatus.PENDING): Promise<UsedAddress[]> {
         const snapshot = await admin.firestore()
             .collection(UsedAddresses.collectionName)
-            .where('status', '==', UsedAddressStatus.PENDING)
+            .where('status', '==', status)
             .where('dateAdded', '<', Date.now() - 1000 * 60 * 60 * 24)
             .limit(limit)
             .get();

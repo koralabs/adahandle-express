@@ -107,6 +107,8 @@ export class ActiveSessions {
       return acc;
     }, []);
 
+    // TODO: if anything other than paid submitted, we need to do a get first. and if the get say it is paid submitted, ignore.
+
     return Promise.all(filteredSessions.map(async session => {
       return admin.firestore().runTransaction(async t => {
         const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);

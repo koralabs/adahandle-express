@@ -7,9 +7,9 @@ export const getWalletServer = () => {
     );
 }
 
-export const getMintWalletServer = async (mintingWalletId: string): Promise<wallet.ShelleyWallet> => {
+export const getMintWalletServer = async (walletId: string): Promise<wallet.ShelleyWallet> => {
     const walletServer = getWalletServer();
-    return walletServer.getShelleyWallet(mintingWalletId);
+    return walletServer.getShelleyWallet(walletId);
 }
 
 export const getPaymentWalletServer = async (): Promise<wallet.ShelleyWallet> => {

@@ -58,6 +58,12 @@ export const getMintingWalletId = (): string => {
   return walletId.trim();
 }
 
+export const getRefundWalletId = (): string => {
+  const walletId = process.env.REFUND_WALLET_ID;
+  if (!walletId) { throw new Error("Couldn't retrieve minting wallet ID"); }
+  return walletId.trim();
+}
+
 export const getMintingWalletSeedPhrase = (): string => {
   const seed = process.env.MINT_SEED_PHRASE;
   if (!seed) { throw new Error("Couldn't retrieve minting seed phrase"); }

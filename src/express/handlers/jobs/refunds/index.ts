@@ -8,14 +8,18 @@ import { UsedAddresses, UsedAddressUpdates } from "../../../../models/firestore/
 import { verifyRefund } from "./verifyRefund";
 import { checkWalletBalance } from "./checkWalletBalance";
 import { processRefunds, Refund } from "./processRefunds";
-import { getMintingWalletId } from "../../../../helpers/constants";
+import { getRefundWalletId } from "../../../../helpers/constants";
+import { UsedAddressStatus } from "../../../../models/UsedAddress";
 
 const buildLogMessage = (startTime: number, refundsCount: number) => ({ message: `refundsHandler processed ${refundsCount} refunds in ${Date.now() - startTime}ms`, event: 'refundsHandler.run', count: refundsCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
 export const handleRefunds = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
     const settings = await SettingsRepo.getSettings();
-    const refundAddresses = await UsedAddresses.getRefundableAddresses(settings.usedAddressesLimit);
+    const limit = 25; // settings.usedAddressesLimit;
+    const refundAddresses = await UsedAddresses.getRefundableAddresses(limit);
+
+    console.log(`refundAddresses length: ${refundAddresses.length}`);
 
     if (refundAddresses.length === 0) {
         return res.status(200).json({
@@ -40,6 +44,9 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
             return verifiedRefund;
         }, Promise.resolve({ verifiedRefunds: [], usedAddressUpdates: [] }));
 
+        console.log(`verifiedRefunds length: ${verifiedRefunds.length}`, verifiedRefunds);
+        console.log(`usedAddressUpdates length: ${usedAddressUpdates.length}`);
+
         if (usedAddressUpdates.length > 0) {
             await UsedAddresses.batchUpdateUsedAddresses(usedAddressUpdates);
         }
@@ -51,25 +58,30 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
             });
         }
 
-        const walletId = getMintingWalletId();
+        const walletId = getRefundWalletId();
         const refundWallet = await getMintWalletServer(walletId);
 
         await checkWalletBalance(verifiedRefunds, refundWallet);
 
-        await processRefunds(verifiedRefunds)
+        await processRefunds(verifiedRefunds, refundWallet);
 
         Logger.log(buildLogMessage(startTime, verifiedRefunds.length));
 
-        return res.status(200).json({
-            error: false,
-            message: `Processed ${verifiedRefunds.length} refunds.`
-        });
+        const message = `Processed ${verifiedRefunds.length} refunds.`;
+
+        console.log(message);
+
+        // return res.status(200).json({
+        //     error: false,
+        //     message
+        // });
     } catch (error) {
+        console.log('error', error);
         Logger.log({ message: `Error on refundsHandler: ${error}`, event: 'refundsHandler.error', category: LogCategory.NOTIFY });
-        return res.status(500).json({
-            error: true,
-            message: 'There was an error'
-        });
+        // return res.status(500).json({
+        //     error: true,
+        //     message: 'There was an error'
+        // });
     }
 }
 
