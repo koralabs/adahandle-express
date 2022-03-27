@@ -12,18 +12,19 @@ const dbQuery = async (trim: number = 100) => {
     // MODIFY THIS QUERY AS YOU SEE FIT FOR YOUR PURPOSE
     const snapshot = await admin.firestore().collection("activeSessions")
     //.where('status', '==', 'paid')
-    //.where('workflowStatus', '==', 'processing')
+    //.where('workflowStatus', '==', 'confirmed')
     //.where('email', '==', 's2per@hotmail.com')
     //.where('handle', '>=', 'xar').where('handle', '<=', 'xar' + '~') // This is a "startsWith" query
     //.orderBy('dateAdded', 'desc')
-    //.select('id', 'handle', 'status', 'workflowStatus', 'createdBySystem')
+    .select('handle')
     //.limit(10)
     .get();
     // **************************************************
 
     let fields = {};
     if (snapshot?.size > 0) {
-        for (let record of snapshot.docs) {
+        const filtered = snapshot.docs.filter(d => d);
+        for (let record of filtered) {
             for (const [key, value] of Object.entries(record.data())) {
                 let length = 0;
                 if (typeof value == 'object')
@@ -48,7 +49,7 @@ const dbQuery = async (trim: number = 100) => {
         }
         console.log(`|${header}`);
         let color = Color.Dim;
-        for (let record of snapshot.docs) {
+        for (let record of filtered) {
             let row = ''
             const data = record.data();
             for (let field of keys) {
@@ -67,9 +68,8 @@ const dbQuery = async (trim: number = 100) => {
             color = (color == Color.Dim) ? Color.Reset : Color.Dim
         }
         console.log(`|${header}`);
-        console.log(`${snapshot.size} records found`); 
-
-        // const filteredCount = snapshot.docs.reduce((acc, record) => {if (((record.data() as ActiveSession).dateAdded ?? 0) < (Date.now() - 36 * 60 * 60 * 1000)) return ++acc; else return acc}, 0);
+        console.log(`${filtered.length} records found`); 
+        // const filteredCount = snapshot.docs.filter(d => (d.data() as ActiveSession).txId);
         // console.log(`refundables with a refundAmount ${filteredCount}`)
     }
     else {
