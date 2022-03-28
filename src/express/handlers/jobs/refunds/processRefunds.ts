@@ -1,5 +1,6 @@
 import * as wallet from 'cardano-wallet-js';
 import { WalletSimplifiedBalance } from '../../../../helpers/graphql';
+import { Logger } from '../../../../helpers/Logger';
 
 import { UsedAddresses } from "../../../../models/firestore/collections/UsedAddresses";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
@@ -24,7 +25,7 @@ export const processRefunds = async (refunds: Refund[], refundWallet: wallet.She
     amounts
   );
 
-  console.log(`Submitted with txId: ${tx.id}`);
+  Logger.log(`Submitted with txId: ${tx.id}`);
 
   if (tx.id) {
     const usedAddressUpdatesWithTxIds = paymentAddresses.map((paymentAddress) => ({ address: paymentAddress, props: { status: UsedAddressStatus.PROCESSED, txId: tx.id } }));

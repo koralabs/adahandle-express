@@ -19,7 +19,7 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
     const limit = 25; // settings.usedAddressesLimit;
     const refundAddresses = await UsedAddresses.getRefundableAddresses(limit);
 
-    console.log(`refundAddresses length: ${refundAddresses.length}`);
+    Logger.log(`refundAddresses length: ${refundAddresses.length}`);
 
     if (refundAddresses.length === 0) {
         return res.status(200).json({
@@ -44,8 +44,7 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
             return verifiedRefund;
         }, Promise.resolve({ verifiedRefunds: [], usedAddressUpdates: [] }));
 
-        console.log(`verifiedRefunds length: ${verifiedRefunds.length}`, verifiedRefunds);
-        console.log(`usedAddressUpdates length: ${usedAddressUpdates.length}`);
+        Logger.log(`verifiedRefunds length: ${verifiedRefunds.length}, ${JSON.stringify(verifiedRefunds)} usedAddressUpdates length: ${usedAddressUpdates.length}`);
 
         if (usedAddressUpdates.length > 0) {
             await UsedAddresses.batchUpdateUsedAddresses(usedAddressUpdates);
@@ -69,14 +68,13 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
 
         const message = `Processed ${verifiedRefunds.length} refunds.`;
 
-        console.log(message);
+        Logger.log(message);
 
         return res.status(200).json({
             error: false,
             message
         });
     } catch (error) {
-        console.log('error', error);
         Logger.log({ message: `Error on refundsHandler: ${error}`, event: 'refundsHandler.error', category: LogCategory.NOTIFY });
         return res.status(500).json({
             error: true,
