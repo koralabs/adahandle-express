@@ -71,17 +71,17 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
 
         console.log(message);
 
-        // return res.status(200).json({
-        //     error: false,
-        //     message
-        // });
+        return res.status(200).json({
+            error: false,
+            message
+        });
     } catch (error) {
         console.log('error', error);
         Logger.log({ message: `Error on refundsHandler: ${error}`, event: 'refundsHandler.error', category: LogCategory.NOTIFY });
-        // return res.status(500).json({
-        //     error: true,
-        //     message: 'There was an error'
-        // });
+        return res.status(500).json({
+            error: true,
+            message: 'There was an error'
+        });
     }
 }
 

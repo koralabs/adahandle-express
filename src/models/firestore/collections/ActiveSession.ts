@@ -107,11 +107,23 @@ export class ActiveSessions {
       return acc;
     }, []);
 
-    // TODO: if anything other than paid submitted, we need to do a get first. and if the get say it is paid submitted, ignore.
-
     return Promise.all(filteredSessions.map(async session => {
       return admin.firestore().runTransaction(async t => {
         const ref = admin.firestore().collection(ActiveSessions.collectionName).doc(session.id as string);
+
+        // If paid/submitted update session
+        if (session.status === Status.PAID && session.workflowStatus === WorkflowStatus.SUBMITTED) {
+          t.update(ref, { ...session.toJSON() });
+          return true;
+        }
+
+        // If not paid/submitted, get existing session and if paid/submitted ignore
+        const snapshot = await t.get(ref);
+        const doc = snapshot.data() as ActiveSession;
+        if (doc.status === Status.PAID && doc.workflowStatus === WorkflowStatus.SUBMITTED) {
+          return true;
+        }
+
         t.update(ref, { ...session.toJSON() });
         return true;
       }).catch(error => {
