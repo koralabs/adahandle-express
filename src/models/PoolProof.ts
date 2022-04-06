@@ -7,9 +7,9 @@ export class PoolProof extends BaseModel {
     public start: number;
     public end?: number;
     public nonce: string;
-    public proof?: string;
+    public signature?: string;
 
-    constructor({ poolId, vrfKey, vKeyHash, start, end, nonce, proof }: { poolId: string, vrfKey: string, vKeyHash: string, start?: number, end?: number, nonce: string, proof?: string }) {
+    constructor({ poolId, vrfKey, vKeyHash, start, end, nonce, signature }: { poolId: string, vrfKey: string, vKeyHash: string, start?: number, end?: number, nonce: string, signature?: string }) {
         super();
         this.poolId = poolId;
         this.vrfKey = vrfKey;
@@ -17,6 +17,6 @@ export class PoolProof extends BaseModel {
         this.start = start ?? Date.now();
         this.end = end;
         this.nonce = nonce;
-        this.proof = proof;
+        this.signature = signature;
     }
 }

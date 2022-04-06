@@ -3,12 +3,6 @@ import { LogCategory, Logger } from "../../../helpers/Logger";
 import { CHALLENGE_COMMAND, executeChildProcess } from "../../../helpers/executeChildProcess";
 import { PoolProofs } from "../../../models/firestore/collections/PoolProofs";
 
-interface SessionResponseBody {
-    error: boolean,
-    message?: string;
-    address?: string;
-}
-
 interface ChallengeResult {
     status: string;
     domain: string;
@@ -21,6 +15,13 @@ export const challenge = async (req: express.Request, res: express.Response) => 
     try {
         const { bech32PoolId, cborHexEncodedVRFKey, hexEncodedVKeyHash } = req.body;
 
+        if (!bech32PoolId || !cborHexEncodedVRFKey || !hexEncodedVKeyHash) {
+            return res.status(400).json({
+                error: false,
+                message: 'Missing required parameters'
+            });
+        }
+
         const startTime = Date.now();
 
         const result = await executeChildProcess<ChallengeResult>(CHALLENGE_COMMAND);
@@ -31,8 +32,8 @@ export const challenge = async (req: express.Request, res: express.Response) => 
 
         return res.status(200).json({
             error: false,
-            message: `Token verification ${result ? 'successful' : 'failed'}`,
-            tokenResult: result
+            message: `Challenge ${result ? 'successful' : 'failed'}`,
+            challengeResult: result
         });
     } catch (error) {
         Logger.log({ message: JSON.stringify(error), category: LogCategory.ERROR });

@@ -24,6 +24,8 @@ import { searchHandler } from "./handlers/search";
 import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
 import { stateDataHandler } from "./handlers/stateData";
 import { verifyIdTokenHandler } from "./handlers/verifyIdToken";
+import { challenge } from "./handlers/spo/challenge";
+import { verify } from "./handlers/spo/verify";
 
 export const startServer = async (port = 3000) => {
   const app = express();
@@ -57,6 +59,11 @@ export const startServer = async (port = 3000) => {
   app.get('/search', searchHandler);
   app.get('/stateData', stateDataHandler);
   app.get('/verifyIdToken', verifyIdTokenHandler);
+
+  // SPO
+  app.post("/spo/challenge", challenge);
+  app.post("/spo/verify", verify);
+
 
   // Jobs
   app.post("/state", stateHandler);
