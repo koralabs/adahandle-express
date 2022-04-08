@@ -56,7 +56,13 @@ const smallList = [
     "hail.hitler",
     "heil-hitler",
     "he1lh1tler",
-    "heil0hitler"
+    "heil0hitler",
+    "kuklux-klan",
+    "ku-kluxklan",
+    "jewnazi",
+    "heilnazi",
+    "heilnazihitler",
+    
  ]
 
 run();
