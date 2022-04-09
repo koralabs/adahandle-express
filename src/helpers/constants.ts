@@ -100,6 +100,13 @@ export const getPolicyPrivateKey = (): string => {
   return policyKey.trim();
 }
 
+export const getBlockfrostApiKey = (): string => {
+  const apiKey = process.env.BLOCKFROST_API_KEY;
+  if (!apiKey) { throw new Error("Couldn't retrieve Blockfrost key"); }
+
+  return apiKey.trim();
+}
+
 export const getMintingWallet = (index: number): { walletId: string; seedPhrase: string[] } => {
   const walletId = process.env[`MINT_WALLET_ID_${index}`];
   const seedPhrase = process.env[`MINT_WALLET_SEED_PHRASE_${index}`];

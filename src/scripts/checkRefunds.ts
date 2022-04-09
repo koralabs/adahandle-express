@@ -1,8 +1,10 @@
 import { handleRefunds } from '../express/handlers/jobs/refunds';
 import { Refund } from '../express/handlers/jobs/refunds/processRefunds';
 import { verifyRefund } from '../express/handlers/jobs/refunds/verifyRefund';
+import { getRefundWalletId } from '../helpers/constants';
 import { Firebase } from '../helpers/firebase';
 import { awaitForEach, delay } from '../helpers/utils';
+import { getMintWalletServer } from '../helpers/wallet/cardano';
 import { UsedAddresses } from '../models/firestore/collections/UsedAddresses';
 import { UsedAddressStatus } from '../models/UsedAddress';
 
@@ -41,6 +43,15 @@ export const refundDryRun = async () => {
     const sum = verifiedRefunds.reduce((acc, curr) => acc + curr.returnAddress.amount, 0);
     console.log(`ADA SUM: ${sum / 1000000}`);
     process.exit()
+}
+
+const checkWalletBalance = async () => {
+    const walletId = getRefundWalletId();
+    const refundWallet = await getMintWalletServer(walletId);
+    console.log('refundWallet', refundWallet);
+    const availableBalance = refundWallet.getAvailableBalance();
+    console.log('availableBalance', availableBalance);
+    process.exit();
 }
 
 const run = async () => {

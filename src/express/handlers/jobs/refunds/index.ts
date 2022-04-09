@@ -9,14 +9,13 @@ import { verifyRefund } from "./verifyRefund";
 import { checkWalletBalance } from "./checkWalletBalance";
 import { processRefunds, Refund } from "./processRefunds";
 import { getRefundWalletId } from "../../../../helpers/constants";
-import { UsedAddressStatus } from "../../../../models/UsedAddress";
 
 const buildLogMessage = (startTime: number, refundsCount: number) => ({ message: `refundsHandler processed ${refundsCount} refunds in ${Date.now() - startTime}ms`, event: 'refundsHandler.run', count: refundsCount, milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
 export const handleRefunds = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
     const settings = await SettingsRepo.getSettings();
-    const limit = 25; // settings.usedAddressesLimit;
+    const limit = settings.usedAddressesLimit;
     const refundAddresses = await UsedAddresses.getRefundableAddresses(limit);
 
     Logger.log(`refundAddresses length: ${refundAddresses.length}`);
