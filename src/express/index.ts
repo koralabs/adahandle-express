@@ -60,7 +60,7 @@ export const startServer = async (port = 3000) => {
   app.get('/search', searchHandler);
   app.get('/stateData', stateDataHandler);
   app.get('/verifyIdToken', verifyIdTokenHandler);
-  app.get('/lookupAddressHandler', lookupAddressHandler);
+  app.get('/lookupAddress', lookupAddressHandler);
 
   // SPO
   app.post("/spo/challenge", challenge);
