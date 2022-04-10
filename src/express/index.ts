@@ -24,8 +24,8 @@ import { searchHandler } from "./handlers/search";
 import { mintingQueuePositionHandler } from "./handlers/mintingQueuePosition";
 import { stateDataHandler } from "./handlers/stateData";
 import { verifyIdTokenHandler } from "./handlers/verifyIdToken";
-import { challenge } from "./handlers/spo/challenge";
-import { verify } from "./handlers/spo/verify";
+import { challengeHandler } from "./handlers/spo/challenge";
+import { verifyHandler as spoVerifyHandler } from "./handlers/spo/verify";
 import { lookupAddressHandler } from "./handlers/lookupAddress";
 
 export const startServer = async (port = 3000) => {
@@ -63,8 +63,8 @@ export const startServer = async (port = 3000) => {
   app.get('/lookupAddress', lookupAddressHandler);
 
   // SPO
-  app.post("/spo/challenge", challenge);
-  app.post("/spo/verify", verify);
+  app.post("/spo/challenge", challengeHandler);
+  app.post("/spo/verify", spoVerifyHandler);
 
 
   // Jobs
