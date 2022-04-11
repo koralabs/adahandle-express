@@ -57,3 +57,11 @@ export const calculatePositionAndMinutesInQueue = (queueSize: number, lastTimest
 export const isNumeric = (n: string) => {
     return !isNaN(parseFloat(n)) && isFinite(parseFloat(n));
 }
+
+export const verifyIsAlphaNumeric = (str: string): boolean => {
+    return /^[a-zA-Z0-9]+$/.test(str);
+}
+
+export const verifyIsPoolId = (str: string): boolean => {
+    return /^pool([a-zA-Z0-9]+$)/.test(str);
+}

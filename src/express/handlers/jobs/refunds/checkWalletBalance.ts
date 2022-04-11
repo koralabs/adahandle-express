@@ -8,6 +8,8 @@ export const checkWalletBalance = async (refunds: Refund[], mintWallet: wallet.S
 
     const summedRefunds = refunds.reduce((acc, curr) => acc + curr.returnAddress.amount, 0);
 
+    Logger.log(`availableBalance: ${availableBalance}, summedRefunds: ${summedRefunds}`);
+
     if (availableBalance < summedRefunds) {
         Logger.log({ message: `insufficient funds`, event: 'getRefundWallet.notEnoughFunds', category: LogCategory.NOTIFY });
         throw Error(`Balance of ${availableBalance} is not enough to refund ${summedRefunds}!`);

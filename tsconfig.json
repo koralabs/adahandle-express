@@ -16,9 +16,10 @@
     "declaration": false,
     "removeComments": true,
     "noLib": false,
+    "skipLibCheck": true,
     "preserveConstEnums": true,
     "suppressImplicitAnyIndexErrors": true,
-    "sourceMap": true,
+    "sourceMap": true
   },
   "exclude": [
     "node_modules",
