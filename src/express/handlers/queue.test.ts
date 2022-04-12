@@ -53,7 +53,7 @@ describe('Queue Tests', () => {
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: missing_agent_info" });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious bot activity, or too many browser sessions detected. Support code: missing_agent_info" });
   });
 
   it('should send an 403 response if body does not include clientIp', async () => {
@@ -69,7 +69,7 @@ describe('Queue Tests', () => {
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: missing_agent_info" });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious bot activity, or too many browser sessions detected. Support code: missing_agent_info" });
   });
 
   it('should send an 403 response if body does not include clientAgent', async () => {
@@ -85,7 +85,7 @@ describe('Queue Tests', () => {
     await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(403);
-    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: missing_agent_info" });
+    expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Forbidden: Suspicious bot activity, or too many browser sessions detected. Support code: missing_agent_info" });
   });
 
   it('should send an 403 response if verifyClientAgentInfo returns error code ', async () => {
@@ -111,7 +111,7 @@ describe('Queue Tests', () => {
       await postToQueueHandler(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toHaveBeenCalledWith(403);
-      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": `Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: ${errorCode}` });
+      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": `Forbidden: Suspicious bot activity, or too many browser sessions detected. Support code: ${errorCode}` });
     }
   });
 
