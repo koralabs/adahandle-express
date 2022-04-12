@@ -43,7 +43,7 @@ export const postToQueueHandler = async (req: express.Request, res: express.Resp
 
   const forbiddenSuspiciousResponse = (code: string) => ({
     error: true,
-    message: `Forbidden: Suspicious Activity. Send this code to support@adahandle.com for assistance: ${code}`
+    message: `Forbidden: Suspicious bot activity, or too many browser sessions detected. Support code: ${code}`
   });
 
   if (!req.body.clientAgent || !req.body.clientIp) {
