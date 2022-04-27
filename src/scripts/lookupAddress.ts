@@ -30,12 +30,14 @@ const run = async () => {
 
     const addressDetails = await cardanoAddresses.inspectAddress(result.address);
 
-    return console.log('results', {
+    console.log('results', {
         error: false,
         isShellyAddress: addressDetails.address_type === 0,
         assetName,
         address: result.address,
     });
+
+    process.exit();
 }
 
 run();
