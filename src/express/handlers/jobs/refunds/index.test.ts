@@ -100,7 +100,7 @@ describe('Refund Cron Tests', () => {
 
             jest.spyOn(UsedAddresses, 'getRefundableAddresses').mockResolvedValue(usedAddressesFixture);
             jest.spyOn(cardano, 'getMintWalletServer').mockResolvedValue(mockShellyWallet);
-            jest.spyOn(constants, 'getMintingWalletId').mockReturnValue('minting_wallet_id');
+            jest.spyOn(constants, 'getRefundWalletId').mockReturnValue('minting_wallet_id');
             jest.spyOn(verifyRefund, 'verifyRefund')
                 .mockResolvedValueOnce({ status: UsedAddressStatus.PROCESSED })
                 .mockResolvedValueOnce({ status: UsedAddressStatus.PROCESSED })

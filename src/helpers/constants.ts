@@ -58,6 +58,12 @@ export const getMintingWalletId = (): string => {
   return walletId.trim();
 }
 
+export const getRefundWalletId = (): string => {
+  const walletId = process.env.REFUND_WALLET_ID;
+  if (!walletId) { throw new Error("Couldn't retrieve minting wallet ID"); }
+  return walletId.trim();
+}
+
 export const getMintingWalletSeedPhrase = (): string => {
   const seed = process.env.MINT_SEED_PHRASE;
   if (!seed) { throw new Error("Couldn't retrieve minting seed phrase"); }
@@ -92,6 +98,13 @@ export const getPolicyPrivateKey = (): string => {
   if (!policyKey) { throw new Error("Couldn't retrieve policy key"); }
 
   return policyKey.trim();
+}
+
+export const getBlockfrostApiKey = (): string => {
+  const apiKey = process.env.BLOCKFROST_API_KEY;
+  if (!apiKey) { throw new Error("Couldn't retrieve Blockfrost key"); }
+
+  return apiKey.trim();
 }
 
 export const getMintingWallet = (index: number): { walletId: string; seedPhrase: string[] } => {
