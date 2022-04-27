@@ -44,7 +44,7 @@ export const lookupAddressHandler = async (req: express.Request, res: express.Re
 
         if (data?.status_code === 404) {
             return res.status(404).json({
-                error: true,
+                error: false,
                 assetName
             });
         }
@@ -54,7 +54,7 @@ export const lookupAddressHandler = async (req: express.Request, res: express.Re
 
         Logger.log(getLogMessage(startTime))
 
-        return res.status(404).json({
+        return res.status(200).json({
             error: false,
             isShellyAddress: addressDetails.address_type === 0,
             assetName,
@@ -64,7 +64,7 @@ export const lookupAddressHandler = async (req: express.Request, res: express.Re
         Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'locationHandler.run' })
         return res.status(500).json({
             error: true,
-            message: e
+            message: 'Error occurred while processing request.'
         });
     }
 }

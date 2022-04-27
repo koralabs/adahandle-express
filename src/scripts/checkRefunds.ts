@@ -9,7 +9,6 @@ import { UsedAddresses } from '../models/firestore/collections/UsedAddresses';
 import { UsedAddressStatus } from '../models/UsedAddress';
 
 export const refundDryRun = async () => {
-    await Firebase.init();
     // get used addresses
     const usedAddresses = await UsedAddresses.getRefundableAddresses(0);
     console.log('usedAddresses length', usedAddresses.length);
@@ -47,15 +46,21 @@ export const refundDryRun = async () => {
 
 const checkWalletBalance = async () => {
     const walletId = getRefundWalletId();
+    console.log('walletId', walletId);
     const refundWallet = await getMintWalletServer(walletId);
     console.log('refundWallet', refundWallet);
     const availableBalance = refundWallet.getAvailableBalance();
-    console.log('availableBalance', availableBalance);
+    console.log('availableBalance', availableBalance / 1000000);
     process.exit();
 }
 
 const run = async () => {
     await Firebase.init();
+
+    //await checkWalletBalance();
+
+    //await refundDryRun();
+
     // @ts-expect-error
     await handleRefunds({}, {});
     process.exit();
