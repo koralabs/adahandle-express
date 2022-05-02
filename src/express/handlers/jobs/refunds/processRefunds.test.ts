@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as wallet from 'cardano-wallet-js';
 
 import { UsedAddresses } from '../../../../models/firestore/collections/UsedAddresses';
@@ -40,19 +39,24 @@ describe('processRefund tests', () => {
         expect(mockSendPayment).toHaveBeenCalledWith(undefined, [{ "id": "r1", "state": "unused" }, { "id": "r2", "state": "unused" }], [500, 10]);
     });
 
-    it('Should not update to processing if sendPayment does not return an object with an id', async () => {
+    it('Should throw an error and not update to processing if sendPayment does not return an object with an id', async () => {
         const mockSendPayment = jest.fn(() => ({ burrito: 'taco' }));
         const mockWallet = {
             sendPayment: mockSendPayment
         }
 
-        await processRefunds([{
-            paymentAddress: '0x2',
-            returnAddress: { amount: 500, address: 'return_0x2' },
+        try {
+            await processRefunds([{
+                paymentAddress: '0x2',
+                returnAddress: { amount: 500, address: 'return_0x2' },
 
-        }], mockWallet as unknown as wallet.ShelleyWallet);
+            }], mockWallet as unknown as wallet.ShelleyWallet);
+            throw new Error('Should have thrown an error');
+        } catch (error) {
+            expect((error as any).message).toEqual('Transaction does not have a valid id');
+            expect(batchUpdateUsedAddressesSpy).toHaveBeenCalledTimes(1);
+            expect(mockSendPayment).toHaveBeenCalledTimes(1);
+        }
 
-        expect(batchUpdateUsedAddressesSpy).toHaveBeenCalledTimes(1);
-        expect(mockSendPayment).toHaveBeenCalledTimes(1);
     });
 });
