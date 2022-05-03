@@ -61,11 +61,11 @@ export const handleRefunds = async (req: express.Request, res: express.Response)
 
         await checkWalletBalance(verifiedRefunds, refundWallet);
 
-        await processRefunds(verifiedRefunds, refundWallet);
+        const txId = await processRefunds(verifiedRefunds, refundWallet);
 
         Logger.log(buildLogMessage(startTime, verifiedRefunds.length));
 
-        const message = `Processed ${verifiedRefunds.length} refunds.`;
+        const message = `Processed ${verifiedRefunds.length} refunds with txId: ${txId}`;
 
         Logger.log(message);
 

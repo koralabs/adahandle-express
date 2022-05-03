@@ -57,9 +57,9 @@ const checkWalletBalance = async () => {
 const run = async () => {
     await Firebase.init();
 
-    //await checkWalletBalance();
+    // await checkWalletBalance();
 
-    //await refundDryRun();
+    // await refundDryRun();
 
     // @ts-expect-error
     await handleRefunds({}, {});
