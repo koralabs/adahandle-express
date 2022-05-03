@@ -20,7 +20,7 @@ export const processRefunds = async (refunds: Refund[], refundWallet: wallet.She
   await UsedAddresses.batchUpdateUsedAddresses(usedAddressUpdates);
 
   const tx = await refundWallet.sendPayment(
-    process.env.REFUND_WALLET_PASSPHRASE,
+    process.env.REFUND_WALLET_PASSWORD,
     returnAddresses,
     amounts
   );
