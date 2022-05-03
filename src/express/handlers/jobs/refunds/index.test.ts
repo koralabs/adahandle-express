@@ -28,8 +28,10 @@ describe('Refund Cron Tests', () => {
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
 
+    const txId = 'abc123';
+
     const checkWalletBalanceSpy = jest.spyOn(checkWalletBalance, 'checkWalletBalance');
-    const processRefundsSpy = jest.spyOn(processRefunds, 'processRefunds');
+    const processRefundsSpy = jest.spyOn(processRefunds, 'processRefunds').mockResolvedValue(txId);
     const lockCronSpy = jest.spyOn(StateData, 'checkAndLockCron');
     const unlockCronSpy = jest.spyOn(StateData, 'unlockCron');
     const batchUpdateUsedAddresses = jest.spyOn(UsedAddresses, 'batchUpdateUsedAddresses');
@@ -116,7 +118,7 @@ describe('Refund Cron Tests', () => {
             expect(batchUpdateUsedAddresses).toHaveBeenCalledTimes(1);
 
             expect(mockResponse.status).toHaveBeenCalledWith(200);
-            expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Processed 2 refunds." });
+            expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Processed 2 refunds with txId: abc123" });
         });
     });
 });
