@@ -13,7 +13,7 @@ import { StakePool } from "../../../models/StakePool";
 import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
-// import * as createSpoSession from "./createSpoSession";
+import * as createSpoSession from "./createSpoSession";
 
 jest.mock('jsonwebtoken');
 jest.mock('fs');
@@ -47,7 +47,7 @@ describe('Verify Tests', () => {
         jest.clearAllMocks();
     });
 
-    it.skip('should send an successful verify response', async () => {
+    it('should send an successful verify response', async () => {
         mockRequest = {
             headers: {
                 [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
@@ -73,7 +73,7 @@ describe('Verify Tests', () => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         jest.spyOn(SettingsRepo, 'getSettings').mockResolvedValue({ walletAddressCollectionName: 'wallet-address' });
-        // jest.spyOn(createSpoSession, 'createSpoSession').mockResolvedValue('wallet-address');
+        jest.spyOn(createSpoSession, 'createSpoSession').mockResolvedValue('addr1testing');
         jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
         jest.spyOn(runChallengeCommand, 'runVerifyCommand').mockResolvedValue({ status: 'ok' });
@@ -83,7 +83,7 @@ describe('Verify Tests', () => {
         await verifyHandler(mockRequest as Request, mockResponse as Response);
 
         //expect(mockResponse.status).toHaveBeenCalledWith(200);
-        expect(mockResponse.json).toHaveBeenCalledWith({ "error": false, "message": "Verified" });
+        expect(mockResponse.json).toHaveBeenCalledWith({ "address": "addr1testing", "cost": 250, "error": false, "handle": "handle", "message": "Verified" });
     });
 
     it('should fail if invalid access key', async () => {

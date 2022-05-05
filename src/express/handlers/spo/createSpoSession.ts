@@ -1,9 +1,9 @@
 import { CreatedBySystem } from "../../../helpers/constants";
 import { toLovelace } from "../../../helpers/utils";
-import { getNewAddress } from "../../../helpers/wallet";
 import { ActiveSession, Status } from "../../../models/ActiveSession";
 import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
 import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
+import { WalletAddresses } from "../../../models/firestore/collections/WalletAddresses";
 
 export const createSpoSession = async (handle: string, cost: number): Promise<string | null> => {
     const newSession = new ActiveSession({
@@ -17,17 +17,17 @@ export const createSpoSession = async (handle: string, cost: number): Promise<st
     });
 
     const settings = await SettingsRepo.getSettings();
-    const walletAddress = await getNewAddress(newSession.createdBySystem, settings.walletAddressCollectionName);
+    const walletAddress = await WalletAddresses.getFirstAvailableWalletAddress(newSession.createdBySystem, settings.walletAddressCollectionName);
 
-    if (false === walletAddress) {
+    if (!walletAddress) {
         throw new Error('Failed to retrieve payment address data.');
     }
 
-    newSession.paymentAddress = walletAddress;
+    newSession.paymentAddress = walletAddress.id;
     const added = await ActiveSessions.addActiveSession(newSession);
     if (!added) {
         return null;
     }
 
-    return walletAddress
+    return walletAddress.id
 }

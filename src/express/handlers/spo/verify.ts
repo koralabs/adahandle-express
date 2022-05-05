@@ -156,16 +156,16 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
         }
 
         // create an active session with the pool details
-        // const createSessionResult = await createSpoSession(handle, cost);
-        // if (!createSessionResult) {
-        //     return {
-        //         code: 400,
-        //         body: {
-        //             error: true,
-        //             message: 'Sorry, this handle is being purchased! Try another handle.',
-        //         }
-        //     }
-        // }
+        const createSessionResult = await createSpoSession(handle, cost);
+        if (!createSessionResult) {
+            return {
+                code: 400,
+                body: {
+                    error: true,
+                    message: 'Sorry, this handle is being purchased! Try another handle.',
+                }
+            }
+        }
 
         await PoolProofs.updatePoolProof({ poolId: proof.poolId, signature });
 
@@ -176,7 +176,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
             message: 'Verified',
             handle,
             cost,
-            address: '123'
+            address: createSessionResult
         }
 
         return {
