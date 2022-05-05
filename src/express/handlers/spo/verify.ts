@@ -2,19 +2,16 @@ import * as express from "express";
 import * as jwt from "jsonwebtoken";
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
-import { CreatedBySystem, HEADER_JWT_SPO_ACCESS_TOKEN } from "../../../helpers/constants";
+import { HEADER_JWT_SPO_ACCESS_TOKEN } from "../../../helpers/constants";
 
 import { runVerifyCommand } from "../../../helpers/executeChildProcess";
 import { getKey } from "../../../helpers/jwt";
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { toLovelace, verifyIsAlphaNumeric } from "../../../helpers/utils";
+import { verifyIsAlphaNumeric } from "../../../helpers/utils";
 import { PoolProofs } from "../../../models/firestore/collections/PoolProofs";
-// import { StakePools } from "../../../models/firestore/collections/StakePools";
-// import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
-import { ActiveSession, Status } from "../../../models/ActiveSession";
-import { getNewAddress } from "../../../helpers/wallet";
-import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
-import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
+import { StakePools } from "../../../models/firestore/collections/StakePools";
+import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
+import { createSpoSession } from "./createSpoSession";
 
 interface SpoVerifyResponseBody {
     error: boolean;
@@ -107,11 +104,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
         }
 
         // get handle data from stake pool
-        // const stakePoolDetails = await StakePools.getStakePoolsByPoolId(poolId);
-        const stakePoolDetails = {
-            ticker: 'TEST',
-            isOG: false
-        }
+        const stakePoolDetails = await StakePools.getStakePoolsByPoolId(poolId);
         if (!stakePoolDetails) {
             return {
                 code: 404,
@@ -128,8 +121,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
         const cost = stakePoolDetails.isOG ? 2 : 250;
 
         // verify exists
-        // const response = await ReservedHandles.checkAvailability(handle);
-        const response = { available: true, type: 'ticker' };
+        const response = await ReservedHandles.checkAvailability(handle);
         if (response.available === false && response.type !== 'spo') {
             return {
                 code: 400,
@@ -164,40 +156,16 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
         }
 
         // create an active session with the pool details
-        const newSession = new ActiveSession({
-            emailAddress: 'spo@adahandle.com',
-            handle,
-            paymentAddress: '',
-            cost: toLovelace(cost),
-            start: Date.now(),
-            createdBySystem: CreatedBySystem.UI,
-            status: Status.PENDING
-        });
-
-        const settings = await SettingsRepo.getSettings();
-        const walletAddress = await getNewAddress(newSession.createdBySystem, settings.walletAddressCollectionName);
-
-        if (false === walletAddress) {
-            return {
-                code: 500,
-                body: {
-                    error: true,
-                    message: 'Failed to retrieve payment address data.',
-                }
-            };
-        }
-
-        newSession.paymentAddress = walletAddress;
-        const added = await ActiveSessions.addActiveSession(newSession);
-        if (!added) {
-            return {
-                code: 400,
-                body: {
-                    error: true,
-                    message: 'Sorry, this handle is being purchased! Try another handle.',
-                }
-            };
-        }
+        // const createSessionResult = await createSpoSession(handle, cost);
+        // if (!createSessionResult) {
+        //     return {
+        //         code: 400,
+        //         body: {
+        //             error: true,
+        //             message: 'Sorry, this handle is being purchased! Try another handle.',
+        //         }
+        //     }
+        // }
 
         await PoolProofs.updatePoolProof({ poolId: proof.poolId, signature });
 
@@ -208,7 +176,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
             message: 'Verified',
             handle,
             cost,
-            address: walletAddress
+            address: '123'
         }
 
         return {
