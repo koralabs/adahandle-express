@@ -7,6 +7,11 @@ import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuff
 export class StakePools {
     public static readonly collectionName = buildCollectionNameWithSuffix('stakePools');
 
+    public static async getAllStakePools(limit = 100) {
+        const collection = await admin.firestore().collection(StakePools.collectionName).limit(limit).get();
+        return collection.docs;
+    }
+
     public static async addStakePool(pool: StakePool): Promise<boolean> {
         await admin.firestore().collection(StakePools.collectionName).doc(pool.id).set(pool.toJSON());
         return true;
