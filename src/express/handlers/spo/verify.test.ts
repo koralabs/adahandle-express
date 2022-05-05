@@ -11,8 +11,6 @@ import { PoolProof } from "../../../models/PoolProof";
 import { StakePools } from "../../../models/firestore/collections/StakePools";
 import { StakePool } from "../../../models/StakePool";
 import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
-import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
-import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
 import * as createSpoSession from "./createSpoSession";
 
 jest.mock('jsonwebtoken');
@@ -22,8 +20,6 @@ jest.mock('../../../helpers/executeChildProcess');
 jest.mock('../../../models/firestore/collections/PoolProofs');
 jest.mock('../../../models/firestore/collections/StakePools');
 jest.mock('../../../models/firestore/collections/ReservedHandles');
-jest.mock('../../../models/firestore/collections/ActiveSession');
-jest.mock('../../../models/firestore/collections/SettingsRepo');
 jest.mock('./createSpoSession');
 
 StateFixtures.setupStateFixtures();
@@ -70,11 +66,7 @@ describe('Verify Tests', () => {
         jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
         jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
 
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        jest.spyOn(SettingsRepo, 'getSettings').mockResolvedValue({ walletAddressCollectionName: 'wallet-address' });
         jest.spyOn(createSpoSession, 'createSpoSession').mockResolvedValue('addr1testing');
-        jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
         jest.spyOn(runChallengeCommand, 'runVerifyCommand').mockResolvedValue({ status: 'ok' });
         jest.spyOn(fs, 'writeFileSync');
@@ -82,7 +74,7 @@ describe('Verify Tests', () => {
 
         await verifyHandler(mockRequest as Request, mockResponse as Response);
 
-        //expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({ "address": "addr1testing", "cost": 250, "error": false, "handle": "handle", "message": "Verified" });
     });
 
@@ -208,5 +200,93 @@ describe('Verify Tests', () => {
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
         expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Unable to verify. Not submitted within 5 minute tme window" });
+    });
+
+    it('should fail if pool cannot be found in the database', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { poolId: 'pool1abc123', signature: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+        jest.spyOn(PoolProofs, 'getPoolProofById').mockResolvedValue(new PoolProof({
+            poolId: 'pool1abc123',
+            vrfKey: 'abc123',
+            vKeyHash: 'abc123',
+            start: Date.now(),
+            nonce: 'abc123'
+        }));
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(null);
+
+        await verifyHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "No ticker found for Pool ID." });
+    });
+
+    it('should fail if pool is unavailable and not an SPO reserved handle', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { poolId: 'pool1abc123', signature: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+        jest.spyOn(PoolProofs, 'getPoolProofById').mockResolvedValue(new PoolProof({
+            poolId: 'pool1abc123',
+            vrfKey: 'abc123',
+            vKeyHash: 'abc123',
+            start: Date.now(),
+            nonce: 'abc123'
+        }));
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: false, type: 'private' });
+
+        await verifyHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Handle is unavailable." });
+    });
+
+    it('should fail if unable to create SPO active session', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { poolId: 'pool1abc123', signature: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+        jest.spyOn(PoolProofs, 'getPoolProofById').mockResolvedValue(new PoolProof({
+            poolId: 'pool1abc123',
+            vrfKey: 'abc123',
+            vKeyHash: 'abc123',
+            start: Date.now(),
+            nonce: 'abc123'
+        }));
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
+
+        jest.spyOn(createSpoSession, 'createSpoSession').mockResolvedValue(null);
+
+        await verifyHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Cannot register handle." });
     });
 });

@@ -157,4 +157,45 @@ describe('Challenge Tests', () => {
         expect(mockResponse.status).toHaveBeenCalledWith(400);
         expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Invalid parameters." });
     });
+
+    it('should fail if pool cannot be found in the database', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { bech32PoolId: 'pool1abc123', cborHexEncodedVRFKey: 'abc123', hexEncodedVKeyHash: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(null);
+
+        await challengeHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "No ticker found for Pool ID." });
+    });
+
+    it('should fail handle is unavailable', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { bech32PoolId: 'pool1abc123', cborHexEncodedVRFKey: 'abc123', hexEncodedVKeyHash: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: false, type: 'private' });
+
+        await challengeHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Handle is unavailable." });
+    });
 });

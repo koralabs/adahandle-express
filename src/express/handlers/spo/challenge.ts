@@ -71,7 +71,7 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
 
         const stakePoolDetails = await StakePools.getStakePoolsByPoolId(bech32PoolId);
         if (!stakePoolDetails) {
-            return res.status(400).json({
+            return res.status(404).json({
                 error: true,
                 message: 'No ticker found for Pool ID.'
             });
@@ -83,7 +83,7 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
         if (response.available === false && response.type !== 'spo') {
             return res.status(400).json({
                 error: true,
-                message: 'Handle already exists.'
+                message: 'Handle is unavailable.'
             });
         }
 

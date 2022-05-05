@@ -127,7 +127,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
                 code: 400,
                 body: {
                     error: true,
-                    message: 'Handle already exists.'
+                    message: 'Handle is unavailable.'
                 }
             };
         }
@@ -162,7 +162,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
                 code: 400,
                 body: {
                     error: true,
-                    message: 'Sorry, this handle is being purchased! Try another handle.',
+                    message: 'Cannot register handle.',
                 }
             }
         }
