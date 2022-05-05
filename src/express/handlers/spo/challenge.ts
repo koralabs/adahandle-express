@@ -6,11 +6,20 @@ import { PoolProofs } from "../../../models/firestore/collections/PoolProofs";
 import { verifyIsAlphaNumeric, verifyIsPoolId } from "../../../helpers/utils";
 import { HEADER_JWT_SPO_ACCESS_TOKEN } from "../../../helpers/constants";
 import { getKey } from "../../../helpers/jwt";
+import { StakePools } from "../../../models/firestore/collections/StakePools";
+import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
 
 interface ChallengeResult {
     status: string;
     domain: string;
     nonce: string;
+}
+
+export interface SpoChallengeResponseBody {
+    error: boolean,
+    message: string;
+    handle?: string;
+    challengeResult?: ChallengeResult;
 }
 
 const getLogMessage = (startTime: number) => ({ message: `challenge processed in ${Date.now() - startTime}ms`, event: 'challenge.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
@@ -60,17 +69,38 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             });
         }
 
+        const stakePoolDetails = await StakePools.getStakePoolsByPoolId(bech32PoolId);
+        if (!stakePoolDetails) {
+            return res.status(400).json({
+                error: true,
+                message: 'No ticker found for Pool ID.'
+            });
+        }
+
+        const handle = stakePoolDetails.ticker.toLocaleLowerCase();
+
+        const response = await ReservedHandles.checkAvailability(handle);
+        if (response.available === false && response.type !== 'spo') {
+            return res.status(400).json({
+                error: true,
+                message: 'Handle already exists.'
+            });
+        }
+
         const result = await runChallengeCommand<ChallengeResult>();
 
         await PoolProofs.addPoolProof({ poolId: bech32PoolId, vrfKey: cborHexEncodedVRFKey, vKeyHash: hexEncodedVKeyHash, nonce: result.nonce });
 
         Logger.log(getLogMessage(startTime));
 
-        return res.status(200).json({
+        const body: SpoChallengeResponseBody = {
             error: false,
             message: `Challenge ${result ? 'successful' : 'failed'}`,
+            handle,
             challengeResult: result
-        });
+        }
+
+        return res.status(200).json(body);
     } catch (error) {
         Logger.log({ message: JSON.stringify(error), category: LogCategory.ERROR });
         return res.status(500).json({

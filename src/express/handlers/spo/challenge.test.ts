@@ -8,11 +8,16 @@ import * as StateFixtures from "../../../tests/stateFixture";
 import * as runChallengeCommand from "../../../helpers/executeChildProcess";
 import { challengeHandler } from './challenge';
 import { PoolProofs } from "../../../models/firestore/collections/PoolProofs";
+import { StakePools } from "../../../models/firestore/collections/StakePools";
+import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
+import { StakePool } from "../../../models/StakePool";
 
 jest.mock('jsonwebtoken');
 jest.mock('../../../helpers/jwt');
 jest.mock('../../../helpers/executeChildProcess');
 jest.mock('../../../models/firestore/collections/PoolProofs');
+jest.mock('../../../models/firestore/collections/StakePools');
+jest.mock('../../../models/firestore/collections/ReservedHandles');
 
 StateFixtures.setupStateFixtures();
 
@@ -45,13 +50,17 @@ describe('Challenge Tests', () => {
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
+
         jest.spyOn(runChallengeCommand, 'runChallengeCommand').mockResolvedValue({ nonce: 'abc123', status: 'ok', domain: 'adahandle.com' });
         jest.spyOn(PoolProofs, 'addPoolProof')
 
         await challengeHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(200);
-        expect(mockResponse.json).toHaveBeenCalledWith({ challengeResult: { domain: "adahandle.com", nonce: "abc123", status: "ok" }, error: false, message: "Challenge successful" });
+        expect(mockResponse.json).toHaveBeenCalledWith({ challengeResult: { domain: "adahandle.com", nonce: "abc123", status: "ok" }, handle: 'handle', error: false, message: "Challenge successful" });
     });
 
     it('should fail if invalid access key', async () => {

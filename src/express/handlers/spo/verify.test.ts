@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// disabling ban-ts-comment is only acceptable in tests. And it's recommend to use very little when you can.
 import * as jwt from "jsonwebtoken";
 import * as jwtHelper from "../../../helpers/jwt";
 import * as fs from 'fs';
@@ -10,12 +8,22 @@ import * as runChallengeCommand from "../../../helpers/executeChildProcess";
 import { verifyHandler } from './verify';
 import { PoolProofs } from "../../../models/firestore/collections/PoolProofs";
 import { PoolProof } from "../../../models/PoolProof";
+//import { StakePools } from "../../../models/firestore/collections/StakePools";
+import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
+//import { StakePool } from "../../../models/StakePool";
+import { ActiveSessions } from "../../../models/firestore/collections/ActiveSession";
+import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
+import * as walletHelper from "../../../helpers/wallet";
 
 jest.mock('jsonwebtoken');
 jest.mock('fs');
 jest.mock('../../../helpers/jwt');
 jest.mock('../../../helpers/executeChildProcess');
 jest.mock('../../../models/firestore/collections/PoolProofs');
+jest.mock('../../../models/firestore/collections/ReservedHandles');
+jest.mock('../../../models/firestore/collections/ActiveSession');
+jest.mock('../../../models/firestore/collections/SettingsRepo');
+jest.mock('../../../helpers/wallet');
 
 StateFixtures.setupStateFixtures();
 
@@ -27,6 +35,7 @@ describe('Verify Tests', () => {
     beforeEach(() => {
         mockRequest = {};
         mockResponse = {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             status: jest.fn(() => mockResponse),
             json: jest.fn()
@@ -46,8 +55,7 @@ describe('Verify Tests', () => {
         }
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
-        // @ts-ignore
-        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+        jest.spyOn(jwt, 'verify').mockReturnValue();
         jest.spyOn(PoolProofs, 'getPoolProofById').mockResolvedValue(new PoolProof({
             poolId: 'pool1abc123',
             vrfKey: 'abc123',
@@ -55,6 +63,15 @@ describe('Verify Tests', () => {
             start: Date.now(),
             nonce: 'abc123'
         }));
+
+        // jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        jest.spyOn(SettingsRepo, 'getSettings').mockResolvedValue({ walletAddressCollectionName: 'wallet-address' });
+        jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue('mocked_address');
+        jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
         jest.spyOn(runChallengeCommand, 'runVerifyCommand').mockResolvedValue({ status: 'ok' });
         jest.spyOn(fs, 'writeFileSync');
@@ -74,6 +91,7 @@ describe('Verify Tests', () => {
         }
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue(false);
 
@@ -92,6 +110,7 @@ describe('Verify Tests', () => {
         }
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue('valid');
 
@@ -114,6 +133,7 @@ describe('Verify Tests', () => {
         }
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue('valid');
 
@@ -141,6 +161,7 @@ describe('Verify Tests', () => {
         }
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue('valid');
 
@@ -167,6 +188,7 @@ describe('Verify Tests', () => {
         }
 
         jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue('valid');
 
