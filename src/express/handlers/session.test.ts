@@ -8,7 +8,6 @@ import * as walletHelper from "../../helpers/wallet";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
 import { StakePools } from "../../models/firestore/collections/StakePools";
 import { StakePool } from "../../models/StakePool";
-import { CreatedBySystem } from "../../helpers/constants";
 import * as StateFixtures from "../../tests/stateFixture";
 
 jest.mock('jsonwebtoken');
@@ -242,7 +241,6 @@ describe('Session Tests', () => {
         }
       }
 
-      const validAddress = 'burrito_tacos123';
       const validHandle = 'taco';
 
       jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
@@ -250,57 +248,13 @@ describe('Session Tests', () => {
       // @ts-ignore
       jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
       jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('1', validHandle, 'stakeKey_1', ['owner1', 'owner2'])]);
-      const getNewAddressSpy = jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
-      const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
 
-      await sessionHandler(mockRequest as Request, mockResponse as Response);
+      try {
 
-      expect(mockedAddActiveSession).toHaveBeenCalledWith({ "attempts": 0, "handle": validHandle, "paymentAddress": validAddress, emailAddress: '+1234567890', cost: 250000000, "start": expect.any(Number), "dateAdded": expect.any(Number), createdBySystem: "SPO", status: 'pending' });
-      expect(getNewAddressSpy).toHaveBeenCalledWith(CreatedBySystem.SPO, 'walletAddresses');
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({ "address": "burrito_tacos123", "error": false, "message": "Success! Session initiated." });
-    });
-
-    it('Should send 403 if handle does not exist', async () => {
-      mockRequest = {
-        headers: {
-          'x-access-token': 'test-access-token',
-          'x-session-token': 'test-session-token'
-        }
+        await sessionHandler(mockRequest as Request, mockResponse as Response);
+      } catch (error) {
+        expect((error as unknown as any).message).toEqual('SPO creation requires CIP-22');
       }
-
-      const validHandle = 'taco';
-
-      jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
-
-      // @ts-ignore
-      jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: validHandle, emailAddress: '+1234567890', cost: 250, isSPO: true });
-      jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([]);
-
-      await sessionHandler(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(403);
-      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Stake pool not found. Please contact support." });
-    });
-
-    it('Should send 403 if there are more than 1 tickers for a handle', async () => {
-      mockRequest = {
-        headers: {
-          'x-access-token': 'test-access-token',
-          'x-session-token': 'test-session-token'
-        }
-      }
-
-      jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
-
-      // @ts-ignore
-      jest.spyOn(jwt, 'verify').mockReturnValueOnce('valid').mockReturnValueOnce({ handle: 'burrito', emailAddress: '+1234567890', cost: 250, isSPO: true });
-      jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('1', 'burrito', 'stakeKey_1', ['owner1', 'owner2']), new StakePool('2', 'burrito', 'stakeKey_2', ['owner3', 'owner4'])]);
-
-      await sessionHandler(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(403);
-      expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Ticker belongs to multiple stake pools. Please contact support." });
     });
   });
 });

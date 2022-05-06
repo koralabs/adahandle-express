@@ -1,10 +1,8 @@
-import { CreatedBySystem, SPO_HANDLE_ADA_REFUND_FEE } from "../../../../helpers/constants";
 import { lookupTransaction } from "../../../../helpers/graphql";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { toLovelace } from "../../../../helpers/utils";
 import { Status } from "../../../../models/ActiveSession";
 import { ActiveSessions } from "../../../../models/firestore/collections/ActiveSession";
-import { StakePools } from "../../../../models/firestore/collections/StakePools";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
 import { Refund } from "./processRefunds";
 
@@ -46,7 +44,7 @@ export const verifyRefund = async (address: string): Promise<VerifyRefundResults
         };
     }
 
-    const { createdBySystem, handle, status, cost } = session;
+    const { status, cost } = session;
     const { totalPayments } = results;
 
     // Is it possible for a good payment to come in after a refund?
@@ -63,14 +61,6 @@ export const verifyRefund = async (address: string): Promise<VerifyRefundResults
         }
 
         lovelaceBalance = totalPayments > cost ? totalPayments - cost : cost - totalPayments;
-    }
-
-    if (createdBySystem === CreatedBySystem.SPO) {
-        const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(results.returnAddress, handle);
-        if (!returnAddressOwnsStakePool) {
-            // return address does not own stake pool. Refund and deduct a fee
-            lovelaceBalance = Math.max(0, lovelaceBalance - toLovelace(SPO_HANDLE_ADA_REFUND_FEE))
-        }
     }
 
     // only refund if balance is greater than 2 lovelace (we aren't refunding payments that are less than 2 lovelace)

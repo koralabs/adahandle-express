@@ -7,7 +7,6 @@ import { updateSessionsHandler } from './sessions';
 import { StateData } from '../../../models/firestore/collections/StateData';
 import { CreatedBySystem } from '../../../helpers/constants';
 import { toLovelace } from '../../../helpers/utils';
-import { StakePools } from '../../../models/firestore/collections/StakePools';
 import * as StateFixtures from "../../../tests/stateFixture";
 import { CronState } from '../../../models/State';
 
@@ -138,17 +137,6 @@ describe('Job Sessions Tets', () => {
                 paymentAddress: 'addr_test1spo_payment',
                 createdBySystem: CreatedBySystem.SPO
             }
-        ),
-        new ActiveSession(
-            {
-                // zero payment
-                emailAddress: '222-222-2222',
-                cost: toLovelace(250),
-                handle: 'spo.not.owner',
-                start: unexpiredDate,
-                paymentAddress: 'addr_test1spo_not_owner',
-                createdBySystem: CreatedBySystem.SPO
-            }
         )
     ]
 
@@ -184,8 +172,7 @@ describe('Job Sessions Tets', () => {
         { address: 'addr_test1_returnspo_invalid_payment', amount: toLovelace(100), paymentAddress: 'addr_test1spo_invalid_payment', txHash: '', index: 0 },
         { address: '', amount: 0, paymentAddress: 'addr_test1zero_payment', txHash: '', index: 0 },
         { address: 'byron_paid_return', amount: toLovelace(50), paymentAddress: 'byron_paid', txHash: '', index: 0 },
-        { address: 'addr_test1_returnspo', amount: toLovelace(250), paymentAddress: 'addr_test1spo_payment', txHash: '', index: 0 },
-        { address: 'addr_test1_returnspo_not_owner', amount: toLovelace(250), paymentAddress: 'addr_test1spo_not_owner', txHash: '', index: 0 }
+        { address: 'addr_test1_returnspo', amount: toLovelace(250), paymentAddress: 'addr_test1spo_payment', txHash: '', index: 0 }
     ]
 
     describe('updateSessionsHandler tests', () => {
@@ -223,10 +210,9 @@ describe('Job Sessions Tets', () => {
 
         it('should process paid, refunds, and expired sessions correctly', async () => {
             jest.spyOn(ActiveSessions, 'getPendingActiveSessions').mockResolvedValue(ActiveSessionsFixture);
-            jest.spyOn(StakePools, 'verifyReturnAddressOwnsStakePool').mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(9);
+            expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(8);
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(1, [{ ...UnpaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: 0, returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(2, [{ ...PaidSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), txHash: '', index: 0, status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }]);
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(3, [{ ...RefundableSessionsFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(40), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
@@ -238,7 +224,6 @@ describe('Job Sessions Tets', () => {
 
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(7, [{ ...ByronSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(8, [{ ...SPOSessionFixture[0], dateAdded: expect.any(Number), emailAddress: "", returnAddress: expect.any(String), txHash: '', index: 0, status: Status.PAID, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(9, [{ ...SPOSessionFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(200), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
 
             // If the above number of items were called correctly then
             // then the last use case should be true which is
@@ -249,7 +234,7 @@ describe('Job Sessions Tets', () => {
             jest.spyOn(ActiveSessions, 'getPendingActiveSessions').mockResolvedValue([...ActiveSessionsFixture, ...ActiveSessionsFixture]);
 
             await updateSessionsHandler(mockRequest as Request, mockResponse as Response);
-            expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(9);
+            expect(updateStatusForSessionsSpy).toHaveBeenCalledTimes(8);
         });
 
         it('leave unexpired zero payment sessions alone', async () => {

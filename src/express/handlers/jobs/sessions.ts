@@ -197,25 +197,6 @@ export const updateSessions = async (req: express.Request, res: express.Response
               return;
             }
 
-            // verify SPO can purchase the ticker
-            if (entry.createdBySystem === CreatedBySystem.SPO) {
-              const returnAddressOwnsStakePool = await StakePools.verifyReturnAddressOwnsStakePool(matchingPayment.address, entry.handle);
-              if (!returnAddressOwnsStakePool) {
-                // if not, refund cost plus fee
-                await ActiveSessions.updateSessions([new ActiveSession({
-                  ...entry,
-                  emailAddress: '',
-                  refundAmount: Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)),
-                  returnAddress: matchingPayment.address,
-                  txHash: matchingPayment.txHash,
-                  index: matchingPayment.index,
-                  status: Status.REFUNDABLE,
-                  workflowStatus: WorkflowStatus.PENDING
-                })]);
-                return;
-              }
-            }
-
             paidVal.push(entry);
             await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,

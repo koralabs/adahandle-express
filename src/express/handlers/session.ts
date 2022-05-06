@@ -104,45 +104,15 @@ export const sessionHandler = async (req: express.Request, res: express.Response
    * If not, we need to make sure they don't have too many sessions already.
    */
   if (isSPO) {
-    // Set the session as SPO
-    newSession.createdBySystem = CreatedBySystem.SPO;
+    throw new Error('SPO creation requires CIP-22');
+  }
 
-    // Set the cost to the SPO cost
-    newSession.cost = toLovelace(SPO_HANDLE_ADA_COST);
-
-    // if SPO don't allow 1 letter handle?
-    if (handle.length <= 1) {
-      return res.status(403).json({
-        error: true,
-        message: 'Handle must be at least 3 characters long.'
-      } as SessionResponseBody);
-    }
-
-    // check in most recent snapshot and verify SPO exists. If not, don't allow purchase.
-    const stakePools = await StakePools.getStakePoolsByTicker(handle);
-
-    if (stakePools.length === 0) {
-      return res.status(403).json({
-        error: true,
-        message: 'Stake pool not found. Please contact support.'
-      } as SessionResponseBody);
-    }
-
-    // Also determine if the ticker has more than 1 result. If so, don't allow purchase.
-    if (stakePools.length > 1) {
-      return res.status(403).json({
-        error: true,
-        message: 'Ticker belongs to multiple stake pools. Please contact support.'
-      } as SessionResponseBody);
-    }
-  } else {
-    const activeSessions = await ActiveSessions.getActiveSessionsByEmail(emailAddress);
-    if (activeSessions.length >= MAX_SESSION_COUNT) {
-      return res.status(403).json({
-        error: true,
-        message: 'Too many sessions open! Try again after one expires.'
-      } as SessionResponseBody);
-    }
+  const activeSessions = await ActiveSessions.getActiveSessionsByEmail(emailAddress);
+  if (activeSessions.length >= MAX_SESSION_COUNT) {
+    return res.status(403).json({
+      error: true,
+      message: 'Too many sessions open! Try again after one expires.'
+    } as SessionResponseBody);
   }
 
   const settings = await SettingsRepo.getSettings();
