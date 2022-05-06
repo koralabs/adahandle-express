@@ -1,10 +1,8 @@
-import { CreatedBySystem, SPO_HANDLE_ADA_REFUND_FEE } from "../../../../helpers/constants";
 import { lookupTransaction } from "../../../../helpers/graphql";
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { toLovelace } from "../../../../helpers/utils";
 import { Status } from "../../../../models/ActiveSession";
 import { ActiveSessions } from "../../../../models/firestore/collections/ActiveSession";
-import { StakePools } from "../../../../models/firestore/collections/StakePools";
 import { UsedAddressStatus } from "../../../../models/UsedAddress";
 import { Refund } from "./processRefunds";
 
