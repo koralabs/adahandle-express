@@ -66,7 +66,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
                 code: 404,
                 body: {
                     error: true,
-                    message: 'Proof not found'
+                    message: 'Proof not found.'
                 }
             };
         }
@@ -76,7 +76,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
                 code: 400,
                 body: {
                     error: true,
-                    message: 'Signature required'
+                    message: 'Signature required.'
                 }
             };
         }
@@ -87,7 +87,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
                 code: 400,
                 body: {
                     error: true,
-                    message: 'Invalid signature'
+                    message: 'Invalid signature.'
                 }
             }
         }
@@ -98,7 +98,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
                 code: 400,
                 body: {
                     error: true,
-                    message: 'Unable to verify. Not submitted within 5 minute tme window'
+                    message: 'Verification timeout.'
                 }
             };
         }
@@ -147,13 +147,15 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
 
         if (!isVerified) {
             return {
-                code: 200,
+                code: 400,
                 body: {
                     error: true,
-                    message: 'Not verified'
+                    message: 'Not verified.'
                 }
             }
         }
+
+        await PoolProofs.updatePoolProof({ poolId: proof.poolId, signature });
 
         // create an active session with the pool details
         const createSessionResult = await createSpoSession(handle, cost);
@@ -166,8 +168,6 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
                 }
             }
         }
-
-        await PoolProofs.updatePoolProof({ poolId: proof.poolId, signature });
 
         Logger.log(getLogMessage(startTime));
 

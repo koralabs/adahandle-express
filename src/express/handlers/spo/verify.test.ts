@@ -115,7 +115,7 @@ describe('Verify Tests', () => {
         await verifyHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(404);
-        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Proof not found" });
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Proof not found." });
     });
 
     it('should fail with missing signature', async () => {
@@ -145,7 +145,7 @@ describe('Verify Tests', () => {
         await verifyHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
-        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Signature required" });
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Signature required." });
     });
 
     it('should fail with invalid signature', async () => {
@@ -172,7 +172,7 @@ describe('Verify Tests', () => {
         await verifyHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
-        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Invalid signature" });
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Invalid signature." });
     });
 
     it('should fail if nonce is older than 5 minutes', async () => {
@@ -199,7 +199,7 @@ describe('Verify Tests', () => {
         await verifyHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
-        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Unable to verify. Not submitted within 5 minute tme window" });
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Verification timeout." });
     });
 
     it('should fail if pool cannot be found in the database', async () => {
