@@ -132,6 +132,14 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
             };
         }
 
+        const notVerifiedResponse = {
+            code: 400,
+            body: {
+                error: true,
+                message: 'Not verified.'
+            }
+        }
+
         let isVerified = false;
 
         try {
@@ -147,6 +155,10 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
 
             isVerified = result['status'] === 'ok' ?? false;
         } catch (error) {
+            const errorString = JSON.stringify(error);
+
+            if (errorString.includes('InvalidHexCharacter')) return notVerifiedResponse;
+
             Logger.log({ message: JSON.stringify(error), event: 'verifyHandler.runVerifyCommand', category: LogCategory.ERROR });
             return {
                 code: 500,
@@ -158,15 +170,7 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
         }
 
 
-        if (!isVerified) {
-            return {
-                code: 400,
-                body: {
-                    error: true,
-                    message: 'Not verified.'
-                }
-            }
-        }
+        if (!isVerified) return notVerifiedResponse;
 
         await PoolProofs.updatePoolProof({ poolId: proof.poolId, signature });
 
