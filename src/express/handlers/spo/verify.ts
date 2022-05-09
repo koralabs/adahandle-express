@@ -23,7 +23,7 @@ interface SpoVerifyResponseBody {
 
 const getLogMessage = (startTime: number) => ({ message: `verify processed in ${Date.now() - startTime}ms`, event: 'verify.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
 
-const verify = async (accessToken: string, signature: string, poolId: string): Promise<{ code: number; body: SpoVerifyResponseBody }> => {
+const verifySPO = async (accessToken: string, signature: string, poolId: string): Promise<{ code: number; body: SpoVerifyResponseBody }> => {
     try {
         const startTime = Date.now();
 
@@ -132,19 +132,31 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
             };
         }
 
+        let isVerified = false;
 
-        const { vKeyHash, nonce } = proof;
+        try {
+            const { vKeyHash, nonce } = proof;
 
-        // save the proof to a local file to use with CLI
-        const vKeyContents = `{"type": "VrfVerificationKey_PraosVRF", "description": "VRF Verification Key", "cborHex": "${proof.vrfKey}"}`;
-        const outputPath = '../../../../bin';
-        const vkeyLocation = resolve(__dirname, `${outputPath}/${proof.poolId}-pool.vrf.vkey`);
-        writeFileSync(vkeyLocation, vKeyContents);
+            // save the proof to a local file to use with CLI
+            const vKeyContents = `{"type": "VrfVerificationKey_PraosVRF", "description": "VRF Verification Key", "cborHex": "${proof.vrfKey}"}`;
+            const outputPath = '../../../../bin';
+            const vkeyLocation = resolve(__dirname, `${outputPath}/${proof.poolId}-pool.vrf.vkey`);
+            writeFileSync(vkeyLocation, vKeyContents);
 
-        // execute CLI command
-        const result = await runVerifyCommand<{ status: string } | { error: string }>({ vkeyLocation, vKeyHash, nonce, signature });
+            const result = await runVerifyCommand<{ status: string } | { error: string }>({ vkeyLocation, vKeyHash, nonce, signature });
 
-        const isVerified = result['status'] === 'ok' ?? false;
+            isVerified = result['status'] === 'ok' ?? false;
+        } catch (error) {
+            Logger.log({ message: JSON.stringify(error), event: 'verifyHandler.runVerifyCommand', category: LogCategory.ERROR });
+            return {
+                code: 500,
+                body: {
+                    error: true,
+                    message: "An error occurred.",
+                }
+            };
+        }
+
 
         if (!isVerified) {
             return {
@@ -185,7 +197,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
             body: responseBody
         }
     } catch (error) {
-        Logger.log({ message: JSON.stringify(error), category: LogCategory.ERROR });
+        Logger.log({ message: JSON.stringify(error), event: 'verifyHandler.verifySPO', category: LogCategory.ERROR });
         return {
             code: 500,
             body: {
@@ -199,7 +211,7 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
 export const verifyHandler = async (req: express.Request, res: express.Response) => {
     const accessToken = req.headers[HEADER_JWT_SPO_ACCESS_TOKEN];
     const { body: { signature, poolId } } = req;
-    const result = await verify(accessToken as string, signature, poolId);
+    const result = await verifySPO(accessToken as string, signature, poolId);
 
     const { code, body } = result;
     return res.status(code).json(body);
