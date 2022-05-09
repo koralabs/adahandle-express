@@ -137,7 +137,8 @@ const verify = async (accessToken: string, signature: string, poolId: string): P
 
         // save the proof to a local file to use with CLI
         const vKeyContents = `{"type": "VrfVerificationKey_PraosVRF", "description": "VRF Verification Key", "cborHex": "${proof.vrfKey}"}`;
-        const vkeyLocation = resolve(__dirname, `../../../../bin/vrf-proof/${proof.poolId}-pool.vrf.vkey`);
+        const outputPath = '../../../../bin';
+        const vkeyLocation = resolve(__dirname, `${outputPath}/${proof.poolId}-pool.vrf.vkey`);
         writeFileSync(vkeyLocation, vKeyContents);
 
         // execute CLI command
