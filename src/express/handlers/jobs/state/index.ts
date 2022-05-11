@@ -10,6 +10,7 @@ import { WalletAddresses } from "../../../../models/firestore/collections/Wallet
 import { LogCategory, Logger } from "../../../../helpers/Logger";
 import { SettingsRepo } from "../../../../models/firestore/collections/SettingsRepo";
 import { checkForDoubleMint } from "./checkForDoubleMint";
+import { getRefundWalletBalance } from "./getRefundWalletBalance";
 
 interface StateResponseBody {
   error: boolean;
@@ -30,8 +31,9 @@ export const stateHandler = async (req: express.Request, res: express.Response) 
     const state = await StateData.getStateData();
     const priceParams = { adaUsdQuoteHistory: state.adaUsdQuoteHistory, lastQuoteTimestamp: state.lastQuoteTimestamp };
     const handlePrices = await getHandlePrices(priceParams);
+    const refundWalletBalance = await getRefundWalletBalance();
 
-    const updatedState = new State({ chainLoad, accessQueueSize, mintingQueueSize, totalHandles, handlePrices, adaUsdQuoteHistory: priceParams.adaUsdQuoteHistory, lastQuoteTimestamp: priceParams.lastQuoteTimestamp });
+    const updatedState = new State({ chainLoad, accessQueueSize, mintingQueueSize, totalHandles, handlePrices, adaUsdQuoteHistory: priceParams.adaUsdQuoteHistory, lastQuoteTimestamp: priceParams.lastQuoteTimestamp, refundWalletBalance });
     await StateData.upsertStateData(updatedState);
 
     await updateMintingWalletBalances();

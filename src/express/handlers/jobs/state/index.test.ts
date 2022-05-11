@@ -7,6 +7,7 @@ import { ActiveSessions } from '../../../../models/firestore/collections/ActiveS
 import { StateData } from '../../../../models/firestore/collections/StateData';
 import * as updateMintingWalletBalances from "./updateMintingWalletBalances";
 import * as checkForDoubleMint from "./checkForDoubleMint";
+import * as getRefundWalletBalance from "./getRefundWalletBalance";
 import { stateHandler } from './';
 import * as StateFixtures from "../../../../tests/stateFixture";
 import { WalletAddresses } from '../../../../models/firestore/collections/WalletAddresses';
@@ -19,6 +20,7 @@ jest.mock('../../../../models/firestore/collections/AccessQueues');
 jest.mock('../../../../models/firestore/collections/ActiveSession');
 jest.mock('./updateMintingWalletBalances');
 jest.mock('./checkForDoubleMint');
+jest.mock('./getRefundWalletBalance');
 jest.mock('../../../../models/firestore/collections/WalletAddresses');
 
 StateFixtures.setupStateFixtures();
@@ -53,6 +55,7 @@ describe('State Cron Tests', () => {
     const upsertStateDataSpy = jest.spyOn(StateData, 'upsertStateData');
     const updateMintingWalletBalancesSpy = jest.spyOn(updateMintingWalletBalances, 'updateMintingWalletBalances');
     const checkForDoubleMintSpy = jest.spyOn(checkForDoubleMint, 'checkForDoubleMint');
+    const getRefundWalletBalanceSpy = jest.spyOn(getRefundWalletBalance, 'getRefundWalletBalance');
 
     beforeEach(() => {
         mockRequest = {};
@@ -80,6 +83,7 @@ describe('State Cron Tests', () => {
         expect(upsertStateDataSpy).toHaveBeenCalledTimes(1);
         expect(updateMintingWalletBalancesSpy).toHaveBeenCalledTimes(1);
         expect(checkForDoubleMintSpy).toHaveBeenCalledTimes(1);
+        expect(getRefundWalletBalanceSpy).toHaveBeenCalledTimes(1);
 
         expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith({ "accessQueueSize": 1, "chainLoad": 1, "error": false, "mintingQueueSize": 2, "totalHandles": 1 });
