@@ -1,9 +1,10 @@
 import fetch from 'cross-fetch';
 import * as cardanoAddresses from 'cardano-addresses';
 import { getBlockfrostApiKey, getPolicyId, isProduction } from "../helpers/constants";
+import { isValidShellyAddress } from '../express/handlers/lookupAddress';
 
 const run = async () => {
-    const handle = 'bigirishlion';
+    const handle = '07';
 
     const context = isProduction() ? 'mainnet' : 'testnet';
     const policyId = getPolicyId();
@@ -12,8 +13,10 @@ const run = async () => {
     console.log(context, policyId, blockfrostApiKey);
 
     const assetName = Buffer.from(handle).toString('hex');
-    const data = await fetch(
-        `https://cardano-${context}.blockfrost.io/api/v0/assets/${policyId}${assetName}/addresses`,
+    const url = `https://cardano-${context}.blockfrost.io/api/v0/assets/${policyId}${assetName}/addresses`;
+    console.log('url', url);
+
+    const data = await fetch(url,
         {
             headers: {
                 project_id: blockfrostApiKey,
@@ -32,9 +35,10 @@ const run = async () => {
 
     console.log('results', {
         error: false,
-        isShellyAddress: addressDetails.address_type === 0,
+        isShellyAddress: isValidShellyAddress(addressDetails.address_type),
         assetName,
         address: result.address,
+        addressType: addressDetails.address_type
     });
 
     process.exit();

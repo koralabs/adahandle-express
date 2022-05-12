@@ -1,9 +1,9 @@
 import * as express from "express";
-import fetch from 'cross-fetch';
 import * as cardanoAddresses from 'cardano-addresses';
 
-import { getBlockfrostApiKey, getPolicyId, HEADER_HANDLE, isProduction } from "../../helpers/constants";
+import { HEADER_HANDLE } from "../../helpers/constants";
 import { Logger, LogCategory } from '../../helpers/Logger';
+import { fetchAssetsAddresses } from "../../helpers/blockfrost";
 
 interface lookupAddressResponseBody {
     error: boolean;
@@ -11,7 +11,10 @@ interface lookupAddressResponseBody {
     assetName?: string;
     isShellyAddress?: boolean;
     address?: string;
+    addressType?: number;
 }
+
+export const isValidShellyAddress = (addressType: number): boolean => addressType < 8 && addressType % 2 === 0;
 
 export const lookupAddressHandler = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
@@ -26,39 +29,37 @@ export const lookupAddressHandler = async (req: express.Request, res: express.Re
         } as lookupAddressResponseBody);
     }
 
-    const context = isProduction() ? 'mainnet' : 'testnet';
-    const policyId = getPolicyId();
-    const blockfrostApiKey = getBlockfrostApiKey();
-
     try {
         const assetName = Buffer.from(handle).toString('hex');
-        const data = await fetch(
-            `https://cardano-${context}.blockfrost.io/api/v0/assets/${policyId}${assetName}/addresses`,
-            {
-                headers: {
-                    project_id: blockfrostApiKey,
-                    'Content-Type': 'application/json'
-                }
-            }
-        ).then(res => res.json());
+        const data = await fetchAssetsAddresses(handle);
 
-        if (data?.status_code === 404) {
-            return res.status(404).json({
-                error: false,
+        // If there is no address, we received an error.
+        if (!data.address) {
+            if (data.statusCode === 404) {
+                return res.status(404).json({
+                    error: false,
+                    assetName
+                });
+            }
+
+            return res.status(data.statusCode ?? 500).json({
+                error: true,
                 assetName
             });
         }
 
-        const [result] = data;
-        const addressDetails = await cardanoAddresses.inspectAddress(result.address);
+        const { address } = data;
+
+        const addressDetails = await cardanoAddresses.inspectAddress(address);
 
         Logger.log(getLogMessage(startTime))
 
         return res.status(200).json({
             error: false,
-            isShellyAddress: addressDetails.address_type === 0,
+            isShellyAddress: isValidShellyAddress(addressDetails.address_type),
             assetName,
-            address: result.address,
+            address,
+            addressType: addressDetails.address_type
         });
     } catch (e) {
         Logger.log({ category: LogCategory.ERROR, message: JSON.stringify(e), event: 'locationHandler.run' })
