@@ -1,4 +1,5 @@
 import { getBlockfrostApiKey, getPolicyId, isProduction } from "./constants";
+import fetch from 'cross-fetch';
 
 export interface FetchAssetsAddressesResult {
     address?: string;
