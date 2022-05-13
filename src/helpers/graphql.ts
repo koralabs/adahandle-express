@@ -121,6 +121,7 @@ interface GraphqlLookupResponseBody {
 
 
 export const checkPayments = async (addresses: string[]): Promise<WalletSimplifiedBalance[]> => {
+  Logger.log({ message: JSON.stringify(addresses), event: 'checkPayments.addresses', category: LogCategory.INFO });
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoPaymentAddressesResult = await fetch(url, {
     method: 'POST',
