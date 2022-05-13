@@ -149,7 +149,11 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
         }
       `,
     })
-  }).then(res => res.json())
+  }).then(res => {
+    Logger.log({ message: JSON.stringify(res), event: 'checkPayments.result', category: LogCategory.INFO });
+
+    return res.json();
+  })
 
   if (!res?.data) {
     throw new Error('Unable to query payment amount.');
