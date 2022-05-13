@@ -121,9 +121,7 @@ interface GraphqlLookupResponseBody {
 
 
 export const checkPayments = async (addresses: string[]): Promise<WalletSimplifiedBalance[]> => {
-  Logger.log({ message: JSON.stringify(addresses), event: 'checkPayments.addresses', category: LogCategory.INFO });
   const url = getGraphqlEndpoint();
-  Logger.log({ message: url, event: 'checkPayments.url', category: LogCategory.INFO });
   const res: GraphqlCardanoPaymentAddressesResult = await fetch(url, {
     method: 'POST',
     headers: {
@@ -151,11 +149,7 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
         }
       `,
     })
-  }).then(res => {
-    Logger.log({ message: JSON.stringify(res), event: 'checkPayments.result', category: LogCategory.INFO });
-
-    return res.json();
-  })
+  }).then(res => res.json());
 
   if (!res?.data) {
     throw new Error('Unable to query payment amount.');
