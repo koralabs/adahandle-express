@@ -36,6 +36,9 @@ const mintPaidSessions = async (availableWallet: MintingWallet, state: State): P
 
   const paidSessionsLimit = settings.paidSessionsLimit;
   const paidSessions: ActiveSession[] = await ActiveSessions.getPaidPendingSessions({ limit: paidSessionsLimit });
+
+  Logger.log({ message: `Found paid sessions: ${JSON.stringify(paidSessions)}`, event: 'mintPaidSessionsHandler.foundPaidSessions', category: LogCategory.INFO });
+
   if (paidSessions.length < 1) {
     return {
       status: 200,
@@ -103,6 +106,9 @@ const mintPaidSessions = async (availableWallet: MintingWallet, state: State): P
 
   let txId: string;
   // Mint the handles!
+
+  Logger.log({ message: `Attempting to mint: ${JSON.stringify(sanitizedSessions)}`, event: 'mintPaidSessionsHandler.attemptingToMint', category: LogCategory.INFO });
+
   try {
     txId = await mintHandlesAndSend(sanitizedSessions, availableWallet);
 
@@ -167,6 +173,9 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
   let availableWallet: MintingWallet | null = null;
   try {
     availableWallet = await StateData.findAvailableMintingWallet();
+
+    Logger.log({ message: `Found ${JSON.stringify(availableWallet)}`, event: 'mintPaidSessionsHandler.foundAvailableWallet', category: LogCategory.INFO });
+
     if (!availableWallet) {
       if (await StateData.allMintingWalletsAreLockedWithNoTransactions()) {
         Logger.log({ message: 'All wallets are locked with no transaction IDs', event: 'mintPaidSessionsHandler.availableWallet', category: LogCategory.NOTIFY });
@@ -174,7 +183,7 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
       else {
         Logger.log('No available minting wallets.');
       }
-      
+
       return res.status(200).json({
         error: false,
         message: 'No available minting wallets.'
