@@ -270,8 +270,6 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
   txBody = wallet.Seed.buildTransaction(coinSelection, ttl, { metadata: metadata, config: networkConfig });
   txBody.set_mint(mint);
 
-  Logger.log({ message: `txBody ${JSON.stringify(txBody)}`, event: 'buildTransactionFromPaidSessions.txBody', category: LogCategory.INFO });
-
   tx = wallet.Seed.sign(txBody, signingKeys, metadata, scripts);
   const signed = Buffer.from(tx.to_bytes()).toString("hex");
   return signed;
