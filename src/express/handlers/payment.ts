@@ -1,5 +1,4 @@
 import * as express from "express";
-import { CreatedBySystem } from "../../helpers/constants";
 import { Logger, LogCategory } from '../../helpers/Logger';
 import { Status } from "../../models/ActiveSession";
 import { ActiveSessions } from "../../models/firestore/collections/ActiveSession";
@@ -7,7 +6,6 @@ import { ActiveSessions } from "../../models/firestore/collections/ActiveSession
 export enum ConfirmPaymentStatusCode {
   CONFIRMED = 'CONFIRMED',
   INVALID_PAYMENT = 'INVALID_PAYMENT',
-  INVALID_PAYMENT_SPO = 'INVALID_PAYMENT_SPO',
   SERVER_ERROR = 'SERVER_ERROR',
   MISSING_PARAM = 'MISSING_PARAM',
   PENDING = 'PENDING',
@@ -36,7 +34,7 @@ const buildPaymentConfirmResponses = async (address: string): Promise<PaymentCon
     };
   }
 
-  const { createdBySystem, status } = session;
+  const { status } = session;
   if (status === Status.PENDING) {
     return {
       statusCode: ConfirmPaymentStatusCode.PENDING,
@@ -45,13 +43,6 @@ const buildPaymentConfirmResponses = async (address: string): Promise<PaymentCon
   }
 
   if (status === Status.REFUNDABLE || status === Status.DLQ) {
-    if (createdBySystem === CreatedBySystem.SPO) {
-      return {
-        statusCode: ConfirmPaymentStatusCode.INVALID_PAYMENT_SPO,
-        address,
-      };
-    }
-
     return {
       statusCode: ConfirmPaymentStatusCode.INVALID_PAYMENT,
       address,

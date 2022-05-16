@@ -3,7 +3,6 @@ export const MAX_SESSION_LENGTH_CLI = 86400000; // 24 hours
 export const PAYMENT_ADDRESS_THRESHOLD = 10;
 export const WALLET_BALANCE_THRESHOLD = 1000 * 1000000;
 export const SPO_HANDLE_ADA_COST = 250;
-export const SPO_HANDLE_ADA_REFUND_FEE = 50;
 export const HEADER_EMAIL_AUTH = 'x-email-authcode';
 export const HEADER_EMAIL = 'x-email';
 export const HEADER_HANDLE = 'x-handle';

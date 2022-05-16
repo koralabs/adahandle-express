@@ -1,14 +1,13 @@
 import * as express from "express";
 
-import { getWalletAddressPrefix, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO, SPO_HANDLE_ADA_REFUND_FEE } from '../../../helpers/constants';
+import { getWalletAddressPrefix, MAX_SESSION_LENGTH_CLI, MAX_SESSION_LENGTH_SPO } from '../../../helpers/constants';
 import { checkPayments, WalletSimplifiedBalance } from '../../../helpers/graphql';
 import { LogCategory, Logger } from "../../../helpers/Logger";
-import { asyncForEach, chunk, toLovelace } from "../../../helpers/utils";
+import { asyncForEach, chunk } from "../../../helpers/utils";
 import { ActiveSession, Status, WorkflowStatus } from '../../../models/ActiveSession';
 import { ActiveSessions } from '../../../models/firestore/collections/ActiveSession';
 import { StateData } from "../../../models/firestore/collections/StateData";
 import { SettingsRepo } from "../../../models/firestore/collections/SettingsRepo";
-import { StakePools } from "../../../models/firestore/collections/StakePools";
 import { CreatedBySystem } from '../../../helpers/constants';
 
 /**
@@ -82,7 +81,6 @@ export const updateSessions = async (req: express.Request, res: express.Response
          * Refund if expired and paid
          * Refund if return address is not shelly era formatted
          * Refund if paid sessions already has handle
-         * Refund SPO and charge fee
          * Move to paid if accurate payment and not expired
          * Leave alone if not expired and no payment
          */
@@ -169,7 +167,7 @@ export const updateSessions = async (req: express.Request, res: express.Response
             await ActiveSessions.updateSessions([new ActiveSession({
               ...entry,
               emailAddress: '',
-              refundAmount: entry.createdBySystem === CreatedBySystem.SPO ? Math.max(0, matchingPayment.amount - toLovelace(SPO_HANDLE_ADA_REFUND_FEE)) : matchingPayment.amount,
+              refundAmount: matchingPayment.amount,
               returnAddress: matchingPayment.address,
               txHash: matchingPayment.txHash,
               index: matchingPayment.index,
