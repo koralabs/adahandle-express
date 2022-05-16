@@ -218,7 +218,7 @@ describe('Job Sessions Tets', () => {
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(3, [{ ...RefundableSessionsFixture[0], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(40), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(4, [{ ...RefundableSessionsFixture[1], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
             expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(5, [{ ...RefundableSessionsFixture[2], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
-            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(6, [{ ...RefundableSessionsFixture[3], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(50), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
+            expect(updateStatusForSessionsSpy).toHaveBeenNthCalledWith(6, [{ ...RefundableSessionsFixture[3], dateAdded: expect.any(Number), emailAddress: "", refundAmount: toLovelace(100), returnAddress: expect.any(String), txHash: '', index: 0, status: Status.REFUNDABLE, workflowStatus: WorkflowStatus.PENDING }]);
 
             // since the 7th item is a 0 payment session, it should skip and be left alone
 
