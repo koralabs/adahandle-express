@@ -169,8 +169,6 @@ const mintPaidSessions = async (availableWallet: MintingWallet, state: State): P
 }
 
 export const mintPaidSessionsHandler = async (req: express.Request, res: express.Response) => {
-  Logger.log({ message: `!!!STARTING MINTING!!!`, event: 'mintPaidSessionsHandler.startMinting', category: LogCategory.INFO });
-
   const state = await StateData.getStateData();
   let availableWallet: MintingWallet | null = null;
   try {
