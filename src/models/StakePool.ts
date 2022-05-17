@@ -5,6 +5,10 @@ export class StakePool extends BaseModel {
     public ticker: string;
     public stakeKey: string;
     public ownerHashes: string[] = [];
+    public registration?: string[] = [];
+    public retirement?: string[] = [];
+    public vrfKeyHash?: string;
+    public error?: string;
     public isOG: boolean;
 
     constructor(id: string, ticker: string, stakeKey: string, ownerHashes?: string[], isOG = false) {

@@ -87,6 +87,15 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             });
         }
 
+        // TODO!!!!
+        // Before we run the challenge, we need to make sure the pool ID matches the vrf key.
+
+        // Instructions:
+        // VS validates that the vrf hash in the pool's registration certificate on the blockchain matches the blake2b hash of the sent vkey. 
+        // Note: The VS should use the latest registration certificate on the chain for 
+        // matching as the VRF is a "hot" key and can be changed at any time by the pool operator. 
+        // A single point-in-time verification is sufficient to properly identify the pool operator.
+
         const result = await runChallengeCommand<ChallengeResult>();
 
         await PoolProofs.addPoolProof({ poolId: bech32PoolId, vrfKey: cborHexEncodedVRFKey, vKeyHash: hexEncodedVKeyHash, nonce: result.nonce });
