@@ -77,6 +77,14 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             });
         }
 
+        // verify that poolId matches the vrf key that's stored in the database
+        if (stakePoolDetails.vrfKeyHash !== hexEncodedVKeyHash) {
+            return res.status(400).json({
+                error: true,
+                message: 'Pool details do not match.'
+            });
+        }
+
         const handle = stakePoolDetails.ticker.toLocaleLowerCase();
 
         const response = await ReservedHandles.checkAvailability(handle);
@@ -85,6 +93,37 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
                 error: true,
                 message: 'Handle is unavailable.'
             });
+        }
+
+        // check for duplicates and figure out 
+        const duplicatePools = await StakePools.getStakePoolsByTicker(stakePoolDetails.ticker);
+        if (duplicatePools.length > 1) {
+            // all records should have oldestTxIncludedAt but if it doesn't, throw it out.
+            const validPools = duplicatePools.filter(pool => pool.oldestTxIncludedAt).map(pool => {
+                return {
+                    id: pool.id,
+                    oldestTxIncludedAt: pool.oldestTxIncludedAt as number
+                }
+            });
+
+            const errorMessage = 'Pool has duplicates. Please use the oldest VRF/Pool id record to mint Handle.';
+            if (validPools.length === 0) {
+                return res.status(400).json({
+                    error: true,
+                    message: errorMessage
+                });
+            }
+
+            // sort all pools by oldest to newest
+            validPools.sort((a, b) => a.oldestTxIncludedAt - b.oldestTxIncludedAt);
+            const [oldestPool] = validPools;
+            // if the oldest pool is not the one we're trying to register, return an error
+            if (oldestPool.id !== bech32PoolId) {
+                return res.status(400).json({
+                    error: true,
+                    message: errorMessage
+                });
+            }
         }
 
         const result = await runChallengeCommand<ChallengeResult>();

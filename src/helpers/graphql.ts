@@ -119,6 +119,10 @@ interface GraphqlLookupResponseBody {
   }
 }
 
+interface Transaction {
+  hash: string;
+  includedAt: string;
+}
 
 export const checkPayments = async (addresses: string[]): Promise<WalletSimplifiedBalance[]> => {
   const url = getGraphqlEndpoint();
@@ -578,4 +582,37 @@ export const hasDoubleMint = async (): Promise<boolean> => {
   } = res.data;
 
   return assets.length > 0;
+}
+
+export const getTransactionsByHashes = async (hashes: string[]): Promise<Transaction[]> => {
+  const url = getGraphqlEndpoint();
+  const res: { data: { transactions: Transaction[] } } = await fetch(url, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      variables: {
+        hashes
+      },
+      query: `
+      query ($hashes: [Hash32Hex]) {
+        transactions(where: {hash: {_in: $hashes}}) {
+          hash
+          includedAt
+        }
+      }
+      `,
+    })
+  }).then(res => res.json())
+
+  if (!res?.data) {
+    throw new Error('Unable to query transactions.');
+  }
+
+  const {
+    transactions
+  } = res.data;
+
+  return transactions;
 }
