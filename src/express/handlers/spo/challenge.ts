@@ -108,7 +108,7 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
 
             const errorMessage = 'Pool has duplicates. Please use the oldest VRF/Pool id record to mint Handle.';
             if (validPools.length === 0) {
-                return res.status(500).json({
+                return res.status(400).json({
                     error: true,
                     message: errorMessage
                 });
