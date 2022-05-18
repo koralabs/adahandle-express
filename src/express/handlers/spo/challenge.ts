@@ -77,6 +77,14 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             });
         }
 
+        // verify that poolId matches the vrf key that's stored in the database
+        if (stakePoolDetails.vrfKeyHash !== hexEncodedVKeyHash) {
+            return res.status(400).json({
+                error: true,
+                message: 'Pool details do not match.'
+            });
+        }
+
         const handle = stakePoolDetails.ticker.toLocaleLowerCase();
 
         const response = await ReservedHandles.checkAvailability(handle);
@@ -87,14 +95,36 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             });
         }
 
-        // TODO!!!!
-        // Before we run the challenge, we need to make sure the pool ID matches the vrf key.
+        // check for duplicates and figure out 
+        const duplicatePools = await StakePools.getStakePoolsByTicker(stakePoolDetails.ticker);
+        if (duplicatePools.length > 1) {
+            // all records should have oldestTxIncludedAt but if it doesn't, throw it out.
+            const validPools = duplicatePools.filter(pool => pool.oldestTxIncludedAt).map(pool => {
+                return {
+                    id: pool.id,
+                    oldestTxIncludedAt: pool.oldestTxIncludedAt as number
+                }
+            });
 
-        // Instructions:
-        // VS validates that the vrf hash in the pool's registration certificate on the blockchain matches the blake2b hash of the sent vkey. 
-        // Note: The VS should use the latest registration certificate on the chain for 
-        // matching as the VRF is a "hot" key and can be changed at any time by the pool operator. 
-        // A single point-in-time verification is sufficient to properly identify the pool operator.
+            const errorMessage = 'Pool has duplicates. Please use the oldest VRF/Pool id record to mint Handle.';
+            if (validPools.length === 0) {
+                return res.status(500).json({
+                    error: true,
+                    message: errorMessage
+                });
+            }
+
+            // sort all pools by oldest to newest
+            validPools.sort((a, b) => a.oldestTxIncludedAt - b.oldestTxIncludedAt);
+            const [oldestPool] = validPools;
+            // if the oldest pool is not the one we're trying to register, return an error
+            if (oldestPool.id !== bech32PoolId) {
+                return res.status(400).json({
+                    error: true,
+                    message: errorMessage
+                });
+            }
+        }
 
         const result = await runChallengeCommand<ChallengeResult>();
 

@@ -4,6 +4,7 @@ import { StakePool } from '../models/StakePool';
 import { readFixturesFile } from './helpers/readFixtureFile';
 import { batchUpdate } from './helpers/batchUpdate';
 import { fetchPoolDetails } from '../helpers/blockfrost';
+import { getTransactionsByHashes } from '../helpers/graphql';
 
 const getDuplicateTickers = async () => {
     const stakePools = await StakePools.getAllStakePools(0);
@@ -30,6 +31,7 @@ const getDuplicateTickers = async () => {
     tickers.sort((a, b) => b.amount - a.amount);
 
     console.log('duplicates', JSON.stringify(tickers));
+    return tickers;
 }
 
 const updateOGs = async () => {
@@ -60,8 +62,6 @@ const updatePoolDetails = async () => {
 
     console.log('filteredStakePools length', filteredStakePools.length);
 
-    // return;
-
     await batchUpdate(filteredStakePools, async (doc) => {
         const pool = doc.data() as StakePool;
         const details = await fetchPoolDetails(pool.id);
@@ -86,10 +86,45 @@ const updatePoolDetails = async () => {
     }, 200);
 }
 
+const updateOldestSPODate = async () => {
+    const stakePools = await StakePools.getAllStakePools(0);
+
+    console.log('stakePools length', stakePools.length);
+
+    // update records with oldest date from the registered hashes
+    await batchUpdate(stakePools, async (doc) => {
+        const pool = doc.data() as StakePool;
+        if (!pool.registration) {
+            return {
+                oldestTxIncludedAt: 0,
+            }
+        }
+
+        const details = await getTransactionsByHashes(pool.registration);
+
+        const includedAtDates = details.map(tx => new Date(tx.includedAt));
+
+        if (includedAtDates.length === 0) {
+            return {
+                oldestTxIncludedAt: 0,
+            }
+        }
+
+        // order dates by oldest to newest
+        includedAtDates.sort((a, b) => a.getTime() - b.getTime());
+
+        const [oldestDate] = includedAtDates;
+
+        return {
+            oldestTxIncludedAt: oldestDate.getTime(),
+        }
+    }, 200);
+}
+
 const run = async () => {
     try {
         await Firebase.init();
-        await getDuplicateTickers();
+        await updateOldestSPODate();
     } catch (error) {
         console.log('ERROR', error);
         process.exit(1);

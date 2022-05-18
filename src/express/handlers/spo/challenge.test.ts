@@ -51,8 +51,10 @@ describe('Challenge Tests', () => {
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue('valid');
 
-        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123', [], false, 'abc123'));
         jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
+        jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('abc123', 'HANDLE', 'stake123', [], false, 'abc123')]);
+
 
         jest.spyOn(runChallengeCommand, 'runChallengeCommand').mockResolvedValue({ nonce: 'abc123', status: 'ok', domain: 'adahandle.com' });
         jest.spyOn(PoolProofs, 'addPoolProof')
@@ -178,6 +180,27 @@ describe('Challenge Tests', () => {
         expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "No ticker found for Pool ID." });
     });
 
+    it('should fail if vrfkeyHash does not match', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { bech32PoolId: 'pool1abc123', cborHexEncodedVRFKey: 'abc123', hexEncodedVKeyHash: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123', [], false, 'not-abc123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
+
+        await challengeHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Pool details do not match." });
+    });
+
     it('should fail handle is unavailable', async () => {
         mockRequest = {
             headers: {
@@ -190,12 +213,59 @@ describe('Challenge Tests', () => {
         // @ts-ignore
         jest.spyOn(jwt, 'verify').mockReturnValue('valid');
 
-        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123'));
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123', [], false, 'abc123'));
         jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: false, type: 'private' });
 
         await challengeHandler(mockRequest as Request, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
         expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Handle is unavailable." });
+    });
+
+    it('should fail if ticker has duplicates and requesting pool is not the oldest record', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { bech32PoolId: 'pool1abc123', cborHexEncodedVRFKey: 'abc123', hexEncodedVKeyHash: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123', [], false, 'abc123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
+        jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('pool456', 'HANDLE', 'stake123', [], false, 'abc123', new Date(Date.now() - 600000).getTime()), new StakePool('pool1abc123', 'HANDLE', 'stake123', [], false, 'abc123', new Date(Date.now() - 300000).getTime())]);
+
+        await challengeHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "error": true, "message": "Pool has duplicates. Please use the oldest VRF/Pool id record to mint Handle." });
+    });
+
+    it('should pass if ticker has duplicates and requesting pool is the oldest record', async () => {
+        mockRequest = {
+            headers: {
+                [HEADER_JWT_SPO_ACCESS_TOKEN]: 'access-token',
+            },
+            body: { bech32PoolId: 'pool456', cborHexEncodedVRFKey: 'abc123', hexEncodedVKeyHash: 'abc123' }
+        }
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+        // @ts-ignore
+        jest.spyOn(jwt, 'verify').mockReturnValue('valid');
+
+        jest.spyOn(StakePools, 'getStakePoolsByPoolId').mockResolvedValue(new StakePool('abc123', 'HANDLE', 'stake123', [], false, 'abc123'));
+        jest.spyOn(ReservedHandles, 'checkAvailability').mockResolvedValue({ available: true });
+        jest.spyOn(StakePools, 'getStakePoolsByTicker').mockResolvedValue([new StakePool('pool456', 'HANDLE', 'stake123', [], false, 'abc123', new Date(Date.now() - 600000).getTime()), new StakePool('pool1abc123', 'HANDLE', 'stake123', [], false, 'abc123', new Date(Date.now() - 300000).getTime())]);
+
+        jest.spyOn(runChallengeCommand, 'runChallengeCommand').mockResolvedValue({ nonce: 'abc123', status: 'ok', domain: 'adahandle.com' });
+        jest.spyOn(PoolProofs, 'addPoolProof')
+
+        await challengeHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith({ "challengeResult": { "domain": "adahandle.com", "nonce": "abc123", "status": "ok" }, "error": false, "handle": "handle", "message": "Challenge successful" });
     });
 });
