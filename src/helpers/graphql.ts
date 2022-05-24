@@ -1,7 +1,7 @@
-import { fetch } from 'cross-fetch';
+import { fetch } from "cross-fetch";
 import { getGraphqlEndpoint, getPolicyId } from "./constants";
-import { LogCategory, Logger } from './Logger';
-import { getFingerprint } from './utils';
+import { LogCategory, Logger } from "./Logger";
+import { getFingerprint } from "./utils";
 
 export interface WalletSimplifiedBalance {
   address: string;
@@ -28,33 +28,33 @@ interface GraphqlCardanoSlotNumberResult {
     cardano: {
       tip: {
         slotNo: number;
-      }
-    }
-  }
+      };
+    };
+  };
 }
 
 interface GraphqlCardanoPaymentAddressesResult {
   data: {
     paymentAddresses: GraphqlCardanoPaymentAddress[];
-  }
+  };
 }
 
 export interface GraphqlCardanoSenderAddress {
   inputs: {
     address: string;
-  }[],
+  }[];
   outputs: {
     address: string;
     index: number;
     txHash: string;
     value?: string;
-  }[]
+  }[];
 }
 
 interface GraphqlCardanoSenderAddressesResult {
   data: {
     transactions: GraphqlCardanoSenderAddress[];
-  }
+  };
 }
 
 interface GraphqlCardanoAssetExistsResult {
@@ -66,11 +66,11 @@ interface GraphqlCardanoAssetExistsResult {
         tokenMints_aggregate: {
           aggregate: {
             count: string;
-          }
-        }
+          };
+        };
       }
-    ]
-  }
+    ];
+  };
 }
 
 export interface StakePoolDetails {
@@ -82,8 +82,8 @@ export interface StakePoolDetails {
 
 interface GraphqlStakePoolsResult {
   data: {
-    stakePools: StakePoolDetails[]
-  }
+    stakePools: StakePoolDetails[];
+  };
 }
 
 export interface GraphqlHandleExistsResponse {
@@ -107,16 +107,16 @@ interface AssetMintData {
   tokenMints: {
     transaction: {
       outputs: {
-        address: string,
-      }[]
-    }
-  }[]
+        address: string;
+      }[];
+    };
+  }[];
 }
 
 interface GraphqlLookupResponseBody {
   data: {
-    assets: AssetMintData[]
-  }
+    assets: AssetMintData[];
+  };
 }
 
 interface Transaction {
@@ -124,10 +124,12 @@ interface Transaction {
   includedAt: string;
 }
 
-export const checkPayments = async (addresses: string[]): Promise<WalletSimplifiedBalance[]> => {
+export const checkPayments = async (
+  addresses: string[]
+): Promise<WalletSimplifiedBalance[]> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoPaymentAddressesResult = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
@@ -152,44 +154,44 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
           }
         }
       `,
-    })
-  }).then(res => res.json());
+    }),
+  }).then((res) => res.json());
 
   if (!res?.data) {
-    throw new Error('Unable to query payment amount.');
+    throw new Error("Unable to query payment amount.");
   }
 
   const {
-    data: {
-      paymentAddresses
-    },
+    data: { paymentAddresses },
   } = res;
 
   const checkedAddresses = paymentAddresses.map((payment) => {
     const utxos = payment?.summary?.assetBalances || null;
-    const ada = utxos && utxos.find(({ asset }) => 'ada' === asset.assetName);
+    const ada = utxos && utxos.find(({ asset }) => "ada" === asset.assetName);
 
     const paymentAddress = payment.address;
 
     if (!ada) {
       return {
-        address: '',
+        address: "",
         amount: 0,
-        paymentAddress
+        paymentAddress,
       } as WalletSimplifiedBalance;
     }
 
     return {
-      address: '',
+      address: "",
       amount: parseInt(ada.quantity),
-      paymentAddress
+      paymentAddress,
     } as WalletSimplifiedBalance;
   });
 
-  const addressesWithPayments = checkedAddresses.filter(address => address.amount && address.amount > 0).map(({ paymentAddress = '', amount }) => ({ paymentAddress, amount }));
+  const addressesWithPayments = checkedAddresses
+    .filter((address) => address.amount && address.amount > 0)
+    .map(({ paymentAddress = "", amount }) => ({ paymentAddress, amount }));
   const returnAddressesMap = await lookupReturnAddresses(addressesWithPayments);
 
-  const checkedAddressesWithReturnAddresses = checkedAddresses.map(item => {
+  const checkedAddressesWithReturnAddresses = checkedAddresses.map((item) => {
     const returnAddress = returnAddressesMap.get(item.paymentAddress as string);
     if (returnAddress) {
       return {
@@ -204,15 +206,17 @@ export const checkPayments = async (addresses: string[]): Promise<WalletSimplifi
   });
 
   return checkedAddressesWithReturnAddresses;
-}
+};
 
-export const handleExists = async (handle: string): Promise<GraphqlHandleExistsResponse> => {
+export const handleExists = async (
+  handle: string
+): Promise<GraphqlHandleExistsResponse> => {
   const url = getGraphqlEndpoint();
 
   const fingerprint = getFingerprint(handle);
 
   const res: GraphqlCardanoAssetExistsResult = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
@@ -240,13 +244,13 @@ export const handleExists = async (handle: string): Promise<GraphqlHandleExistsR
           }
         }
       `,
-    })
-  }).then(res => res.json())
+    }),
+  }).then((res) => res.json());
 
   if (!res.data || res.data.assets.length < 1) {
     return {
       exists: false,
-      duplicate: false
+      duplicate: false,
     };
   }
 
@@ -254,9 +258,9 @@ export const handleExists = async (handle: string): Promise<GraphqlHandleExistsR
     exists: true,
     policyID: res.data.assets[0].policyId,
     assetName: res.data.assets[0].assetName,
-    duplicate: res.data.assets[0].tokenMints_aggregate.aggregate.count !== '1'
-  }
-}
+    duplicate: res.data.assets[0].tokenMints_aggregate.aggregate.count !== "1",
+  };
+};
 
 export const lookupReturnAddresses = async (
   receiverAddresses: {
@@ -266,13 +270,15 @@ export const lookupReturnAddresses = async (
 ): Promise<Map<string, WalletSimplifiedBalance>> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       variables: {
-        addresses: receiverAddresses.map(({ paymentAddress }) => paymentAddress),
+        addresses: receiverAddresses.map(
+          ({ paymentAddress }) => paymentAddress
+        ),
       },
       query: `
         query ($addresses: [String!]!) {
@@ -304,30 +310,50 @@ export const lookupReturnAddresses = async (
           }
         }
       `,
-    })
-  }).then(res => res.json())
+    }),
+  }).then((res) => res.json());
 
   if (!res?.data) {
-    Logger.log({ message: 'No data from lookupReturnAddresses', event: 'lookupReturnAddresses.noData', category: LogCategory.ERROR });
+    Logger.log({
+      message: "No data from lookupReturnAddresses",
+      event: "lookupReturnAddresses.noData",
+      category: LogCategory.ERROR,
+    });
     return new Map();
   }
 
-  const orderedTransactions = receiverAddresses.reduce<Map<string, WalletSimplifiedBalance>>((agg, { paymentAddress, amount }) => {
-    const transaction = res.data.transactions.find(tx => tx.outputs.some(output => output.address === paymentAddress));
+  const orderedTransactions = receiverAddresses.reduce<
+    Map<string, WalletSimplifiedBalance>
+  >((agg, { paymentAddress, amount }) => {
+    const transaction = res.data.transactions.find((tx) =>
+      tx.outputs.some((output) => output.address === paymentAddress)
+    );
     if (transaction) {
-      const paymentOutput = transaction.outputs.find(out => out.address === paymentAddress);
+      const paymentOutput = transaction.outputs.find(
+        (out) => out.address === paymentAddress
+      );
       if (paymentOutput) {
-        agg.set(paymentAddress, { address: transaction.inputs[0].address, txHash: paymentOutput.txHash, index: paymentOutput.index, paymentAddress, amount });
+        agg.set(paymentAddress, {
+          address: transaction.inputs[0].address,
+          txHash: paymentOutput.txHash,
+          index: paymentOutput.index,
+          paymentAddress,
+          amount,
+        });
         return agg;
       }
     }
 
-    Logger.log({ message: `Unable to find transaction for address: ${paymentAddress}`, event: 'lookupReturnAddresses.noTransaction', category: LogCategory.INFO });
+    Logger.log({
+      message: `Unable to find transaction for address: ${paymentAddress}`,
+      event: "lookupReturnAddresses.noTransaction",
+      category: LogCategory.INFO,
+    });
     return agg;
   }, new Map());
 
   return orderedTransactions;
-}
+};
 
 export const lookupTransaction = async (
   address: string
@@ -339,7 +365,7 @@ export const lookupTransaction = async (
 }> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSenderAddressesResult = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
@@ -378,16 +404,16 @@ export const lookupTransaction = async (
           }
         }
       `,
-    })
-  }).then(res => res.json())
+    }),
+  }).then((res) => res.json());
 
-  let totalPayments = 0
+  let totalPayments = 0;
   let returnAddress, txHash, index;
-  res?.data?.transactions?.forEach(t => {
+  res?.data?.transactions?.forEach((t) => {
     const outputSum = t.outputs.reduce((acc, output) => {
       if (output.address === address && output.value) {
-        txHash = output.txHash
-        index = output.index
+        txHash = output.txHash;
+        index = output.index;
         return acc + parseFloat(output.value);
       }
 
@@ -396,7 +422,7 @@ export const lookupTransaction = async (
 
     totalPayments += outputSum;
 
-    const returnInput = t.inputs.find(input => input.address != address);
+    const returnInput = t.inputs.find((input) => input.address != address);
     if (returnInput) {
       returnAddress = returnInput.address;
     }
@@ -406,9 +432,9 @@ export const lookupTransaction = async (
     totalPayments,
     returnAddress,
     txHash,
-    index
+    index,
   };
-}
+};
 
 export const lookupLocation = async (
   handle: string
@@ -459,9 +485,7 @@ export const lookupLocation = async (
   }).then((data) => data.json());
 
   const {
-    data: {
-      assets
-    }
+    data: { assets },
   } = res;
 
   if (!assets || !assets.length) {
@@ -474,7 +498,7 @@ export const lookupLocation = async (
 export const getCurrentSlotNumberFromTip = async (): Promise<number> => {
   const url = getGraphqlEndpoint();
   const res: GraphqlCardanoSlotNumberResult = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
@@ -488,28 +512,29 @@ export const getCurrentSlotNumberFromTip = async (): Promise<number> => {
           }
         }
       `,
-    })
-  }).then(res => res.json())
+    }),
+  }).then((res) => res.json());
 
   if (!res?.data) {
-    throw new Error('Unable to query current slot number.');
+    throw new Error("Unable to query current slot number.");
   }
 
   const {
     cardano: {
-      tip: {
-        slotNo
-      }
-    }
+      tip: { slotNo },
+    },
   } = res.data;
 
   return slotNo;
-}
+};
 
-export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolDetails[]> => {
+export const getStakePoolsById = async (
+  addresses: string[]
+): Promise<StakePoolDetails[]> => {
   const url = getGraphqlEndpoint();
+  console.log(url);
   const res: GraphqlStakePoolsResult = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
@@ -518,7 +543,7 @@ export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolD
         addresses,
       },
       query: `
-      query ($addresses: [String!]!) {
+      query ($addresses: [StakePoolID]!) {
         stakePools(where: {
             id: {
               _in: $addresses
@@ -531,25 +556,25 @@ export const getStakePoolsById = async (addresses: string[]): Promise<StakePoolD
             hash
           }
         }
+}
       `,
-    })
-  }).then(res => res.json())
+    }),
+  }).then((res) => res.json());
 
   if (!res?.data) {
-    throw new Error('Unable to query stake pools.');
+    console.log("res", res);
+    throw new Error("Unable to query stake pools.");
   }
 
-  const {
-    stakePools
-  } = res.data;
+  const { stakePools } = res.data;
 
   return stakePools;
-}
+};
 
 export const hasDoubleMint = async (): Promise<boolean> => {
   const url = getGraphqlEndpoint();
   const res: { data: { assets: unknown[] } } = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
@@ -570,30 +595,30 @@ export const hasDoubleMint = async (): Promise<boolean> => {
         }
       }
       `,
-    })
-  }).then(res => res.json())
+    }),
+  }).then((res) => res.json());
 
   if (!res?.data) {
-    throw new Error('Unable to query double mint.');
+    throw new Error("Unable to query double mint.");
   }
 
-  const {
-    assets
-  } = res.data;
+  const { assets } = res.data;
 
   return assets.length > 0;
-}
+};
 
-export const getTransactionsByHashes = async (hashes: string[]): Promise<Transaction[]> => {
+export const getTransactionsByHashes = async (
+  hashes: string[]
+): Promise<Transaction[]> => {
   const url = getGraphqlEndpoint();
   const res: { data: { transactions: Transaction[] } } = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       variables: {
-        hashes
+        hashes,
       },
       query: `
       query ($hashes: [Hash32Hex]) {
@@ -603,16 +628,14 @@ export const getTransactionsByHashes = async (hashes: string[]): Promise<Transac
         }
       }
       `,
-    })
-  }).then(res => res.json())
+    }),
+  }).then((res) => res.json());
 
   if (!res?.data) {
-    throw new Error('Unable to query transactions.');
+    throw new Error("Unable to query transactions.");
   }
 
-  const {
-    transactions
-  } = res.data;
+  const { transactions } = res.data;
 
   return transactions;
-}
+};
