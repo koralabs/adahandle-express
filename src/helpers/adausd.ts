@@ -94,10 +94,25 @@ export const getCurrentAdaUsdQuotes = async (adaUsd: number[]): Promise<number[]
         }
     ];
 
+    const maxErrors = 3;
+    let errorCounter = 0;
     for (let i = 0; i < apis.length; i++) {
-        const priceQuote = await priceQuoteApiRequest(apis[i].url, apis[i].jsonPath);
-        if (priceQuote) {
-            adaUsd.push(typeof priceQuote == "string" ? Number(priceQuote) : priceQuote);
+        try {
+            const priceQuote = await priceQuoteApiRequest(apis[i].url, apis[i].jsonPath);
+            if (priceQuote) {
+                adaUsd.push(typeof priceQuote == "string" ? Number(priceQuote) : priceQuote);
+            }
+        } catch (error) {
+            errorCounter++;
+            // if we have 3 or more errors, send notification
+            if (errorCounter >= maxErrors) {
+                Logger.log({
+                    category: LogCategory.NOTIFY,
+                    message: `Received ${errorCounter} errors out of ${apis.length} requests during priceQuoteRequest`,
+                    event: "adausd.priceQuoteRequest.tooManyErrors"
+                });
+                errorCounter = 0;
+            }
         }
     }
     return filterOutliers(adaUsd);
@@ -135,10 +150,12 @@ export const priceQuoteApiRequest = async (url: string, jsonPath: string) => {
         }
     } catch (e) {
         Logger.log({
-            category: LogCategory.ERROR,
+            category: LogCategory.INFO,
             message: JSON.stringify(e),
             event: "adausd.priceQuoteRequest"
         });
+
+        throw e;
     }
 };
 
