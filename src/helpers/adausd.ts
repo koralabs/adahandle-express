@@ -104,7 +104,7 @@ export const getCurrentAdaUsdQuotes = async (adaUsd: number[]): Promise<number[]
             }
         } catch (error) {
             errorCounter++;
-            // if we have more than 3 errors, send notification
+            // if we have 3 or more errors, send notification
             if (errorCounter >= maxErrors) {
                 Logger.log({
                     category: LogCategory.NOTIFY,
