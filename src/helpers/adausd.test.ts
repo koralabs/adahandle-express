@@ -1,8 +1,6 @@
 import { SettingsRepo } from "../models/firestore/collections/SettingsRepo";
 import { Settings } from "../models/Settings";
 import * as adaUsd from "./adausd";
-import { getCurrentAdaUsdQuotes } from "./adausd";
-import { Logger } from "./Logger";
 
 describe("Pricing Tests", () => {
     const settingsSpy = jest.spyOn(SettingsRepo, "getSettings").mockResolvedValue({
@@ -41,24 +39,6 @@ describe("Pricing Tests", () => {
             }
         }
     } as Settings);
-
-    it("should throw error if there are 3 errors", async () => {
-        jest.spyOn(adaUsd, "priceQuoteApiRequest")
-            .mockResolvedValue(10)
-            .mockRejectedValueOnce(new Error("error1"))
-            .mockRejectedValueOnce(new Error("error2"))
-            .mockRejectedValueOnce(new Error("error3"));
-
-        const loggerSpy = jest.spyOn(Logger, "log");
-
-        await getCurrentAdaUsdQuotes([]);
-
-        expect(loggerSpy).toHaveBeenCalledWith({
-            category: "NOTIFY",
-            event: "adausd.priceQuoteRequest.tooManyErrors",
-            message: "Received 3 errors out of 5 requests during priceQuoteRequest"
-        });
-    });
 
     it("Should return correct prices", async () => {
         const getCurrentAdaUsdQuotesSpy = jest.spyOn(adaUsd, "getCurrentAdaUsdQuotes");
