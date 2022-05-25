@@ -3,10 +3,11 @@ import { awaitForEach, chunk, delay } from "../../helpers/utils";
 
 export const batchUpdate = async (
     docs: admin.firestore.QueryDocumentSnapshot<admin.firestore.DocumentData>[],
-    buildUpdateObject: (doc: admin.firestore.QueryDocumentSnapshot<admin.firestore.DocumentData>) => Promise<Record<string, unknown>>
+    buildUpdateObject: (doc: admin.firestore.QueryDocumentSnapshot<admin.firestore.DocumentData>) => Promise<Record<string, unknown>>,
+    chunksSize = 500
 ): Promise<void> => {
     const db = admin.firestore();
-    const docsChunks = chunk(docs, 500);
+    const docsChunks = chunk(docs, chunksSize);
 
     let i = 0;
 

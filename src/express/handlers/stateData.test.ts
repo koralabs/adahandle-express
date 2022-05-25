@@ -60,6 +60,7 @@ describe('StateData Tests', () => {
       "paymentWindowTimeoutMinutes": 60,
       "priceAdaUsdTest": 0,
       "priceTestMode": "OFF",
+      "refundWalletBalance": 0,
       "refundsLock": "UNLOCKED",
       "saveStateLock": "UNLOCKED",
       "sendAuthCodesLock": "UNLOCKED",
