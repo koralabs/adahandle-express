@@ -36,6 +36,12 @@ export class StakePools {
 
         return snapshot.docs.map(doc => doc.data() as StakePool);
     }
+    
+    public static updateStakePool(id: string, updateParams: { vrfKeyHash?: string; registration: string[]; retirement: string[]; isRetired: boolean; hasError: boolean; error: string; } | { oldestTxIncludedAt: number}) {
+        const db = admin.firestore();
+        const collectionRef = db.collection(StakePools.collectionName).doc(id);
+        return collectionRef.update(updateParams);
+    }
 
     public static async batchAddStakePools(stakePoolsToAdd: StakePool[]): Promise<void> {
         const start = new Date().getTime();

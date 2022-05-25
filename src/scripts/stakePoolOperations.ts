@@ -4,7 +4,7 @@ import { StakePool } from '../models/StakePool';
 import { readFixturesFile } from './helpers/readFixtureFile';
 import { batchUpdate } from './helpers/batchUpdate';
 import { fetchPoolDetails } from '../helpers/blockfrost';
-import { getTransactionsByHashes } from '../helpers/graphql';
+import { getStakePoolsById, getTransactionsByHashes } from '../helpers/graphql';
 
 const getDuplicateTickers = async () => {
     const stakePools = await StakePools.getAllStakePools(0);
@@ -50,11 +50,7 @@ const updateOGs = async () => {
     });
 }
 
-const updatePoolDetails = async () => {
-    const stakePools = await StakePools.getAllStakePools(0);
-
-    console.log('stakePools length', stakePools.length);
-
+const updatePoolDetails = async (stakePools: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>[]) => {
     const filteredStakePools = stakePools.filter(pool => {
         const data = pool.data() as StakePool;
         return !data.vrfKeyHash;
@@ -121,10 +117,71 @@ const updateOldestSPODate = async () => {
     }, 200);
 }
 
+const addPoolTicker = async (id: string, ticker: string, isOG = false) => {
+    // get pool on chain
+    const pools = await getStakePoolsById([id]);
+
+    if (!pools || !pools.length) {
+        console.log('No pool found for id', id);
+        process.exit();
+    }
+
+    const [pool] = pools;
+
+    // save stake pool
+    const newPool = new StakePool(id, ticker, pool.rewardAddress, pool.owners.map(owner  => owner.hash), isOG);
+    await StakePools.addStakePool(newPool);
+
+    // save details from blockfrost
+    const details = await fetchPoolDetails(id);
+    if (details.error) {
+        throw new Error('Error fetching pool details');
+    }
+
+    const { vrf_key, registration = [], retirement = [] } = details;
+
+    const updateParams = {
+        vrfKeyHash: vrf_key,
+        registration,
+        retirement,
+        isRetired: retirement.length > 0,
+        hasError: false,
+        error: ''
+    }
+
+    await StakePools.updateStakePool(id, updateParams);
+
+    // update registration oldest date
+    if (!registration) {
+        await StakePools.updateStakePool(id, {
+            oldestTxIncludedAt: 0,
+        });
+    }
+
+    const hashes = await getTransactionsByHashes(registration);
+
+    const includedAtDates = hashes.map(tx => new Date(tx.includedAt));
+
+    if (includedAtDates.length === 0) {
+        await StakePools.updateStakePool(id, {
+            oldestTxIncludedAt: 0,
+        });
+    }
+
+    // order dates by oldest to newest
+    includedAtDates.sort((a, b) => a.getTime() - b.getTime());
+
+    const [oldestDate] = includedAtDates;
+
+    await StakePools.updateStakePool(id, {
+        oldestTxIncludedAt: oldestDate.getTime(),
+    });
+}
+
 const run = async () => {
     try {
         await Firebase.init();
-        await updateOldestSPODate();
+        await addPoolTicker('pool1x3glpjqz6jgmgwr8gw5hfwpaxxcsyq0gazlfaey3n9rey2pz9h2', 'HNDL3');
     } catch (error) {
         console.log('ERROR', error);
         process.exit(1);
