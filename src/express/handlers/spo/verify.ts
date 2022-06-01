@@ -1,17 +1,17 @@
-import * as express from "express";
-import * as jwt from "jsonwebtoken";
+import * as express from 'express';
+import * as jwt from 'jsonwebtoken';
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
-import { HEADER_JWT_SPO_ACCESS_TOKEN } from "../../../helpers/constants";
+import { HEADER_JWT_SPO_ACCESS_TOKEN } from '../../../helpers/constants';
 
-import { runVerifyCommand } from "../../../helpers/executeChildProcess";
-import { getKey } from "../../../helpers/jwt";
-import { LogCategory, Logger } from "../../../helpers/Logger";
-import { verifyIsAlphaNumeric } from "../../../helpers/utils";
-import { PoolProofs } from "../../../models/firestore/collections/PoolProofs";
-import { StakePools } from "../../../models/firestore/collections/StakePools";
-import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
-import { createSpoSession } from "./createSpoSession";
+import { runVerifyCommand } from '../../../helpers/executeChildProcess';
+import { getKey } from '../../../helpers/jwt';
+import { LogCategory, Logger } from '../../../helpers/Logger';
+import { verifyIsAlphaNumeric } from '../../../helpers/utils';
+import { PoolProofs } from '../../../models/firestore/collections/PoolProofs';
+import { StakePools } from '../../../models/firestore/collections/StakePools';
+import { ReservedHandles } from '../../../models/firestore/collections/ReservedHandles';
+import { createSpoSession } from './createSpoSession';
 
 interface SpoVerifyResponseBody {
     error: boolean;
@@ -21,9 +21,18 @@ interface SpoVerifyResponseBody {
     address?: string;
 }
 
-const getLogMessage = (startTime: number) => ({ message: `verify processed in ${Date.now() - startTime}ms`, event: 'verify.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
+const getLogMessage = (startTime: number) => ({
+    message: `verify processed in ${Date.now() - startTime}ms`,
+    event: 'verify.run',
+    milliseconds: Date.now() - startTime,
+    category: LogCategory.METRIC
+});
 
-const verifySPO = async (accessToken: string, signature: string, poolId: string): Promise<{ code: number; body: SpoVerifyResponseBody }> => {
+const verifySPO = async (
+    accessToken: string,
+    signature: string,
+    poolId: string
+): Promise<{ code: number; body: SpoVerifyResponseBody }> => {
     try {
         const startTime = Date.now();
 
@@ -34,7 +43,7 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
                     error: true,
                     message: 'Must provide a valid access and id token.'
                 }
-            }
+            };
         }
 
         const accessSecret = await getKey('access');
@@ -45,7 +54,7 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
                     error: true,
                     message: 'Something went wrong with access secrets.'
                 }
-            }
+            };
         }
 
         const validAccessToken = jwt.verify(accessToken as string, accessSecret);
@@ -89,11 +98,11 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
                     error: true,
                     message: 'Invalid signature.'
                 }
-            }
+            };
         }
 
         // Verify the proof is not greater than 5 minutes old
-        if ((Date.now() - proof.start) > 1000 * 60 * 5) {
+        if (Date.now() - proof.start > 1000 * 60 * 5) {
             return {
                 code: 400,
                 body: {
@@ -104,8 +113,8 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
         }
 
         // get handle data from stake pool
-        const stakePoolDetails = await StakePools.getStakePoolsByPoolId(poolId);
-        if (!stakePoolDetails) {
+        const stakePoolDetails = await StakePools.getStakePoolByPoolId(poolId);
+        if (!stakePoolDetails || stakePoolDetails.isRetired === true) {
             return {
                 code: 404,
                 body: {
@@ -138,7 +147,7 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
                 error: true,
                 message: 'Not verified.'
             }
-        }
+        };
 
         let isVerified = false;
 
@@ -151,7 +160,12 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
             const vkeyLocation = resolve(__dirname, `${outputPath}/${proof.poolId}-pool.vrf.vkey`);
             writeFileSync(vkeyLocation, vKeyContents);
 
-            const result = await runVerifyCommand<{ status: string } | { error: string }>({ vkeyLocation, vKeyHash, nonce, signature });
+            const result = await runVerifyCommand<{ status: string } | { error: string }>({
+                vkeyLocation,
+                vKeyHash,
+                nonce,
+                signature
+            });
 
             isVerified = result['status'] === 'ok' ?? false;
         } catch (error) {
@@ -159,16 +173,19 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
 
             if (errorString.includes('InvalidHexCharacter')) return notVerifiedResponse;
 
-            Logger.log({ message: JSON.stringify(error), event: 'verifyHandler.runVerifyCommand', category: LogCategory.ERROR });
+            Logger.log({
+                message: JSON.stringify(error),
+                event: 'verifyHandler.runVerifyCommand',
+                category: LogCategory.ERROR
+            });
             return {
                 code: 500,
                 body: {
                     error: true,
-                    message: "An error occurred.",
+                    message: 'An error occurred.'
                 }
             };
         }
-
 
         if (!isVerified) return notVerifiedResponse;
 
@@ -181,9 +198,9 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
                 code: 400,
                 body: {
                     error: true,
-                    message: 'Cannot register handle.',
+                    message: 'Cannot register handle.'
                 }
-            }
+            };
         }
 
         Logger.log(getLogMessage(startTime));
@@ -194,27 +211,29 @@ const verifySPO = async (accessToken: string, signature: string, poolId: string)
             handle,
             cost,
             address: createSessionResult
-        }
+        };
 
         return {
             code: 200,
             body: responseBody
-        }
+        };
     } catch (error) {
         Logger.log({ message: JSON.stringify(error), event: 'verifyHandler.verifySPO', category: LogCategory.ERROR });
         return {
             code: 500,
             body: {
                 error: true,
-                message: "An error occurred.",
+                message: 'An error occurred.'
             }
         };
     }
-}
+};
 
 export const verifyHandler = async (req: express.Request, res: express.Response) => {
     const accessToken = req.headers[HEADER_JWT_SPO_ACCESS_TOKEN];
-    const { body: { signature, poolId } } = req;
+    const {
+        body: { signature, poolId }
+    } = req;
     const result = await verifySPO(accessToken as string, signature, poolId);
 
     const { code, body } = result;
