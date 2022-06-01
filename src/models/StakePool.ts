@@ -1,4 +1,15 @@
-import { BaseModel } from "./BaseModel";
+import { BaseModel } from './BaseModel';
+
+export interface StakePoolConstructor {
+    id: string;
+    ticker: string;
+    stakeKey: string;
+    ownerHashes?: string[];
+    isOG: boolean;
+    vrfKeyHash?: string;
+    oldestTxIncludedAt?: number;
+    isRetired?: boolean;
+}
 
 export class StakePool extends BaseModel {
     public id: string; // pool id e.g. pool1lvsa...
@@ -13,7 +24,16 @@ export class StakePool extends BaseModel {
     public oldestTxIncludedAt?: number;
     public isOG: boolean;
 
-    constructor(id: string, ticker: string, stakeKey: string, ownerHashes?: string[], isOG = false, vrfKeyHash = '', oldestTxIncludedAt = Date.now()) {
+    constructor({
+        id,
+        ticker,
+        stakeKey,
+        ownerHashes = [],
+        isOG = false,
+        vrfKeyHash = '',
+        oldestTxIncludedAt = Date.now(),
+        isRetired = false
+    }: StakePoolConstructor) {
         super();
         this.id = id;
         this.ticker = ticker;
@@ -22,5 +42,6 @@ export class StakePool extends BaseModel {
         this.isOG = isOG;
         this.vrfKeyHash = vrfKeyHash;
         this.oldestTxIncludedAt = oldestTxIncludedAt;
+        this.isRetired = isRetired;
     }
 }

@@ -1,8 +1,8 @@
-import * as admin from "firebase-admin";
-import { Logger } from "../../../helpers/Logger";
-import { awaitForEach, chunk, delay } from "../../../helpers/utils";
-import { StakePool } from "../../StakePool";
-import { buildCollectionNameWithSuffix } from "./lib/buildCollectionNameWithSuffix";
+import * as admin from 'firebase-admin';
+import { Logger } from '../../../helpers/Logger';
+import { awaitForEach, chunk, delay } from '../../../helpers/utils';
+import { StakePool } from '../../StakePool';
+import { buildCollectionNameWithSuffix } from './lib/buildCollectionNameWithSuffix';
 
 export class StakePools {
     public static readonly collectionName = buildCollectionNameWithSuffix('stakePools');
@@ -17,11 +17,10 @@ export class StakePools {
         return true;
     }
 
-
-    static async getStakePoolsByPoolId(bech32PoolId: string): Promise<StakePool | null> {
+    static async getStakePoolByPoolId(bech32PoolId: string): Promise<StakePool | null> {
         const snapshot = await admin.firestore().collection(StakePools.collectionName).doc(bech32PoolId).get();
         if (!snapshot.exists) {
-            return null
+            return null;
         }
 
         return snapshot.data() as StakePool;
@@ -29,15 +28,31 @@ export class StakePools {
 
     public static async getStakePoolsByTicker(handle: string): Promise<StakePool[]> {
         const uppercaseHandle = handle.toUpperCase();
-        const snapshot = await admin.firestore().collection(StakePools.collectionName).where('ticker', '==', uppercaseHandle).get();
+        const snapshot = await admin
+            .firestore()
+            .collection(StakePools.collectionName)
+            .where('ticker', '==', uppercaseHandle)
+            .get();
         if (snapshot.empty) {
             return [];
         }
 
-        return snapshot.docs.map(doc => doc.data() as StakePool);
+        return snapshot.docs.map((doc) => doc.data() as StakePool);
     }
-    
-    public static updateStakePool(id: string, updateParams: { vrfKeyHash?: string; registration: string[]; retirement: string[]; isRetired: boolean; hasError: boolean; error: string; } | { oldestTxIncludedAt: number}) {
+
+    public static updateStakePool(
+        id: string,
+        updateParams:
+            | {
+                  vrfKeyHash?: string;
+                  registration: string[];
+                  retirement: string[];
+                  isRetired: boolean;
+                  hasError: boolean;
+                  error: string;
+              }
+            | { oldestTxIncludedAt: number }
+    ) {
         const db = admin.firestore();
         const collectionRef = db.collection(StakePools.collectionName).doc(id);
         return collectionRef.update(updateParams);
@@ -51,7 +66,7 @@ export class StakePools {
 
         await awaitForEach(stakePoolChunks, async (stakePools, index) => {
             const batch = db.batch();
-            stakePools.forEach(stakePool => {
+            stakePools.forEach((stakePool) => {
                 const collectionRef = db.collection(StakePools.collectionName).doc(stakePool.id);
                 batch.create(collectionRef, stakePool.toJSON());
             });
