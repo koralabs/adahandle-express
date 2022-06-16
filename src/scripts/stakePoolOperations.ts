@@ -6,6 +6,9 @@ import { batchUpdate } from './helpers/batchUpdate';
 import { fetchPoolDetails } from '../helpers/blockfrost';
 import { getStakePoolsById, getTransactionsByHashes } from '../helpers/graphql';
 
+import * as admin from 'firebase-admin';
+import { ReservedHandles } from '../models/firestore/collections/ReservedHandles';
+
 const getDuplicateTickers = async () => {
     const stakePools = await StakePools.getAllStakePools(0);
 
@@ -194,11 +197,28 @@ const addPoolTicker = async (id: string, ticker: string, isOG = false) => {
     });
 };
 
+const intersectReservedWithPools = async () => {
+    const records = await admin.firestore().collection(ReservedHandles.collectionSPOs).get();
+    const stakePools = await admin.firestore().collection(StakePools.collectionName).get();
+
+    const poolTickers = stakePools.docs.map((doc) => doc.data() as StakePool).map((pool) => pool.ticker);
+
+    const reservedNotInPools = records.docs.reduce<string[]>((agg, doc) => {
+        const docId = doc.id;
+        if (!poolTickers.includes(docId)) {
+            agg.push(docId);
+        }
+        return agg;
+    }, []);
+
+    console.log(JSON.stringify(reservedNotInPools));
+};
+
 // GRAPHQL_ENDPOINT=http://graphql.testnet.adahandle.io:3100 BLOCKFROST_API_KEY=testnetXbmgIyDcm8QonJyY0uxTbpxvUqOYv8nH ts-node -r dotenv/config ./src/scripts/stakePoolOperations.ts
 const run = async () => {
     try {
         await Firebase.init();
-        await addPoolTicker('pool1mr4ykj0fac4h7djmjdea9rkdkv0t22rnlqk0g8qmjp3pza0a93s', 'HNDL4');
+        await addPoolTicker('pool1r55hyfrd3tw6nzpkvf4rfceh2f04yph92fc462phnd0akp2s5r6', 'COFFE');
     } catch (error) {
         console.log('ERROR', error);
         process.exit(1);
