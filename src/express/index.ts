@@ -28,6 +28,7 @@ import { challengeHandler } from './handlers/spo/challenge';
 import { verifyHandler as spoVerifyHandler } from './handlers/spo/verify';
 import { lookupAddressHandler } from './handlers/lookupAddress';
 import { lookupAssetMetadataHandler } from './handlers/lookupAssetMetadata';
+import { verifyWalletHandler } from './handlers/verifyWallet';
 
 export const startServer = async (port = 3000) => {
     const app = express();
@@ -63,6 +64,7 @@ export const startServer = async (port = 3000) => {
     app.get('/verifyIdToken', verifyIdTokenHandler);
     app.get('/lookupAddress', lookupAddressHandler);
     app.get('/lookupAssetMetadata', lookupAssetMetadataHandler);
+    app.get('/verifyWallet', verifyWalletHandler);
 
     // SPO
     app.post('/spo/challenge', challengeHandler);

@@ -12,6 +12,7 @@ export const TWITTER_UNLOCK_HEADER = 'x-twitter-credentials';
 export const HEADER_JWT_ACCESS_TOKEN = 'x-access-token';
 export const HEADER_JWT_SESSION_TOKEN = 'x-session-token';
 export const HEADER_ID_TOKEN = 'x-id-token';
+export const HEADER_UID = 'x-uid';
 
 export const HEADER_JWT_SPO_ACCESS_TOKEN = 'x-spo-access-token';
 export const HEADER_JWT_SPO_SESSION_TOKEN = 'x-spo-session-token';
@@ -21,9 +22,9 @@ export const MAX_SESSION_COUNT = 3;
 export const TWITTER_OG_SIZE = 2438;
 
 export enum CreatedBySystem {
-  UI = 'UI',
-  CLI = 'CLI',
-  SPO = 'SPO'
+    UI = 'UI',
+    CLI = 'CLI',
+    SPO = 'SPO'
 }
 
 /**
@@ -45,101 +46,117 @@ export const BETA_PHASE_MATCH = new RegExp(/.{2,}/g);
  * Environment specific.
  */
 
-export const getWalletEndpoint = (): string =>
-  process.env.WALLET_ENDPOINT as string;
+export const getWalletEndpoint = (): string => process.env.WALLET_ENDPOINT as string;
 
-export const getGraphqlEndpoint = (): string =>
-  process.env.GRAPHQL_ENDPOINT as string;
+export const getGraphqlEndpoint = (): string => process.env.GRAPHQL_ENDPOINT as string;
 
 export const getMintingWalletId = (): string => {
-  const walletId = process.env.MINT_WALLET_ID;
-  if (!walletId) { throw new Error("Couldn't retrieve minting wallet ID"); }
-  return walletId.trim();
-}
+    const walletId = process.env.MINT_WALLET_ID;
+    if (!walletId) {
+        throw new Error("Couldn't retrieve minting wallet ID");
+    }
+    return walletId.trim();
+};
 
 export const getRefundWalletId = (): string => {
-  const walletId = process.env.REFUND_WALLET_ID;
-  if (!walletId) { throw new Error("Couldn't retrieve minting wallet ID"); }
-  return walletId.trim();
-}
+    const walletId = process.env.REFUND_WALLET_ID;
+    if (!walletId) {
+        throw new Error("Couldn't retrieve minting wallet ID");
+    }
+    return walletId.trim();
+};
 
 export const getMintingWalletSeedPhrase = (): string => {
-  const seed = process.env.MINT_SEED_PHRASE;
-  if (!seed) { throw new Error("Couldn't retrieve minting seed phrase"); }
+    const seed = process.env.MINT_SEED_PHRASE;
+    if (!seed) {
+        throw new Error("Couldn't retrieve minting seed phrase");
+    }
 
-  return JSON.parse(seed.trim());
-}
+    return JSON.parse(seed.trim());
+};
 
 export const getPaymentWalletId = (): string => {
-  const walletId = process.env.PAYMENT_WALLET_ID;
-  if (!walletId) { throw new Error("Couldn't retrieve payment wallet ID"); }
-  return walletId.trim();
-}
+    const walletId = process.env.PAYMENT_WALLET_ID;
+    if (!walletId) {
+        throw new Error("Couldn't retrieve payment wallet ID");
+    }
+    return walletId.trim();
+};
 
 export const getPaymentWalletSeedPhrase = (): string => {
-  const seed = process.env.PAYMENT_SEED_PHRASE;
-  if (!seed) { throw new Error("Couldn't retrieve payment seed phrase"); }
+    const seed = process.env.PAYMENT_SEED_PHRASE;
+    if (!seed) {
+        throw new Error("Couldn't retrieve payment seed phrase");
+    }
 
-  return JSON.parse(seed.trim());
-}
+    return JSON.parse(seed.trim());
+};
 
 export const getPolicyId = (): string => {
-  const policyId = process.env.POLICY_ID;
+    const policyId = process.env.POLICY_ID;
 
-  if (!policyId) { throw new Error("Couldn't retrieve policy ID"); }
+    if (!policyId) {
+        throw new Error("Couldn't retrieve policy ID");
+    }
 
-  return policyId.trim();
-}
+    return policyId.trim();
+};
 
 export const getPolicyPrivateKey = (): string => {
-  const policyKey = process.env.POLICY_KEY;
+    const policyKey = process.env.POLICY_KEY;
 
-  if (!policyKey) { throw new Error("Couldn't retrieve policy key"); }
+    if (!policyKey) {
+        throw new Error("Couldn't retrieve policy key");
+    }
 
-  return policyKey.trim();
-}
+    return policyKey.trim();
+};
 
 export const getBlockfrostApiKey = (): string => {
-  const apiKey = process.env.BLOCKFROST_API_KEY;
-  if (!apiKey) { throw new Error("Couldn't retrieve Blockfrost key"); }
+    const apiKey = process.env.BLOCKFROST_API_KEY;
+    if (!apiKey) {
+        throw new Error("Couldn't retrieve Blockfrost key");
+    }
 
-  return apiKey.trim();
-}
+    return apiKey.trim();
+};
 
 export const getMintingWallet = (index: number): { walletId: string; seedPhrase: string[] } => {
-  const walletId = process.env[`MINT_WALLET_ID_${index}`];
-  const seedPhrase = process.env[`MINT_WALLET_SEED_PHRASE_${index}`];
+    const walletId = process.env[`MINT_WALLET_ID_${index}`];
+    const seedPhrase = process.env[`MINT_WALLET_SEED_PHRASE_${index}`];
 
-  if (!walletId || !seedPhrase) { throw new Error("Couldn't retrieve minting wallet ID or seed phrase"); }
+    if (!walletId || !seedPhrase) {
+        throw new Error("Couldn't retrieve minting wallet ID or seed phrase");
+    }
 
-  return {
-    walletId,
-    seedPhrase: JSON.parse(seedPhrase.trim())
-  };
-}
+    return {
+        walletId,
+        seedPhrase: JSON.parse(seedPhrase.trim())
+    };
+};
 
 export const isProduction = (): boolean => {
-  // currently NODE_ENV is not set to 'master' in buddy
-  return process.env.NODE_ENV?.trim() === 'production' || process.env.NODE_ENV?.trim() === 'master';
-}
+    // currently NODE_ENV is not set to 'master' in buddy
+    return process.env.NODE_ENV?.trim() === 'production' || process.env.NODE_ENV?.trim() === 'master';
+};
 
 export const isTesting = (): boolean => {
-  return process.env.NODE_ENV?.trim() === 'test';
-}
+    return process.env.NODE_ENV?.trim() === 'test';
+};
 export const isEmulating = (): boolean => {
-  return process.env.EMULATE_FIRESTORE?.trim() === 'true';
-}
+    return process.env.EMULATE_FIRESTORE?.trim() === 'true';
+};
 
 export const isLocal = (): boolean => {
-  return process.env.NODE_ENV?.trim() === 'local';
-}
+    return process.env.NODE_ENV?.trim() === 'local';
+};
 
 export const getAdaHandleDomain = (): string => {
-  if (isLocal() || isTesting()) return 'http://localhost:8888';
-  if (isProduction()) return 'https://adahandle.com';
-  return 'https://testnet.adahandle.com';
-}
+    if (isLocal() || isTesting()) return 'http://localhost:8888';
+    if (isProduction()) return 'https://adahandle.com';
+    return 'https://testnet.adahandle.com';
+};
 
 export const getWalletAddressPrefix = () => {
-  return isProduction() ? 'addr1' : 'addr_test1'
-}
+    return isProduction() ? 'addr1' : 'addr_test1';
+};
