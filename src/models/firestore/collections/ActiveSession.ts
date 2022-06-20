@@ -57,20 +57,6 @@ export class ActiveSessions {
         );
     }
 
-    public static async getActiveSessionsUniqueId(uid: string): Promise<ActiveSession[]> {
-        const collection = await admin
-            .firestore()
-            .collection(ActiveSessions.collectionName)
-            .where('uid', '==', uid)
-            .get();
-        return collection.docs.map(
-            (doc) =>
-                new ActiveSession({
-                    ...(doc.data() as ActiveSessionInput)
-                })
-        );
-    }
-
     public static async getByPaymentAddress(address: string): Promise<ActiveSession | null> {
         const collection = await admin
             .firestore()
