@@ -15,7 +15,7 @@ interface VerifyResponseBody {
     message?: string;
 }
 
-export const verifyWalletHandler: express.RequestHandler = async (req, res) => {
+export const verifyWalletHandler = async (req: express.Request, res: express.Response) => {
     const startTime = Date.now();
     const getLogMessage = (startTime: number) => ({
         message: `verifyWalletHandler processed in ${Date.now() - startTime}ms`,
@@ -32,9 +32,10 @@ export const verifyWalletHandler: express.RequestHandler = async (req, res) => {
     }
 
     const uid = req.headers[HEADER_UID] as string;
+    const emailAddress = `noreply+${uid}@adahandle.com`;
 
     try {
-        const sessions = await ActiveSessions.getActiveSessionsUniqueId(uid);
+        const sessions = await ActiveSessions.getActiveSessionsByEmail(emailAddress);
         const activeSessions = sessions.map((session) => ({
             cost: session.cost,
             handle: session.handle,
@@ -50,7 +51,7 @@ export const verifyWalletHandler: express.RequestHandler = async (req, res) => {
             secretKey &&
             jwt.sign(
                 {
-                    emailAddress: `noreply+${uid}@adahandle.com`,
+                    emailAddress,
                     isSPO: false
                 },
                 secretKey,
