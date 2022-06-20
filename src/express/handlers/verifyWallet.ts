@@ -50,7 +50,7 @@ export const verifyWalletHandler: express.RequestHandler = async (req, res) => {
             secretKey &&
             jwt.sign(
                 {
-                    uid,
+                    emailAddress: `noreply+${uid}@adahandle.com`,
                     isSPO: false
                 },
                 secretKey,
