@@ -1,4 +1,4 @@
-import { getBlockfrostApiKey, getPolicyId, isProduction } from "./constants";
+import { getBlockfrostApiKey, getPolicyId, isProduction } from './constants';
 import fetch from 'cross-fetch';
 
 export interface FetchAssetsAddressesResult {
@@ -28,6 +28,37 @@ interface BlockFrostPoolDetailsResultBody {
     retirement?: string[];
 }
 
+export interface BlockFrostAssetResultBody {
+    asset: string;
+    policy_id: string;
+    asset_name: string;
+    fingerprint: string;
+    quantity: string;
+    initial_mint_tx_hash: string;
+    mint_or_burn_count: number;
+    onchain_metadata: {
+        name: string;
+        image: string;
+        core: {
+            og: number;
+            prefix: string;
+            version: number;
+            termsofuse: string;
+            handleEncoding: string;
+        };
+        website: string;
+        description: string;
+        augmentations: any[];
+    };
+    metadata: null;
+}
+
+export interface BlockfrostErrorResponseBody {
+    error: string;
+    message: string;
+    status_code: number;
+}
+
 const getBlockfrostContext = (): {
     context: string;
     policyId: string;
@@ -41,8 +72,8 @@ const getBlockfrostContext = (): {
         context,
         policyId,
         blockfrostApiKey
-    }
-}
+    };
+};
 
 export const fetchAssetsAddresses = async (handle: string): Promise<FetchAssetsAddressesResult> => {
     const { context, policyId, blockfrostApiKey } = getBlockfrostContext();
@@ -56,21 +87,21 @@ export const fetchAssetsAddresses = async (handle: string): Promise<FetchAssetsA
                 'Content-Type': 'application/json'
             }
         }
-    ).then(res => res.json());
+    ).then((res) => res.json());
 
     if (Array.isArray(data)) {
         const [result] = data;
 
         return {
-            address: result.address,
-        }
+            address: result.address
+        };
     }
 
     return {
         errorMessage: data.error,
         statusCode: data.status_code
-    }
-}
+    };
+};
 
 export const fetchPoolDetails = async (poolId: string): Promise<BlockFrostPoolDetailsResultBody> => {
     const { context, blockfrostApiKey } = getBlockfrostContext();
@@ -83,7 +114,31 @@ export const fetchPoolDetails = async (poolId: string): Promise<BlockFrostPoolDe
                 'Content-Type': 'application/json'
             }
         }
-    ).then(res => res.json());
+    ).then((res) => res.json());
 
     return data;
-}
+};
+
+export const fetchAsset = async (
+    handle: string
+): Promise<{ error?: BlockfrostErrorResponseBody; data?: BlockFrostAssetResultBody }> => {
+    const { context, policyId, blockfrostApiKey } = getBlockfrostContext();
+
+    const assetName = Buffer.from(handle).toString('hex');
+    const data = await fetch(`https://cardano-${context}.blockfrost.io/api/v0/assets/${policyId}${assetName}`, {
+        headers: {
+            project_id: blockfrostApiKey,
+            'Content-Type': 'application/json'
+        }
+    }).then((res) => res.json());
+
+    if (data.error) {
+        return {
+            error: data
+        };
+    }
+
+    return {
+        data
+    };
+};

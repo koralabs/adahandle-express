@@ -1,13 +1,13 @@
-import * as express from "express";
-import * as jwt from "jsonwebtoken";
-import { LogCategory, Logger } from "../../../helpers/Logger";
-import { runChallengeCommand } from "../../../helpers/executeChildProcess";
-import { PoolProofs } from "../../../models/firestore/collections/PoolProofs";
-import { verifyIsAlphaNumeric, verifyIsPoolId } from "../../../helpers/utils";
-import { HEADER_JWT_SPO_ACCESS_TOKEN } from "../../../helpers/constants";
-import { getKey } from "../../../helpers/jwt";
-import { StakePools } from "../../../models/firestore/collections/StakePools";
-import { ReservedHandles } from "../../../models/firestore/collections/ReservedHandles";
+import * as express from 'express';
+import * as jwt from 'jsonwebtoken';
+import { LogCategory, Logger } from '../../../helpers/Logger';
+import { runChallengeCommand } from '../../../helpers/executeChildProcess';
+import { PoolProofs } from '../../../models/firestore/collections/PoolProofs';
+import { verifyIsAlphaNumeric, verifyIsPoolId } from '../../../helpers/utils';
+import { HEADER_JWT_SPO_ACCESS_TOKEN } from '../../../helpers/constants';
+import { getKey } from '../../../helpers/jwt';
+import { StakePools } from '../../../models/firestore/collections/StakePools';
+import { ReservedHandles } from '../../../models/firestore/collections/ReservedHandles';
 
 interface ChallengeResult {
     status: string;
@@ -16,13 +16,18 @@ interface ChallengeResult {
 }
 
 export interface SpoChallengeResponseBody {
-    error: boolean,
+    error: boolean;
     message: string;
     handle?: string;
     challengeResult?: ChallengeResult;
 }
 
-const getLogMessage = (startTime: number) => ({ message: `challenge processed in ${Date.now() - startTime}ms`, event: 'challenge.run', milliseconds: Date.now() - startTime, category: LogCategory.METRIC });
+const getLogMessage = (startTime: number) => ({
+    message: `challenge processed in ${Date.now() - startTime}ms`,
+    event: 'challenge.run',
+    milliseconds: Date.now() - startTime,
+    category: LogCategory.METRIC
+});
 
 export const challengeHandler = async (req: express.Request, res: express.Response) => {
     try {
@@ -41,7 +46,7 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             return res.status(500).json({
                 error: true,
                 message: 'Something went wrong with access secrets.'
-            })
+            });
         }
 
         const validAccessToken = jwt.verify(accessToken as string, accessSecret);
@@ -62,15 +67,19 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
         }
 
         // verify incoming parameters
-        if (!verifyIsPoolId(bech32PoolId) || !verifyIsAlphaNumeric(cborHexEncodedVRFKey) || !verifyIsAlphaNumeric(hexEncodedVKeyHash)) {
+        if (
+            !verifyIsPoolId(bech32PoolId) ||
+            !verifyIsAlphaNumeric(cborHexEncodedVRFKey) ||
+            !verifyIsAlphaNumeric(hexEncodedVKeyHash)
+        ) {
             return res.status(400).json({
                 error: true,
                 message: 'Invalid parameters.'
             });
         }
 
-        const stakePoolDetails = await StakePools.getStakePoolsByPoolId(bech32PoolId);
-        if (!stakePoolDetails) {
+        const stakePoolDetails = await StakePools.getStakePoolByPoolId(bech32PoolId);
+        if (!stakePoolDetails || stakePoolDetails.isRetired === true) {
             return res.status(404).json({
                 error: true,
                 message: 'No ticker found for Pool ID.'
@@ -95,16 +104,18 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             });
         }
 
-        // check for duplicates and figure out 
+        // check for duplicates and figure out
         const duplicatePools = await StakePools.getStakePoolsByTicker(stakePoolDetails.ticker);
         if (duplicatePools.length > 1) {
             // all records should have oldestTxIncludedAt but if it doesn't, throw it out.
-            const validPools = duplicatePools.filter(pool => pool.oldestTxIncludedAt).map(pool => {
-                return {
-                    id: pool.id,
-                    oldestTxIncludedAt: pool.oldestTxIncludedAt as number
-                }
-            });
+            const validPools = duplicatePools
+                .filter((pool) => pool.oldestTxIncludedAt && !pool.isRetired)
+                .map((pool) => {
+                    return {
+                        id: pool.id,
+                        oldestTxIncludedAt: pool.oldestTxIncludedAt as number
+                    };
+                });
 
             const errorMessage = 'Pool has duplicates. Please use the oldest VRF/Pool id record to mint Handle.';
             if (validPools.length === 0) {
@@ -128,7 +139,12 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
 
         const result = await runChallengeCommand<ChallengeResult>();
 
-        await PoolProofs.addPoolProof({ poolId: bech32PoolId, vrfKey: cborHexEncodedVRFKey, vKeyHash: hexEncodedVKeyHash, nonce: result.nonce });
+        await PoolProofs.addPoolProof({
+            poolId: bech32PoolId,
+            vrfKey: cborHexEncodedVRFKey,
+            vKeyHash: hexEncodedVKeyHash,
+            nonce: result.nonce
+        });
 
         Logger.log(getLogMessage(startTime));
 
@@ -137,14 +153,14 @@ export const challengeHandler = async (req: express.Request, res: express.Respon
             message: `Challenge ${result ? 'successful' : 'failed'}`,
             handle,
             challengeResult: result
-        }
+        };
 
         return res.status(200).json(body);
     } catch (error) {
         Logger.log({ message: JSON.stringify(error), category: LogCategory.ERROR });
         return res.status(500).json({
             error: true,
-            message: "An error occurred.",
+            message: 'An error occurred.'
         });
     }
 };

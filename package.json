@@ -20,7 +20,8 @@
     "logs": "forever logs app",
     "restart": "forever restart dist/server.js || forever start ./development.json",
     "reset": "forever stopall && forever start ./development.json",
-    "restartall": "forever restartall"
+    "restartall": "forever restartall",
+    "build:tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@appsignal/express": "^1.0.13",
