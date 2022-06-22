@@ -6,20 +6,19 @@ const Pinata = require('@pinata/sdk');
 import { BlockFrostIPFS } from '@blockfrost/blockfrost-js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { ActiveSession } from '../models/ActiveSession';
 import { ReservedHandles } from '../models/firestore/collections/ReservedHandles';
 import { TWITTER_OG_SIZE } from './constants';
 import { LogCategory, Logger } from './Logger';
 import { getRaritySlug } from './nft';
 
-export const createNFTImages = async (sessions: ActiveSession[]) => {
+export const createNFTImages = async (handles: string[]) => {
   const rarities = {};
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
 
-  sessions.forEach((session) => {
+  handles.forEach((handle) => {
     const outputPath = resolve(__dirname, '../../bin');
-    const output = `${outputPath}/${session.handle}.jpg`;
-    const twitterHandle = twitterHandles.find(({ handle }) => handle === session.handle);
+    const output = `${outputPath}/${handle}.jpg`;
+    const twitterHandle = twitterHandles.find(({ handle }) => handle === handle);
     const ogNumber = twitterHandle?.index;
     let templateContent = {};
     if (twitterHandle && ogNumber) {
@@ -29,12 +28,12 @@ export const createNFTImages = async (sessions: ActiveSession[]) => {
         ogTotal: TWITTER_OG_SIZE
       }
     }
-    const slug = getRaritySlug(session.handle)
+    const slug = getRaritySlug(handle)
     if (!rarities[slug]) {
       rarities[slug] = [];
     }
     rarities[slug].push({
-      handle: session.handle,
+      handle,
       ...templateContent,
       output
     });

@@ -11,7 +11,7 @@ import { asyncForEach } from '../utils';
 import { MintingWallet } from "../../models/firestore/collections/StateData";
 import { SettingsRepo } from "../../models/firestore/collections/SettingsRepo";
 import { ActiveSession } from '../../models/ActiveSession';
-import { applyAxiosResponeInterceptor } from "../../helpers/http"
+import { applyAxiosResponseInterceptor } from "../../helpers/http"
 
 export const getAddressWalletsFromTransactions = async (txs: GraphqlCardanoSenderAddress[]): Promise<wallet.AddressWallet[]> => {
   return txs.map((tx, index) => {
@@ -30,9 +30,9 @@ export const getAddressWalletsFromTransactions = async (txs: GraphqlCardanoSende
 
 export const getNetworkConfig = () => {
   const networkConfig =
-    process.env.NODE_ENV === "development"
-      ? wallet.Config.Testnet
-      : wallet.Config.Mainnet;
+    process.env.NODE_ENV === "production"
+      ? wallet.Config.Mainnet
+      : wallet.Config.Testnet;
 
   return networkConfig;
 }
@@ -61,7 +61,7 @@ export const generateMetadataFromPaidSessions = async (sessions: ActiveSession[]
   const policyId = getPolicyId();
   const twitterHandles = (await ReservedHandles.getReservedHandles()).twitter;
 
-  await createNFTImages(sessions);
+  await createNFTImages(sessions.map(session => session.handle));
 
   const handlesMetadata = await asyncForEach(sessions, async (session) => {
     const og = twitterHandles.some(({ handle: twitterHandle, index }) => twitterHandle === session.handle && index);
@@ -154,7 +154,7 @@ export const buildTransactionFromPaidSessions = async (sessions: ActiveSession[]
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  applyAxiosResponeInterceptor(ourWallet.coinSelectionsApi.axios);
+  applyAxiosResponseInterceptor(ourWallet.coinSelectionsApi.axios);
 
   // Purchase data.
   const returnAddresses = sessions.map(session => session.returnAddress).filter(Boolean) as string[];
