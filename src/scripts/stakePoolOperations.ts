@@ -8,6 +8,7 @@ import { getStakePoolsById, getTransactionsByHashes } from '../helpers/graphql';
 
 import * as admin from 'firebase-admin';
 import { ReservedHandles } from '../models/firestore/collections/ReservedHandles';
+import { asyncForEach, awaitForEach, chunk } from '../helpers/utils';
 
 const getDuplicateTickers = async () => {
     const stakePools = await StakePools.getAllStakePools(0);
@@ -214,11 +215,47 @@ const intersectReservedWithPools = async () => {
     console.log(JSON.stringify(reservedNotInPools));
 };
 
+const verifyRetired = async () => {
+    const stakePools = await StakePools.getAllStakePools(0);
+    const pools = stakePools.map((pool) => pool.data() as StakePool);
+
+    console.log('pools length', pools.length);
+
+    const poolsChunks = chunk(pools, 20);
+
+    const retiredPools: string[] = [];
+
+    await awaitForEach(poolsChunks, async (poolChunk, index) => {
+        await asyncForEach(poolChunk, async (pool) => {
+            // get the date of retirement
+            const registrationTransactions = await getTransactionsByHashes(pool.registration ?? []);
+            const registrationDates = registrationTransactions.map((tx) => new Date(tx.includedAt));
+            registrationDates.sort((a, b) => b.getTime() - a.getTime());
+            const [newestRegistration] = registrationDates;
+
+            // get the last date of registration
+            const retirementTransactions = await getTransactionsByHashes(pool.retirement ?? []);
+            const retirementDates = retirementTransactions.map((tx) => new Date(tx.includedAt));
+            retirementDates.sort((a, b) => b.getTime() - a.getTime());
+            const [newestRetirement] = retirementDates;
+
+            // check if registration is newer
+            if (newestRegistration > newestRetirement) {
+                retiredPools.push(pool.ticker);
+            }
+        });
+
+        console.log(`completed chunk ${index} of ${poolsChunks.length}`);
+    });
+
+    console.log('retiredPools', retiredPools);
+};
+
 // GRAPHQL_ENDPOINT=http://graphql.testnet.adahandle.io:3100 BLOCKFROST_API_KEY=testnetXbmgIyDcm8QonJyY0uxTbpxvUqOYv8nH ts-node -r dotenv/config ./src/scripts/stakePoolOperations.ts
 const run = async () => {
     try {
         await Firebase.init();
-        await addPoolTicker('pool1r55hyfrd3tw6nzpkvf4rfceh2f04yph92fc462phnd0akp2s5r6', 'COFFE');
+        await verifyRetired();
     } catch (error) {
         console.log('ERROR', error);
         process.exit(1);

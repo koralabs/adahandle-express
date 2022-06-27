@@ -1,12 +1,12 @@
-import { BaseModel } from "./BaseModel";
+import { BaseModel } from './BaseModel';
 
 export interface HandlePrice {
-    defaultPrice: number,
-    weight: number,
-    underPercent: number,
-    overPercent: number,
-    minimum: number,
-    maximum: number
+    defaultPrice: number;
+    weight: number;
+    underPercent: number;
+    overPercent: number;
+    minimum: number;
+    maximum: number;
 }
 
 interface SettingsConstructor {
@@ -20,18 +20,19 @@ interface SettingsConstructor {
     chainLoadThresholdPercent?: number;
     ipfsRateDelay?: number;
     availableMintingServers?: string;
-    spoPageEnabled: boolean,
+    spoPageEnabled: boolean;
     dynamicPricingEnabled?: boolean;
+    walletConnectorEnabled?: boolean;
     fallBackAdaUsd?: number;
     handlePriceSettings?: {
-        basic: HandlePrice,
-        common: HandlePrice,
-        rare: HandlePrice,
-        ultraRare: HandlePrice
-    }
+        basic: HandlePrice;
+        common: HandlePrice;
+        rare: HandlePrice;
+        ultraRare: HandlePrice;
+    };
     walletAddressCollectionName?: string;
     minimumWalletAddressAmount: number;
-    priceTestMode: 'OFF'  | 'SKIP_APIS' | 'SKIP_MA';
+    priceTestMode: 'OFF' | 'SKIP_APIS' | 'SKIP_MA';
     priceAdaUsdTest: number;
 }
 
@@ -48,16 +49,17 @@ export class Settings extends BaseModel {
     public availableMintingServers?: string;
     public spoPageEnabled: boolean;
     public dynamicPricingEnabled?: boolean;
+    public walletConnectorEnabled?: boolean;
     public fallBackAdaUsd: number;
     public handlePriceSettings?: {
-        basic: HandlePrice,
-        common: HandlePrice,
-        rare: HandlePrice,
-        ultraRare: HandlePrice
-    }
+        basic: HandlePrice;
+        common: HandlePrice;
+        rare: HandlePrice;
+        ultraRare: HandlePrice;
+    };
     public walletAddressCollectionName?: string;
     public minimumWalletAddressAmount: number;
-    public priceTestMode: 'OFF'  | 'SKIP_APIS' | 'SKIP_MA';
+    public priceTestMode: 'OFF' | 'SKIP_APIS' | 'SKIP_MA';
     public priceAdaUsdTest: number;
 
     constructor({
@@ -70,12 +72,13 @@ export class Settings extends BaseModel {
         paymentWindowTimeoutMinutes = 60,
         chainLoadThresholdPercent = 85,
         ipfsRateDelay = 1000, // <- Blockfrost is 10/sec, Pinata is 3/sec. 2 servers at 1/sec = 2/sec
-        availableMintingServers = "testnet01,testnet02",
+        availableMintingServers = 'testnet01,testnet02',
         spoPageEnabled = true,
         dynamicPricingEnabled = false,
+        walletConnectorEnabled = false,
         fallBackAdaUsd = 1.25,
         handlePriceSettings,
-        walletAddressCollectionName = "walletAddresses",
+        walletAddressCollectionName = 'walletAddresses',
         minimumWalletAddressAmount = 10000,
         priceTestMode = 'OFF',
         priceAdaUsdTest = 0
@@ -93,6 +96,7 @@ export class Settings extends BaseModel {
         this.availableMintingServers = availableMintingServers;
         this.spoPageEnabled = spoPageEnabled;
         this.dynamicPricingEnabled = dynamicPricingEnabled;
+        this.walletConnectorEnabled = walletConnectorEnabled;
         this.fallBackAdaUsd = fallBackAdaUsd;
         this.handlePriceSettings = handlePriceSettings;
         this.walletAddressCollectionName = walletAddressCollectionName;
