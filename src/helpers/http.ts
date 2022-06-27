@@ -12,7 +12,7 @@ export const applyAxiosRequestInterceptor = (axiosInstance?: AxiosInstance) => {
         }
     );
 }
-export const applyAxiosResponeInterceptor = (axiosInstance?: AxiosInstance) => {
+export const applyAxiosResponseInterceptor = (axiosInstance?: AxiosInstance) => {
     const ax = axiosInstance || axios;
     ax.interceptors.response.use(
         function (successfulReq) {

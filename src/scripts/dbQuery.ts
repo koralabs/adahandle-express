@@ -1,22 +1,27 @@
 import { Firebase } from "../helpers/firebase";
+import { applicationDefault } from 'firebase-admin/app';
 import * as admin from "firebase-admin";
 import { Color } from "./scriptUtils"
 import { ActiveSession } from "../models/ActiveSession"
 
 
 const dbQuery = async (trim: number = 100) => {
-    await Firebase.init();
+    admin.initializeApp({
+        credential: applicationDefault(),
+        databaseURL: 'https://ada-handle-reserve-default-rtdb.firebaseio.com'
+    });
     console.time("query");
 
     // **************************************************
     // MODIFY THIS QUERY AS YOU SEE FIT FOR YOUR PURPOSE
     const snapshot = await admin.firestore().collection("activeSessions")
     //.where('status', '==', 'paid')
-    //.where('workflowStatus', '==', 'confirmed')
-    //.where('email', '==', 's2per@hotmail.com')
+    //.where('workflowStatus', '==', 'processing')
+    //.where('createdBySystem', '==', 'SPO')
+    //.where('cost', '==', 250000000)
     //.where('handle', '>=', 'xar').where('handle', '<=', 'xar' + '~') // This is a "startsWith" query
     //.orderBy('dateAdded', 'desc')
-    .select('handle')
+    //.select('handle')
     //.limit(10)
     .get();
     // **************************************************
