@@ -66,7 +66,7 @@ export const verifyHandler: express.RequestHandler = async (req, res) => {
             paymentAddress: session.paymentAddress,
             emailAddress: session.emailAddress,
             status: session.status,
-            createBySystem: session.createdBySystem
+            createdBySystem: session.createdBySystem
         }));
 
         const settings = await SettingsRepo.getSettings();
