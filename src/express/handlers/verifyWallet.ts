@@ -41,7 +41,8 @@ export const verifyWalletHandler = async (req: express.Request, res: express.Res
             handle: session.handle,
             paymentAddress: session.paymentAddress,
             emailAddress: session.emailAddress,
-            status: session.status
+            status: session.status,
+            createBySystem: session.createdBySystem
         }));
 
         const settings = await SettingsRepo.getSettings();
