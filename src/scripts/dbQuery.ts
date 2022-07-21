@@ -15,8 +15,8 @@ const dbQuery = async (trim: number = 100) => {
     // **************************************************
     // MODIFY THIS QUERY AS YOU SEE FIT FOR YOUR PURPOSE
     const snapshot = await admin.firestore().collection("activeSessions")
-    //.where('status', '==', 'paid')
-    //.where('workflowStatus', '==', 'processing')
+    .where('status', '==', 'paid')
+    .where('workflowStatus', '==', 'submitted')
     //.where('createdBySystem', '==', 'SPO')
     //.where('cost', '==', 250000000)
     //.where('handle', '>=', 'xar').where('handle', '<=', 'xar' + '~') // This is a "startsWith" query
@@ -28,7 +28,7 @@ const dbQuery = async (trim: number = 100) => {
 
     let fields = {};
     if (snapshot?.size > 0) {
-        const filtered = snapshot.docs.filter(d => d);
+        const filtered = snapshot.docs.filter(d => d); // <-- change this to do additional filtering if the current firestore indexes don't allow 
         for (let record of filtered) {
             for (const [key, value] of Object.entries(record.data())) {
                 let length = 0;

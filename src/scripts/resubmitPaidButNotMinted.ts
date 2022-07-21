@@ -6,8 +6,7 @@ import { asyncForEach } from "../helpers/utils";
 import { ReservedHandles } from "../models/firestore/collections/ReservedHandles";
 import { GraphqlHandleExistsResponse, handleExists } from "../helpers/graphql";
 
-const paidButNotMinted = [
-]
+const paidButNotMinted = []
 
 const run = async () => {
     await Firebase.init();
@@ -17,13 +16,18 @@ const run = async () => {
         console.log(`index ${index} for ${handle}`);
         const exists: GraphqlHandleExistsResponse = await handleExists(handle);
         const response = await ReservedHandles.checkAvailability(handle)
-        if (!exists.exists && response.available) {
+        if (!exists.exists && response.type == 'pending') {
             await admin.firestore().runTransaction(async (t) => {
                 await MintingCache.removeHandlesFromMintCache([handle]);
                 const snapshot = await t.get(admin.firestore().collection("activeSessions").where("handle", "==", handle));
                 if (snapshot && snapshot.size > 0) {
                     const sessions = snapshot.docs.map(d => d.data() as ActiveSession)
-                        .filter(s => s.returnAddress && s.status == Status.REFUNDABLE && s.refundAmount || 0 >= s.cost)
+                        .filter(s => s.returnAddress 
+                            && (
+                                (s.status == Status.REFUNDABLE && (s.refundAmount || 0) >= s.cost)
+                                || (s.status == Status.PAID && s.workflowStatus == WorkflowStatus.SUBMITTED)
+                            )
+                        )
                         .sort((a, b) => ((b.dateAdded ?? 0) - (a.dateAdded ?? 0)));
                     if (sessions && sessions.length > 0) {
                         const handleReservation = sessions[0];
