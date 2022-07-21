@@ -190,17 +190,17 @@ export const mintPaidSessionsHandler = async (req: express.Request, res: express
       });
     }
 
-    if (availableWallet.balance && availableWallet.balance < availableWallet.minBalance) {
-      await StateData.unlockMintingWallet(availableWallet);
-      Logger.log({ message: `Low balance notification for ${availableWallet.id}`, event: 'mintPaidSessionsHandler.availableWallet.balance', category: LogCategory.NOTIFY });
-    }
-
     if (availableWallet.balance && availableWallet.balance < toLovelace(100)) {
       Logger.log({ message: `${availableWallet.id} balance is lower than 100 ADA. LOCKING`, event: 'mintPaidSessionsHandler.availableWallet.balance', category: LogCategory.NOTIFY });
       return res.status(400).json({
         error: true,
         message: `Not enough balance in wallet ${availableWallet.id}`
       });
+    }
+
+    if (availableWallet.balance && availableWallet.balance < availableWallet.minBalance) {
+      await StateData.unlockMintingWallet(availableWallet);
+      Logger.log({ message: `Low balance notification for ${availableWallet.id}`, event: 'mintPaidSessionsHandler.availableWallet.balance', category: LogCategory.NOTIFY });
     }
 
     // This cron works slightly differently since multiple servers are allowed to call it.
