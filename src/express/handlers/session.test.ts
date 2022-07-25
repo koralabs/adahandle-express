@@ -264,6 +264,56 @@ describe('Session Tests', () => {
         });
     });
 
+    it('Should save eternlFee and etnerlFeeAddress to session', async () => {
+        mockRequest = {
+            headers: {
+                'x-access-token': 'test-access-token',
+                'x-session-token': 'test-session-token'
+            }
+        };
+
+        const validAddress = 'burrito_tacos123';
+        const validHandle = 'taco';
+
+        jest.spyOn(jwtHelper, 'getKey').mockResolvedValue('valid');
+
+        jest.spyOn(jwt, 'verify')
+            // @ts-ignore
+            .mockReturnValueOnce('valid')
+            // @ts-ignore
+            .mockReturnValueOnce({
+                handle: validHandle,
+                emailAddress: '+1234567890',
+                cost: 1001,
+                eternlFeeAddress: 'addr1test_address'
+            });
+        jest.spyOn(walletHelper, 'getNewAddress').mockResolvedValue(validAddress);
+        jest.spyOn(ActiveSessions, 'getActiveSessionsByEmail').mockResolvedValue([]);
+        const mockedAddActiveSession = jest.spyOn(ActiveSessions, 'addActiveSession').mockResolvedValue(true);
+
+        await sessionHandler(mockRequest as Request, mockResponse as Response);
+
+        expect(mockedAddActiveSession).toHaveBeenCalledWith({
+            attempts: 0,
+            handle: validHandle,
+            paymentAddress: validAddress,
+            emailAddress: '+1234567890',
+            cost: 1001000000,
+            start: expect.any(Number),
+            dateAdded: expect.any(Number),
+            createdBySystem: 'UI',
+            status: 'pending',
+            eternlFee: 1,
+            eternlFeeAddress: 'addr1test_address'
+        });
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+            address: 'burrito_tacos123',
+            error: false,
+            message: 'Success! Session initiated.'
+        });
+    });
+
     describe('SPO tests', () => {
         it('Should send 200 successful response', async () => {
             mockRequest = {
